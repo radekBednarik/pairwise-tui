@@ -64,6 +64,7 @@ export function App() {
 	const [activePanel, setActivePanel] = useState<ActivePanel>("params");
 	const [selectedParamIndex, setSelectedParamIndex] = useState(0);
 	const [newParamName, setNewParamName] = useState("");
+	const newParamNameRef = useRef("");
 	const [valuesInput, setValuesInput] = useState("");
 	const [constraintsKey, setConstraintsKey] = useState(0);
 
@@ -112,9 +113,15 @@ export function App() {
 		[selectedParamIndex],
 	);
 
+	const handleNewParamNameChange = useCallback((name: string) => {
+		newParamNameRef.current = name;
+		setNewParamName(name);
+	}, []);
+
 	const handleConfirmAddParam = useCallback(() => {
-		const name = newParamName.trim();
+		const name = newParamNameRef.current.trim();
 		if (!name) return;
+		newParamNameRef.current = "";
 		setModel((m) => {
 			const newParams = [...m.parameters, { name, values: [] }];
 			setSelectedParamIndex(newParams.length - 1);
@@ -123,7 +130,7 @@ export function App() {
 		});
 		setNewParamName("");
 		setActivePanel("params");
-	}, [newParamName]);
+	}, []);
 
 	const handleDeleteParam = useCallback(() => {
 		setModel((m) => {
@@ -412,7 +419,7 @@ export function App() {
 						constraintsRef={constraintsRef}
 						onParamNavigate={handleParamNavigate}
 						onValuesChange={handleValuesChange}
-						onNewParamNameChange={setNewParamName}
+						onNewParamNameChange={handleNewParamNameChange}
 					/>
 				)}
 				{activeTab === 1 && (
