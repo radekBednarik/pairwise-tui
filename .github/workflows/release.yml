@@ -27,7 +27,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pict-win
-          path: pict-src/build/cli/pict.exe
+          path: pict-src/build/pict.exe
 
   release:
     name: Build and Release
