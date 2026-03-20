@@ -2,23 +2,12 @@
 
 A terminal UI for generating [PICT](https://github.com/microsoft/pict) pairwise test cases. Define parameters, configure options, and generate combinatorial test cases — all from the terminal.
 
-## Requirements
+## Download & Run
 
-- [Bun](https://bun.sh) runtime
-- Linux or Windows (PICT binaries for both are embedded)
+Pre-built binaries for Linux and Windows are available on the [Releases page](../../releases) — no runtime required.
 
-## Usage
-
-```bash
-bun install
-bun run start
-```
-
-For development with auto-reload:
-
-```bash
-bun run dev
-```
+1. Download the binary for your platform from the latest release.
+3. Run it: `./pairwise-tui.exe` on Windows or `./pairwise-tui` on Linux.
 
 ## Interface
 
@@ -65,6 +54,17 @@ Language: EN, DE, FR
 IF [OS] = "Linux" THEN [Browser] <> "Safari";
 ```
 
+## Development
+
+### Requirements
+
+- [Bun](https://bun.sh) runtime
+
+```bash
+bun install
+bun run dev
+```
+
 ## Building standalone executables
 
 ```bash
@@ -72,10 +72,6 @@ bun run build:dist
 ```
 
 Outputs self-contained executables to `dist/` for Linux and Windows (no Bun required to run).
-
-## Releases
-
-Pre-built binaries for Linux and Windows are available on the [Releases page](../../releases).
 
 To create a new release:
 
