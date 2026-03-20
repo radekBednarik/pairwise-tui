@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
+    "jsxImportSource": "@opentui/react",
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
