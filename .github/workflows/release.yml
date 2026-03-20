@@ -23,11 +23,19 @@ jobs:
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
           cmake --build pict-src/build --config Release
 
+      - name: Stage pict.exe
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path pict-src/build -Filter pict.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw "pict.exe not found after build" }
+          Write-Host "Found: $($exe.FullName)"
+          Copy-Item $exe.FullName pict.exe
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pict-win
-          path: pict-src/build/pict.exe
+          path: pict.exe
 
   release:
     name: Build and Release
