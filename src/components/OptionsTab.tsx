@@ -61,9 +61,7 @@ export function OptionsTab({
 					Format:
 				</text>
 				<text fg="#5fafff">{outputConfig.format.toUpperCase()}</text>
-				{activeField === "format" && (
-					<text fg="#888888"> [Enter] cycle</text>
-				)}
+				{activeField === "format" && <text fg="#888888"> [Enter] cycle</text>}
 			</box>
 
 			<text fg="#5fafff">

@@ -525,10 +525,14 @@ export function App() {
 				if (activeOptionField === "format") {
 					const formats: OutputFormat[] = ["txt", "json", "csv", "xlsx"];
 					const next =
-						formats[(formats.indexOf(outputConfig.format) + 1) % formats.length] ??
-						"txt";
+						formats[
+							(formats.indexOf(outputConfig.format) + 1) % formats.length
+						] ?? "txt";
 					const base = outputConfig.filePath.replace(/\.[^.]+$/, "");
-					setOutputConfig({ format: next, filePath: `${base}${FORMAT_EXTENSIONS[next]}` });
+					setOutputConfig({
+						format: next,
+						filePath: `${base}${FORMAT_EXTENSIONS[next]}`,
+					});
 					return;
 				}
 				if (activeOptionField === "randomize") {

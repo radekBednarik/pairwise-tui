@@ -38,8 +38,8 @@ const writers: Record<OutputFormat, OutputWriter> = {
 					? `"${v.replace(/"/g, '""')}"`
 					: v;
 			const lines = [
-				headers.map(escape).join(","),
-				...rows.map((r) => headers.map((h) => escape(r[h] ?? "")).join(",")),
+				headers.map(csvEscape).join(","),
+				...rows.map((r) => headers.map((h) => csvEscape(r[h] ?? "")).join(",")),
 			];
 			await Bun.write(filePath, `${lines.join("\n")}\n`);
 		},
