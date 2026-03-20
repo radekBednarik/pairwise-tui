@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "bun --watch src/index.tsx",
     "build": "bun build.ts",
-    "start": "bun src/index.tsx"
+    "start": "bun src/index.tsx",
+    "check": "biome check .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
     "skills": "^1.4.5"
