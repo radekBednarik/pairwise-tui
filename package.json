@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun --watch src/index.tsx",
-		"build": "bun build.ts",
+		"build::dist": "bun build.ts",
 		"start": "bun src/index.tsx",
 		"check": "biome check .",
 		"typecheck": "tsc --noEmit"
