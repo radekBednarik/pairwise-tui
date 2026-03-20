@@ -7,6 +7,7 @@ import { StatusBar } from "./components/StatusBar";
 import { saveTestCases } from "./output/writer";
 import { buildModelFile, parseModelFile } from "./pict/model";
 import { runPict } from "./pict/runner";
+import { loadSettings, saveSettings } from "./settings/store";
 import type { OutputConfig, PictModel, PictOptions, TestCase } from "./types";
 
 const TAB_OPTIONS = [
@@ -56,6 +57,22 @@ export function App() {
 	const [status, setStatus] = useState("");
 	const [statusIsError, setStatusIsError] = useState(false);
 	const [isGenerating, setIsGenerating] = useState(false);
+
+	// --- Persistent settings ---
+	const settingsLoadedRef = useRef(false);
+
+	useEffect(() => {
+		loadSettings().then((s) => {
+			setOptions(s.options);
+			setOutputConfig(s.outputConfig);
+			settingsLoadedRef.current = true;
+		});
+	}, []);
+
+	useEffect(() => {
+		if (!settingsLoadedRef.current) return;
+		void saveSettings({ options, outputConfig });
+	}, [options, outputConfig]);
 
 	// --- Model tab state ---
 	const [activePanel, setActivePanel] = useState<ActivePanel>("params");
