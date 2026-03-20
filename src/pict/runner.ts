@@ -1,4 +1,5 @@
-import { chmodSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync } from "node:fs";
+import { unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // Embedded at compile time — Bun extracts to a temp path at runtime
@@ -11,17 +12,24 @@ import { buildModelFile } from "./model";
 
 let extractedBinaryPath: string | null = null;
 
-export function getPictBinaryPath(): string {
+export async function getPictBinaryPath(): Promise<string> {
 	if (extractedBinaryPath) return extractedBinaryPath;
 
 	const sourcePath = process.platform === "win32" ? pictWinPath : pictLinuxPath;
 	const ext = process.platform === "win32" ? ".exe" : "";
 	const tmpPath = join(tmpdir(), `pairwise-tui-pict${ext}`);
 
-	// sourcePath may be a /$bunfs/ virtual path (compiled binary) or a real
-	// filesystem path (dev mode). readFileSync handles both cases in Bun.
-	const content = readFileSync(sourcePath);
-	writeFileSync(tmpPath, content);
+	// Use Bun.file + Bun.write to reliably read /$bunfs/ virtual paths in
+	// cross-compiled binaries (node:fs shims may fail on Windows builds).
+	const content = await Bun.file(sourcePath).arrayBuffer();
+	if (content.byteLength === 0) {
+		throw new Error(`Failed to read embedded pict binary: ${sourcePath}`);
+	}
+	await Bun.write(tmpPath, content);
+
+	if ((await Bun.file(tmpPath).size) === 0) {
+		throw new Error(`Binary extraction failed — file is empty: ${tmpPath}`);
+	}
 
 	if (process.platform !== "win32") {
 		try {
@@ -39,9 +47,9 @@ export async function runPict(
 	model: PictModel,
 	options: PictOptions,
 ): Promise<TestCase[]> {
-	const binaryPath = getPictBinaryPath();
+	const binaryPath = await getPictBinaryPath();
 	const modelContent = buildModelFile(model);
-	const tmpPath = `${tmpdir()}/pict-${Date.now()}.txt`;
+	const tmpPath = join(tmpdir(), `pict-${Date.now()}.txt`);
 
 	await Bun.write(tmpPath, modelContent);
 
@@ -53,7 +61,7 @@ export async function runPict(
 	const result = Bun.spawnSync(args);
 
 	try {
-		unlinkSync(tmpPath);
+		await unlink(tmpPath);
 	} catch {
 		/* ignore */
 	}
