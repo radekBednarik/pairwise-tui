@@ -1,5 +1,6 @@
-import { chmodSync, unlinkSync } from "node:fs";
+import { chmodSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 // Embedded at compile time — Bun extracts to a temp path at runtime
 // @ts-expect-error - Bun file asset embedding
 import pictLinuxPath from "../../binaries/pict" with { type: "file" };
@@ -8,16 +9,30 @@ import pictWinPath from "../../binaries/pict.exe" with { type: "file" };
 import type { PictModel, PictOptions, TestCase } from "../types";
 import { buildModelFile } from "./model";
 
+let extractedBinaryPath: string | null = null;
+
 export function getPictBinaryPath(): string {
-	const binaryPath = process.platform === "win32" ? pictWinPath : pictLinuxPath;
+	if (extractedBinaryPath) return extractedBinaryPath;
+
+	const sourcePath = process.platform === "win32" ? pictWinPath : pictLinuxPath;
+	const ext = process.platform === "win32" ? ".exe" : "";
+	const tmpPath = join(tmpdir(), `pairwise-tui-pict${ext}`);
+
+	// sourcePath may be a /$bunfs/ virtual path (compiled binary) or a real
+	// filesystem path (dev mode). readFileSync handles both cases in Bun.
+	const content = readFileSync(sourcePath);
+	writeFileSync(tmpPath, content);
+
 	if (process.platform !== "win32") {
 		try {
-			chmodSync(binaryPath, 0o755);
+			chmodSync(tmpPath, 0o755);
 		} catch {
 			/* ignore */
 		}
 	}
-	return binaryPath;
+
+	extractedBinaryPath = tmpPath;
+	return tmpPath;
 }
 
 export async function runPict(
