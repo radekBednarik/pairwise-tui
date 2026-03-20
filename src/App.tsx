@@ -34,9 +34,6 @@ const OPTION_FIELDS: ActiveOptionField[] = [
 export function App() {
 	const renderer = useRenderer();
 
-	// Refs for imperative access to OpenTUI renderables
-	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
-	const tabSelectRef = useRef<any>(null);
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 	const constraintsRef = useRef<any>(null);
 
@@ -74,7 +71,6 @@ export function App() {
 
 	const setActiveTab = useCallback((tab: number) => {
 		setActiveTabState(tab);
-		tabSelectRef.current?.setSelectedIndex(tab);
 	}, []);
 
 	// Sync valuesInput when selected param changes (intentionally omits model.parameters
@@ -388,25 +384,25 @@ export function App() {
 	return (
 		<box flexDirection="column" width="100%" height="100%">
 			{/* Header */}
-			<box
-				flexDirection="row"
-				alignItems="center"
-				gap={2}
-				paddingX={2}
-				backgroundColor="#0d1117"
-			>
-				<text fg="#5fafff">
-					<strong> Pairwise TUI </strong>
-				</text>
-				<tab-select
-					ref={tabSelectRef}
-					options={TAB_OPTIONS}
-					onChange={(index) => setActiveTabState(index)}
-					tabWidth={14}
-					showScrollArrows={false}
-					showUnderline={false}
-					showDescription={false}
-				/>
+			<box flexDirection="column" backgroundColor="#0d1117" paddingX={2}>
+				<box paddingY={0}>
+					<text fg="#5fafff">
+						<strong> Pairwise TUI </strong>
+					</text>
+				</box>
+				<box flexDirection="row" gap={1}>
+					{TAB_OPTIONS.map((tab, i) => (
+						<box
+							key={tab.name}
+							backgroundColor={activeTab === i ? "#1a3a5c" : "#0d1117"}
+							paddingX={1}
+						>
+							<text fg={activeTab === i ? "#ffffff" : "#555566"}>
+								{`${i + 1}:${tab.name}`}
+							</text>
+						</box>
+					))}
+				</box>
 			</box>
 
 			{/* Content */}
