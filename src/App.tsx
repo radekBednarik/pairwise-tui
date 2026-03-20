@@ -2,11 +2,13 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
+import { DOC_CHAPTERS } from "./docs/pict-docs";
 import { saveTestCases } from "./output/writer";
 import { buildModelFile, parseModelFile } from "./pict/model";
 import { runPict } from "./pict/runner";
@@ -73,6 +75,10 @@ export function App() {
 	const [pickerFiles, setPickerFiles] = useState<string[]>([]);
 	const [pickerIndex, setPickerIndex] = useState(0);
 	const [pickerOpen, setPickerOpen] = useState(false);
+	const [docsOpen, setDocsOpen] = useState(false);
+	const [docsView, setDocsView] = useState<"list" | "chapter">("list");
+	const [docsChapterIdx, setDocsChapterIdx] = useState(0);
+	const [docsScrollOffset, setDocsScrollOffset] = useState(0);
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [status, setStatus] = useState("");
 	const [statusIsError, setStatusIsError] = useState(false);
@@ -325,6 +331,44 @@ export function App() {
 			return;
 		}
 
+		// Docs overlay intercept
+		if (docsOpen) {
+			if (docsView === "list") {
+				if (name === "escape") {
+					setDocsOpen(false);
+					setDocsView("list");
+					return;
+				}
+				if (name === "up") {
+					setDocsChapterIdx((i) => Math.max(0, i - 1));
+					return;
+				}
+				if (name === "down") {
+					setDocsChapterIdx((i) => Math.min(DOC_CHAPTERS.length - 1, i + 1));
+					return;
+				}
+				if (name === "return") {
+					setDocsScrollOffset(0);
+					setDocsView("chapter");
+					return;
+				}
+			} else {
+				if (name === "escape") {
+					setDocsView("list");
+					return;
+				}
+				if (name === "up") {
+					setDocsScrollOffset((o) => Math.max(0, o - 1));
+					return;
+				}
+				if (name === "down") {
+					setDocsScrollOffset((o) => o + 1);
+					return;
+				}
+			}
+			return; // swallow all other keys while docs open
+		}
+
 		// Escape: exit current input mode
 		if (name === "escape") {
 			if (activePanel === "adding") {
@@ -424,6 +468,11 @@ export function App() {
 		}
 
 		// Global actions
+		if (name === "?") {
+			setDocsOpen(true);
+			setDocsView("list");
+			return;
+		}
 		if (name === "q") {
 			renderer.destroy();
 			return;
@@ -508,7 +557,13 @@ export function App() {
 
 			{/* Content */}
 			<box flexGrow={1} flexDirection="column">
-				{pickerOpen ? (
+				{docsOpen ? (
+					<DocOverlay
+						view={docsView}
+						selectedChapterIdx={docsChapterIdx}
+						scrollOffset={docsScrollOffset}
+					/>
+				) : pickerOpen ? (
 					<FilePickerOverlay files={pickerFiles} selectedIndex={pickerIndex} />
 				) : (
 					<>
@@ -557,7 +612,7 @@ export function App() {
 			{/* Status bar */}
 			<StatusBar
 				activeTab={activeTab}
-				activePanel={pickerOpen ? "picker" : activePanel}
+				activePanel={docsOpen ? "docs" : pickerOpen ? "picker" : activePanel}
 				addingParam={activePanel === "adding"}
 				hasResults={results.length > 0}
 				activeOptionField={activeOptionField}

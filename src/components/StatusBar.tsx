@@ -54,6 +54,14 @@ function getHints(
 		{ key: "q", label: "Quit" },
 	];
 
+	if (activePanel === "docs") {
+		return [
+			{ key: "↑↓", label: "Navigate" },
+			{ key: "Enter", label: "Open" },
+			{ key: "Esc", label: "Close" },
+		];
+	}
+
 	if (activePanel === "picker") {
 		return [
 			{ key: "↑↓", label: "Navigate" },
@@ -79,6 +87,7 @@ function getHints(
 				{ key: "g", label: "Generate" },
 				{ key: "o", label: "Open model" },
 				{ key: "w", label: "Save model" },
+				{ key: "?", label: "Docs" },
 				...common,
 			];
 		}
@@ -96,6 +105,7 @@ function getHints(
 			return [
 				{ key: "Tab", label: "Focus field" },
 				{ key: "g", label: "Generate" },
+				{ key: "?", label: "Docs" },
 				...common,
 			];
 		}
@@ -111,6 +121,7 @@ function getHints(
 			{ key: "↑↓", label: "Scroll" },
 		];
 		if (hasResults) hints.push({ key: "s", label: "Save results" });
+		hints.push({ key: "?", label: "Docs" });
 		return [...hints, ...common];
 	}
 
