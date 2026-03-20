@@ -30,6 +30,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `q` / `Ctrl+C` | Quit |
 | `1` / `2` / `3` | Switch tabs |
 | `[` / `]` | Previous / next tab |
+| `?` | Opens documentation |
 
 **Model tab — params panel:**
 
