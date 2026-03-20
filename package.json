@@ -1,0 +1,13 @@
+{
+  "name": "pairwise-tui",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "skills": "^1.4.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
