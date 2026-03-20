@@ -413,7 +413,6 @@ export function App() {
 						onParamNavigate={handleParamNavigate}
 						onValuesChange={handleValuesChange}
 						onNewParamNameChange={setNewParamName}
-						onConfirmAddParam={handleConfirmAddParam}
 					/>
 				)}
 				{activeTab === 1 && (

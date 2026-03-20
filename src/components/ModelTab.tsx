@@ -13,7 +13,6 @@ interface ModelTabProps {
 	onParamNavigate: (index: number) => void;
 	onValuesChange: (value: string) => void;
 	onNewParamNameChange: (name: string) => void;
-	onConfirmAddParam: () => void;
 }
 
 export function ModelTab({
@@ -27,7 +26,6 @@ export function ModelTab({
 	onParamNavigate,
 	onValuesChange,
 	onNewParamNameChange,
-	onConfirmAddParam,
 }: ModelTabProps) {
 	const paramOptions = model.parameters.map((p) => ({
 		name: p.name,
@@ -61,7 +59,6 @@ export function ModelTab({
 								<input
 									value={newParamName}
 									onChange={onNewParamNameChange}
-									onSubmit={onConfirmAddParam}
 									focused
 									placeholder="param name..."
 									backgroundColor="#1a2a4a"
