@@ -403,7 +403,9 @@ export function App() {
 					options={TAB_OPTIONS}
 					onChange={(index) => setActiveTabState(index)}
 					tabWidth={14}
-\t\t\t\t\tshowScrollArrows={false}
+					showScrollArrows={false}
+					showUnderline={false}
+					showDescription={false}
 				/>
 			</box>
 
