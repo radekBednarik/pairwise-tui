@@ -9,13 +9,14 @@ import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
 import { DOC_CHAPTERS } from "./docs/pict-docs";
-import { saveTestCases } from "./output/writer";
+import { FORMAT_EXTENSIONS, saveTestCases } from "./output/writer";
 import { buildModelFile, parseModelFile } from "./pict/model";
 import { runPict } from "./pict/runner";
 import { loadSettings, saveSettings } from "./settings/store";
 import type {
 	ModelStorageConfig,
 	OutputConfig,
+	OutputFormat,
 	PictModel,
 	PictOptions,
 	TestCase,
@@ -30,6 +31,7 @@ const TAB_OPTIONS = [
 type ActivePanel = "params" | "values" | "constraints" | "adding";
 type ActiveOptionField =
 	| "filepath"
+	| "format"
 	| "order"
 	| "randomize"
 	| "caseSensitive"
@@ -39,6 +41,7 @@ type ActiveOptionField =
 
 const OPTION_FIELDS: ActiveOptionField[] = [
 	"filepath",
+	"format",
 	"order",
 	"randomize",
 	"caseSensitive",
@@ -519,6 +522,15 @@ export function App() {
 		// Options tab: toggle fields with Enter
 		if (activeTab === 1) {
 			if (name === "return") {
+				if (activeOptionField === "format") {
+					const formats: OutputFormat[] = ["txt", "json", "csv", "xlsx"];
+					const next =
+						formats[(formats.indexOf(outputConfig.format) + 1) % formats.length] ??
+						"txt";
+					const base = outputConfig.filePath.replace(/\.[^.]+$/, "");
+					setOutputConfig({ format: next, filePath: `${base}${FORMAT_EXTENSIONS[next]}` });
+					return;
+				}
 				if (activeOptionField === "randomize") {
 					setOptions((o) => ({ ...o, randomize: !o.randomize }));
 					return;

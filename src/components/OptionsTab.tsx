@@ -6,6 +6,7 @@ interface OptionsTabProps {
 	modelStorage: ModelStorageConfig;
 	activeField:
 		| "filepath"
+		| "format"
 		| "order"
 		| "randomize"
 		| "caseSensitive"
@@ -49,17 +50,20 @@ export function OptionsTab({
 				/>
 			</box>
 
-			<box flexDirection="row" gap={2} alignItems="center">
+			<box
+				flexDirection="row"
+				gap={2}
+				alignItems="center"
+				paddingX={1}
+				backgroundColor={activeField === "format" ? "#1a2a4a" : "transparent"}
+			>
 				<text fg="#aaaaaa" width={20}>
 					Format:
 				</text>
-				<box
-					border
-					borderColor={activeField === "none" ? "#444444" : "#5fafff"}
-					paddingX={2}
-				>
-					<text fg="#cccccc">txt (TSV)</text>
-				</box>
+				<text fg="#5fafff">{outputConfig.format.toUpperCase()}</text>
+				{activeField === "format" && (
+					<text fg="#888888"> [Enter] cycle</text>
+				)}
 			</box>
 
 			<text fg="#5fafff">

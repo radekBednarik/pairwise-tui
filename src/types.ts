@@ -19,7 +19,7 @@ export interface OutputConfig {
 	format: OutputFormat;
 }
 
-export type OutputFormat = "txt";
+export type OutputFormat = "txt" | "json" | "csv" | "xlsx";
 
 export interface ModelStorageConfig {
 	storagePath: string;
