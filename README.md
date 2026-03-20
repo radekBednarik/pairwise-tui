@@ -72,3 +72,16 @@ bun run build:dist
 ```
 
 Outputs self-contained executables to `dist/` for Linux and Windows (no Bun required to run).
+
+## Releases
+
+Pre-built binaries for Linux and Windows are available on the [Releases page](../../releases).
+
+To create a new release:
+
+```bash
+git tag v1.2.3
+git push --tags
+```
+
+This triggers the GitHub Actions release workflow, which builds both executables and publishes them to the Releases page automatically.
