@@ -1,16 +1,18 @@
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { OutputConfig, PictOptions } from "../types";
+import type { ModelStorageConfig, OutputConfig, PictOptions } from "../types";
 
 export interface AppSettings {
 	options: PictOptions;
 	outputConfig: OutputConfig;
+	modelStorage: ModelStorageConfig;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
 	options: { order: 2, randomize: false, caseSensitive: false },
 	outputConfig: { filePath: "./output.txt", format: "txt" },
+	modelStorage: { storagePath: "./", fileTemplate: "model_{timestamp}" },
 };
 
 function getConfigPath(): string {
@@ -32,6 +34,10 @@ export async function loadSettings(): Promise<AppSettings> {
 			outputConfig: {
 				...DEFAULT_SETTINGS.outputConfig,
 				...parsed.outputConfig,
+			},
+			modelStorage: {
+				...DEFAULT_SETTINGS.modelStorage,
+				...parsed.modelStorage,
 			},
 		};
 	} catch {

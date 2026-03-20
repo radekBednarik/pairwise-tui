@@ -54,6 +54,14 @@ function getHints(
 		{ key: "q", label: "Quit" },
 	];
 
+	if (activePanel === "picker") {
+		return [
+			{ key: "↑↓", label: "Navigate" },
+			{ key: "Enter", label: "Open" },
+			{ key: "Esc", label: "Cancel" },
+		];
+	}
+
 	if (addingParam) {
 		return [
 			{ key: "Enter", label: "Confirm" },

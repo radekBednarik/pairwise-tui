@@ -1,5 +1,8 @@
+import { readdir, stat } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
@@ -8,7 +11,13 @@ import { saveTestCases } from "./output/writer";
 import { buildModelFile, parseModelFile } from "./pict/model";
 import { runPict } from "./pict/runner";
 import { loadSettings, saveSettings } from "./settings/store";
-import type { OutputConfig, PictModel, PictOptions, TestCase } from "./types";
+import type {
+	ModelStorageConfig,
+	OutputConfig,
+	PictModel,
+	PictOptions,
+	TestCase,
+} from "./types";
 
 const TAB_OPTIONS = [
 	{ name: "Model", description: "Define parameters and constraints" },
@@ -22,6 +31,8 @@ type ActiveOptionField =
 	| "order"
 	| "randomize"
 	| "caseSensitive"
+	| "storagePath"
+	| "fileTemplate"
 	| "none";
 
 const OPTION_FIELDS: ActiveOptionField[] = [
@@ -29,6 +40,8 @@ const OPTION_FIELDS: ActiveOptionField[] = [
 	"order",
 	"randomize",
 	"caseSensitive",
+	"storagePath",
+	"fileTemplate",
 	"none",
 ];
 
@@ -53,6 +66,13 @@ export function App() {
 		filePath: "./output.txt",
 		format: "txt",
 	});
+	const [modelStorage, setModelStorage] = useState<ModelStorageConfig>({
+		storagePath: "./",
+		fileTemplate: "model_{timestamp}",
+	});
+	const [pickerFiles, setPickerFiles] = useState<string[]>([]);
+	const [pickerIndex, setPickerIndex] = useState(0);
+	const [pickerOpen, setPickerOpen] = useState(false);
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [status, setStatus] = useState("");
 	const [statusIsError, setStatusIsError] = useState(false);
@@ -65,14 +85,15 @@ export function App() {
 		loadSettings().then((s) => {
 			setOptions(s.options);
 			setOutputConfig(s.outputConfig);
+			setModelStorage(s.modelStorage);
 			settingsLoadedRef.current = true;
 		});
 	}, []);
 
 	useEffect(() => {
 		if (!settingsLoadedRef.current) return;
-		void saveSettings({ options, outputConfig });
-	}, [options, outputConfig]);
+		void saveSettings({ options, outputConfig, modelStorage });
+	}, [options, outputConfig, modelStorage]);
 
 	// --- Model tab state ---
 	const [activePanel, setActivePanel] = useState<ActivePanel>("params");
@@ -206,33 +227,66 @@ export function App() {
 		const currentConstraints =
 			constraintsRef.current?.editBuffer?.getText() ?? model.constraints;
 		const modelToSave = { ...model, constraints: currentConstraints };
-		const path = "./model.txt";
+		const ts = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
+		const filename = `${modelStorage.fileTemplate.replace("{timestamp}", ts)}.txt`;
+		const path = join(resolve(modelStorage.storagePath), filename);
 		try {
 			await Bun.write(path, buildModelFile(modelToSave));
 			showStatus(`Model saved to ${path}`);
 		} catch (err) {
 			showStatus(err instanceof Error ? err.message : "Save failed", true);
 		}
-	}, [model, showStatus]);
+	}, [model, modelStorage, showStatus]);
+
+	const loadModelFromPath = useCallback(
+		async (path: string) => {
+			try {
+				const content = await Bun.file(path).text();
+				const loaded = parseModelFile(content);
+				setModel(loaded);
+				setSelectedParamIndex(0);
+				setValuesInput(loaded.parameters[0]?.values.join(", ") ?? "");
+				setConstraintsKey((k) => k + 1);
+				setActiveTab(0);
+				setActivePanel("params");
+				showStatus(
+					`Loaded model from ${path} (${loaded.parameters.length} parameters)`,
+				);
+			} catch {
+				showStatus(`Could not read ${path}`, true);
+			}
+		},
+		[showStatus, setActiveTab],
+	);
 
 	const handleOpenModel = useCallback(async () => {
-		const path = "./model.txt";
+		const dir = resolve(modelStorage.storagePath);
 		try {
-			const content = await Bun.file(path).text();
-			const loaded = parseModelFile(content);
-			setModel(loaded);
-			setSelectedParamIndex(0);
-			setValuesInput(loaded.parameters[0]?.values.join(", ") ?? "");
-			setConstraintsKey((k) => k + 1);
-			setActiveTab(0);
-			setActivePanel("params");
-			showStatus(
-				`Loaded model from ${path} (${loaded.parameters.length} parameters)`,
+			const entries = await readdir(dir);
+			const txtFiles = entries.filter((e) => e.endsWith(".txt"));
+			if (txtFiles.length === 0) {
+				showStatus(`No .txt files found in ${dir}`, true);
+				return;
+			}
+			if (txtFiles.length === 1) {
+				const only = txtFiles[0];
+				if (only) await loadModelFromPath(join(dir, only));
+				return;
+			}
+			const withMtime = await Promise.all(
+				txtFiles.map(async (name) => {
+					const fp = join(dir, name);
+					return { fp, mtime: (await stat(fp)).mtimeMs };
+				}),
 			);
+			withMtime.sort((a, b) => b.mtime - a.mtime);
+			setPickerFiles(withMtime.map((f) => f.fp));
+			setPickerIndex(0);
+			setPickerOpen(true);
 		} catch {
-			showStatus(`Could not read ${path}`, true);
+			showStatus(`Could not read directory ${dir}`, true);
 		}
-	}, [showStatus, setActiveTab]);
+	}, [modelStorage, showStatus, loadModelFromPath]);
 
 	// --- Keyboard handler ---
 	useKeyboard((key) => {
@@ -241,6 +295,33 @@ export function App() {
 		// Always: quit via Ctrl+C
 		if (ctrl && name === "c") {
 			renderer.destroy();
+			return;
+		}
+
+		// File picker intercept
+		if (pickerOpen) {
+			if (name === "escape") {
+				setPickerOpen(false);
+				setPickerFiles([]);
+				return;
+			}
+			if (name === "up") {
+				setPickerIndex((i) => Math.max(0, i - 1));
+				return;
+			}
+			if (name === "down") {
+				setPickerIndex((i) => Math.min(pickerFiles.length - 1, i + 1));
+				return;
+			}
+			if (name === "return") {
+				const chosen = pickerFiles[pickerIndex];
+				if (chosen) {
+					setPickerOpen(false);
+					setPickerFiles([]);
+					void loadModelFromPath(chosen);
+				}
+				return;
+			}
 			return;
 		}
 
@@ -287,7 +368,10 @@ export function App() {
 		// Options text fields: keys go to <input>
 		if (
 			activeTab === 1 &&
-			(activeOptionField === "filepath" || activeOptionField === "order")
+			(activeOptionField === "filepath" ||
+				activeOptionField === "order" ||
+				activeOptionField === "storagePath" ||
+				activeOptionField === "fileTemplate")
 		) {
 			if (name === "tab") {
 				const idx = OPTION_FIELDS.indexOf(activeOptionField);
@@ -424,31 +508,39 @@ export function App() {
 
 			{/* Content */}
 			<box flexGrow={1} flexDirection="column">
-				{activeTab === 0 && (
-					<ModelTab
-						model={model}
-						activePanel={activePanel}
-						selectedParamIndex={selectedParamIndex}
-						newParamName={newParamName}
-						valuesInput={valuesInput}
-						constraintsKey={constraintsKey}
-						constraintsRef={constraintsRef}
-						onParamNavigate={handleParamNavigate}
-						onValuesChange={handleValuesChange}
-						onNewParamNameChange={handleNewParamNameChange}
-					/>
-				)}
-				{activeTab === 1 && (
-					<OptionsTab
-						options={options}
-						outputConfig={outputConfig}
-						activeField={activeOptionField}
-						onOutputConfigChange={setOutputConfig}
-						onOptionsChange={setOptions}
-					/>
-				)}
-				{activeTab === 2 && (
-					<ResultsTab results={results} focused={activeTab === 2} />
+				{pickerOpen ? (
+					<FilePickerOverlay files={pickerFiles} selectedIndex={pickerIndex} />
+				) : (
+					<>
+						{activeTab === 0 && (
+							<ModelTab
+								model={model}
+								activePanel={activePanel}
+								selectedParamIndex={selectedParamIndex}
+								newParamName={newParamName}
+								valuesInput={valuesInput}
+								constraintsKey={constraintsKey}
+								constraintsRef={constraintsRef}
+								onParamNavigate={handleParamNavigate}
+								onValuesChange={handleValuesChange}
+								onNewParamNameChange={handleNewParamNameChange}
+							/>
+						)}
+						{activeTab === 1 && (
+							<OptionsTab
+								options={options}
+								outputConfig={outputConfig}
+								modelStorage={modelStorage}
+								activeField={activeOptionField}
+								onOutputConfigChange={setOutputConfig}
+								onOptionsChange={setOptions}
+								onModelStorageChange={setModelStorage}
+							/>
+						)}
+						{activeTab === 2 && (
+							<ResultsTab results={results} focused={activeTab === 2} />
+						)}
+					</>
 				)}
 			</box>
 
@@ -465,7 +557,7 @@ export function App() {
 			{/* Status bar */}
 			<StatusBar
 				activeTab={activeTab}
-				activePanel={activePanel}
+				activePanel={pickerOpen ? "picker" : activePanel}
 				addingParam={activePanel === "adding"}
 				hasResults={results.length > 0}
 				activeOptionField={activeOptionField}

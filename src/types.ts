@@ -21,4 +21,9 @@ export interface OutputConfig {
 
 export type OutputFormat = "txt";
 
+export interface ModelStorageConfig {
+	storagePath: string;
+	fileTemplate: string;
+}
+
 export type TestCase = Record<string, string>;

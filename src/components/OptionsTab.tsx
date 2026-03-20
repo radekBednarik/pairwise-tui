@@ -1,19 +1,30 @@
-import type { OutputConfig, PictOptions } from "../types";
+import type { ModelStorageConfig, OutputConfig, PictOptions } from "../types";
 
 interface OptionsTabProps {
 	options: PictOptions;
 	outputConfig: OutputConfig;
-	activeField: "filepath" | "order" | "randomize" | "caseSensitive" | "none";
+	modelStorage: ModelStorageConfig;
+	activeField:
+		| "filepath"
+		| "order"
+		| "randomize"
+		| "caseSensitive"
+		| "storagePath"
+		| "fileTemplate"
+		| "none";
 	onOutputConfigChange: (config: OutputConfig) => void;
 	onOptionsChange: (opts: PictOptions) => void;
+	onModelStorageChange: (cfg: ModelStorageConfig) => void;
 }
 
 export function OptionsTab({
 	options,
 	outputConfig,
+	modelStorage,
 	activeField,
 	onOutputConfigChange,
 	onOptionsChange,
+	onModelStorageChange,
 }: OptionsTabProps) {
 	return (
 		<box flexDirection="column" padding={2} gap={1} flexGrow={1}>
@@ -115,6 +126,45 @@ export function OptionsTab({
 				{activeField === "caseSensitive" && (
 					<text fg="#888888"> [Enter] toggle</text>
 				)}
+			</box>
+
+			<text fg="#5fafff">
+				<strong>Model Storage</strong>
+			</text>
+
+			<box flexDirection="row" gap={2} alignItems="center">
+				<text fg="#aaaaaa" width={20}>
+					Storage path:
+				</text>
+				<input
+					value={modelStorage.storagePath}
+					onChange={(v) =>
+						onModelStorageChange({ ...modelStorage, storagePath: v })
+					}
+					focused={activeField === "storagePath"}
+					width={40}
+					placeholder="./"
+					backgroundColor="#1a1a2e"
+					focusedBackgroundColor="#1a2a4a"
+				/>
+			</box>
+
+			<box flexDirection="row" gap={2} alignItems="center">
+				<text fg="#aaaaaa" width={20}>
+					File template:
+				</text>
+				<input
+					value={modelStorage.fileTemplate}
+					onChange={(v) =>
+						onModelStorageChange({ ...modelStorage, fileTemplate: v })
+					}
+					focused={activeField === "fileTemplate"}
+					width={40}
+					placeholder="model_{timestamp}"
+					backgroundColor="#1a1a2e"
+					focusedBackgroundColor="#1a2a4a"
+				/>
+				<text fg="#666666">{"{timestamp} = ISO date"}</text>
 			</box>
 
 			<box marginTop={1}>
