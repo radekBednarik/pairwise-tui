@@ -58,7 +58,16 @@ export async function runPict(
 	if (options.randomize) args.push("/r");
 	if (options.caseSensitive) args.push("/c");
 
-	const result = Bun.spawnSync(args);
+	let result: ReturnType<typeof Bun.spawnSync>;
+	try {
+		result = Bun.spawnSync(args);
+	} catch (err) {
+		throw new Error(
+			`Failed to launch pict binary at "${binaryPath}". ` +
+				`On Windows this can mean the Visual C++ 2015-2022 Redistributable is missing. ` +
+				`Original error: ${err instanceof Error ? err.message : String(err)}`,
+		);
+	}
 
 	try {
 		await unlink(tmpPath);
@@ -67,10 +76,10 @@ export async function runPict(
 	}
 
 	if (result.exitCode !== 0) {
-		throw new Error(result.stderr.toString() || "PICT execution failed");
+		throw new Error(result.stderr?.toString() || "PICT execution failed");
 	}
 
-	return parseTsvOutput(result.stdout.toString());
+	return parseTsvOutput(result.stdout?.toString() ?? "");
 }
 
 function parseTsvOutput(output: string): TestCase[] {
