@@ -84,7 +84,7 @@ export function ModelTab({
 					) : (
 						<box flexGrow={1} justifyContent="center" alignItems="center">
 							<text fg={theme.colors.text.muted}>
-								No parameters{"\n"}Press [a] to add
+								No parameters
 							</text>
 						</box>
 					)}
