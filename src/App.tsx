@@ -423,12 +423,24 @@ export function App() {
 			}
 			if (name === "c") {
 				const msg = logMessages[logSelectedIndex];
-				if (msg) renderer.copyToClipboardOSC52(formatLogEntry(msg));
+				if (msg) {
+					const ok = renderer.copyToClipboardOSC52(formatLogEntry(msg));
+					showStatus(
+						ok ? "Copied to clipboard" : "Copy failed (OSC 52 not supported)",
+						!ok,
+					);
+				}
 				return;
 			}
 			if (name === "a") {
-				renderer.copyToClipboardOSC52(
+				const ok = renderer.copyToClipboardOSC52(
 					logMessages.map(formatLogEntry).join("\n"),
+				);
+				showStatus(
+					ok
+						? "Copied all entries to clipboard"
+						: "Copy failed (OSC 52 not supported)",
+					!ok,
 				);
 				return;
 			}

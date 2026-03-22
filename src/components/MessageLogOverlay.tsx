@@ -28,8 +28,7 @@ export function MessageLogOverlay({
 			<box marginBottom={1} flexDirection="row">
 				<text fg={theme.colors.accent}>Message Log</text>
 				<text fg={theme.colors.text.muted}>
-					{"  "}({messages.length} entries){"  "}[↑↓] navigate [c] copy selected
-					[a] copy all [m/Esc] close
+					{"  "}({messages.length} entries)
 				</text>
 			</box>
 			<scrollbox ref={scrollRef} flexGrow={1}>
