@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import { useTheme } from "../theme/ThemeContext";
 
 interface FilePickerOverlayProps {
 	files: string[];
@@ -9,6 +10,8 @@ export function FilePickerOverlay({
 	files,
 	selectedIndex,
 }: FilePickerOverlayProps) {
+	const theme = useTheme();
+
 	return (
 		<box
 			flexGrow={1}
@@ -18,7 +21,8 @@ export function FilePickerOverlay({
 		>
 			<box
 				border
-				borderColor="#5fafff"
+				borderColor={theme.colors.border.active}
+				backgroundColor={theme.colors.bg.panel}
 				width={60}
 				flexDirection="column"
 				padding={1}
@@ -27,16 +31,26 @@ export function FilePickerOverlay({
 					<box
 						key={f}
 						paddingX={1}
-						backgroundColor={i === selectedIndex ? "#1a3a5c" : "transparent"}
+						backgroundColor={
+							i === selectedIndex ? theme.colors.bg.selected : "transparent"
+						}
 					>
-						<text fg={i === selectedIndex ? "#ffffff" : "#aaaaaa"}>
+						<text
+							fg={
+								i === selectedIndex
+									? theme.colors.text.primary
+									: theme.colors.text.secondary
+							}
+						>
 							{i === selectedIndex ? "▶ " : "  "}
 							{basename(f)}
 						</text>
 					</box>
 				))}
 				<box marginTop={1}>
-					<text fg="#666666">[↑↓] navigate [Enter] open [Esc] cancel</text>
+					<text fg={theme.colors.text.muted}>
+						[↑↓] navigate [Enter] open [Esc] cancel
+					</text>
 				</box>
 			</box>
 		</box>

@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { useTheme } from "../theme/ThemeContext";
 import type { PictModel } from "../types";
 
 interface ModelTabProps {
@@ -27,6 +28,8 @@ export function ModelTab({
 	onValuesChange,
 	onNewParamNameChange,
 }: ModelTabProps) {
+	const theme = useTheme();
+
 	const paramOptions = model.parameters.map((p) => ({
 		name: p.name,
 		description: p.values.join(", ") || "(no values)",
@@ -44,25 +47,26 @@ export function ModelTab({
 					borderStyle="single"
 					borderColor={
 						activePanel === "params" || activePanel === "adding"
-							? "#5fafff"
-							: "#444444"
+							? theme.colors.border.active
+							: theme.colors.border.inactive
 					}
+					backgroundColor={theme.colors.bg.panel}
 					title=" Parameters "
 					titleAlignment="left"
 					width="35%"
 					flexDirection="column"
 				>
 					{activePanel === "adding" && (
-						<box paddingX={1} backgroundColor="#1a2a4a">
+						<box paddingX={1} backgroundColor={theme.colors.bg.elevated}>
 							<box flexDirection="row" gap={1} alignItems="center">
-								<text fg="#5fafff">New:</text>
+								<text fg={theme.colors.accent}>New:</text>
 								<input
 									value={newParamName}
 									onChange={onNewParamNameChange}
 									focused
 									placeholder="param name..."
-									backgroundColor="#1a2a4a"
-									focusedBackgroundColor="#2a3a5a"
+									backgroundColor={theme.colors.bg.elevated}
+									focusedBackgroundColor={theme.colors.bg.selected}
 									flexGrow={1}
 								/>
 							</box>
@@ -79,7 +83,9 @@ export function ModelTab({
 						/>
 					) : (
 						<box flexGrow={1} justifyContent="center" alignItems="center">
-							<text fg="#666666">No parameters{"\n"}Press [a] to add</text>
+							<text fg={theme.colors.text.muted}>
+								No parameters{"\n"}Press [a] to add
+							</text>
 						</box>
 					)}
 				</box>
@@ -88,7 +94,12 @@ export function ModelTab({
 				<box
 					border
 					borderStyle="single"
-					borderColor={activePanel === "values" ? "#5fafff" : "#444444"}
+					borderColor={
+						activePanel === "values"
+							? theme.colors.border.active
+							: theme.colors.border.inactive
+					}
+					backgroundColor={theme.colors.bg.panel}
 					title={selectedParam ? ` Values: ${selectedParam.name} ` : " Values "}
 					titleAlignment="left"
 					flexGrow={1}
@@ -97,24 +108,26 @@ export function ModelTab({
 				>
 					{selectedParam ? (
 						<>
-							<text fg="#888888">Comma-separated values:</text>
+							<text fg={theme.colors.text.muted}>Comma-separated values:</text>
 							<input
 								value={valuesInput}
 								onChange={onValuesChange}
 								focused={activePanel === "values"}
 								placeholder="value1, value2, value3..."
-								backgroundColor="#1a1a2e"
-								focusedBackgroundColor="#1a2a4a"
+								backgroundColor={theme.colors.bg.base}
+								focusedBackgroundColor={theme.colors.bg.elevated}
 							/>
 							<box marginTop={1}>
-								<text fg="#666666">
+								<text fg={theme.colors.text.muted}>
 									{selectedParam.values.length} value
 									{selectedParam.values.length !== 1 ? "s" : ""}
 									{selectedParam.values.length > 0 && ": "}
 									{selectedParam.values.map((v, i) => (
 										<span key={v}>
-											{i > 0 && <span fg="#444444">, </span>}
-											<span fg="#aaffaa">{v}</span>
+											{i > 0 && (
+												<span fg={theme.colors.border.inactive}>, </span>
+											)}
+											<span fg={theme.colors.value}>{v}</span>
 										</span>
 									))}
 								</text>
@@ -122,7 +135,9 @@ export function ModelTab({
 						</>
 					) : (
 						<box flexGrow={1} justifyContent="center" alignItems="center">
-							<text fg="#666666">Select a parameter to edit values</text>
+							<text fg={theme.colors.text.muted}>
+								Select a parameter to edit values
+							</text>
 						</box>
 					)}
 				</box>
@@ -132,7 +147,12 @@ export function ModelTab({
 			<box
 				border
 				borderStyle="single"
-				borderColor={activePanel === "constraints" ? "#5fafff" : "#444444"}
+				borderColor={
+					activePanel === "constraints"
+						? theme.colors.border.active
+						: theme.colors.border.inactive
+				}
+				backgroundColor={theme.colors.bg.panel}
 				title=" Constraints "
 				titleAlignment="left"
 				height={8}

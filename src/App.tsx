@@ -2,18 +2,25 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatedLogo } from "./components/AnimatedLogo";
 import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
-import { AnimatedLogo } from "./components/AnimatedLogo";
 import { StatusBar } from "./components/StatusBar";
 import { DOC_CHAPTERS } from "./docs/pict-docs";
 import { FORMAT_EXTENSIONS, saveTestCases } from "./output/writer";
 import { buildModelFile, parseModelFile } from "./pict/model";
 import { runPict } from "./pict/runner";
 import { loadSettings, saveSettings } from "./settings/store";
+import { ThemeContext } from "./theme/ThemeContext";
+import {
+	DEFAULT_THEME_NAME,
+	THEME_NAMES,
+	THEMES,
+	tokyonightDark,
+} from "./theme/themes";
 import type {
 	ModelStorageConfig,
 	OutputConfig,
@@ -87,6 +94,8 @@ export function App() {
 	const [status, setStatus] = useState("");
 	const [statusIsError, setStatusIsError] = useState(false);
 	const [isGenerating, setIsGenerating] = useState(false);
+	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
+	const theme = THEMES[themeName] ?? tokyonightDark;
 
 	// --- Persistent settings ---
 	const settingsLoadedRef = useRef(false);
@@ -96,14 +105,15 @@ export function App() {
 			setOptions(s.options);
 			setOutputConfig(s.outputConfig);
 			setModelStorage(s.modelStorage);
+			setThemeName(s.themeName);
 			settingsLoadedRef.current = true;
 		});
 	}, []);
 
 	useEffect(() => {
 		if (!settingsLoadedRef.current) return;
-		void saveSettings({ options, outputConfig, modelStorage });
-	}, [options, outputConfig, modelStorage]);
+		void saveSettings({ options, outputConfig, modelStorage, themeName });
+	}, [options, outputConfig, modelStorage, themeName]);
 
 	// --- Model tab state ---
 	const [activePanel, setActivePanel] = useState<ActivePanel>("params");
@@ -497,6 +507,14 @@ export function App() {
 			void handleSaveModel();
 			return;
 		}
+		if (name === "t") {
+			const idx = THEME_NAMES.indexOf(themeName);
+			const newThemeName =
+				THEME_NAMES[(idx + 1) % THEME_NAMES.length] ?? DEFAULT_THEME_NAME;
+			setThemeName(newThemeName);
+			showStatus(`Theme: ${newThemeName}`);
+			return;
+		}
 
 		// Model tab – params panel shortcuts
 		if (activeTab === 0 && activePanel === "params") {
@@ -549,90 +567,131 @@ export function App() {
 	});
 
 	return (
-		<box flexDirection="column" width="100%" height="100%" paddingX={3}>
-			{/* Header */}
-			<box flexDirection="column" backgroundColor="#0d1117" paddingX={2}>
-				<box flexDirection="row" alignItems="center" gap={1} paddingY={1}>
-					<AnimatedLogo />
-					<ascii-font text="Pairwise TUI" font="tiny" color="#5fafff" />
-				</box>
-				<box flexDirection="row" gap={1}>
-					{TAB_OPTIONS.map((tab, i) => (
-						<box
-							key={tab.name}
-							backgroundColor={activeTab === i ? "#1a3a5c" : "#0d1117"}
-							paddingX={1}
-						>
-							<text fg={activeTab === i ? "#ffffff" : "#555566"}>
-								{`${i + 1}:${tab.name}`}
-							</text>
-						</box>
-					))}
-				</box>
-			</box>
-
-			{/* Content */}
-			<box flexGrow={1} flexDirection="column">
-				{docsOpen ? (
-					<DocOverlay
-						view={docsView}
-						selectedChapterIdx={docsChapterIdx}
-						scrollOffset={docsScrollOffset}
-					/>
-				) : pickerOpen ? (
-					<FilePickerOverlay files={pickerFiles} selectedIndex={pickerIndex} />
-				) : (
-					<>
-						{activeTab === 0 && (
-							<ModelTab
-								model={model}
-								activePanel={activePanel}
-								selectedParamIndex={selectedParamIndex}
-								newParamName={newParamName}
-								valuesInput={valuesInput}
-								constraintsKey={constraintsKey}
-								constraintsRef={constraintsRef}
-								onParamNavigate={handleParamNavigate}
-								onValuesChange={handleValuesChange}
-								onNewParamNameChange={handleNewParamNameChange}
-							/>
-						)}
-						{activeTab === 1 && (
-							<OptionsTab
-								options={options}
-								outputConfig={outputConfig}
-								modelStorage={modelStorage}
-								activeField={activeOptionField}
-								onOutputConfigChange={setOutputConfig}
-								onOptionsChange={setOptions}
-								onModelStorageChange={setModelStorage}
-							/>
-						)}
-						{activeTab === 2 && (
-							<ResultsTab results={results} focused={activeTab === 2} />
-						)}
-					</>
-				)}
-			</box>
-
-			{/* Status message */}
-			{status !== "" && (
+		<ThemeContext.Provider value={{ theme, themeName, setThemeName }}>
+			<box
+				flexDirection="column"
+				width="100%"
+				height="100%"
+				paddingX={3}
+				backgroundColor={theme.colors.bg.canvas}
+			>
+				{/* Header */}
 				<box
+					flexDirection="column"
+					backgroundColor={theme.colors.bg.header}
 					paddingX={2}
-					backgroundColor={statusIsError ? "#3a0000" : "#001a00"}
 				>
-					<text fg={statusIsError ? "#ff6666" : "#66ff66"}>{status}</text>
+					<box flexDirection="row" alignItems="center" gap={1} paddingY={1}>
+						<AnimatedLogo />
+						<ascii-font
+							text="Pairwise TUI"
+							font="tiny"
+							color={theme.colors.accent}
+						/>
+					</box>
+					<box flexDirection="row" gap={1}>
+						{TAB_OPTIONS.map((tab, i) => (
+							<box
+								key={tab.name}
+								backgroundColor={
+									activeTab === i
+										? theme.colors.bg.selected
+										: theme.colors.bg.header
+								}
+								paddingX={1}
+							>
+								<text
+									fg={
+										activeTab === i
+											? theme.colors.text.primary
+											: theme.colors.text.disabled
+									}
+								>
+									{`${i + 1}:${tab.name}`}
+								</text>
+							</box>
+						))}
+					</box>
 				</box>
-			)}
 
-			{/* Status bar */}
-			<StatusBar
-				activeTab={activeTab}
-				activePanel={docsOpen ? "docs" : pickerOpen ? "picker" : activePanel}
-				addingParam={activePanel === "adding"}
-				hasResults={results.length > 0}
-				activeOptionField={activeOptionField}
-			/>
-		</box>
+				{/* Content */}
+				<box flexGrow={1} flexDirection="column">
+					{docsOpen ? (
+						<DocOverlay
+							view={docsView}
+							selectedChapterIdx={docsChapterIdx}
+							scrollOffset={docsScrollOffset}
+						/>
+					) : pickerOpen ? (
+						<FilePickerOverlay
+							files={pickerFiles}
+							selectedIndex={pickerIndex}
+						/>
+					) : (
+						<>
+							{activeTab === 0 && (
+								<ModelTab
+									model={model}
+									activePanel={activePanel}
+									selectedParamIndex={selectedParamIndex}
+									newParamName={newParamName}
+									valuesInput={valuesInput}
+									constraintsKey={constraintsKey}
+									constraintsRef={constraintsRef}
+									onParamNavigate={handleParamNavigate}
+									onValuesChange={handleValuesChange}
+									onNewParamNameChange={handleNewParamNameChange}
+								/>
+							)}
+							{activeTab === 1 && (
+								<OptionsTab
+									options={options}
+									outputConfig={outputConfig}
+									modelStorage={modelStorage}
+									activeField={activeOptionField}
+									onOutputConfigChange={setOutputConfig}
+									onOptionsChange={setOptions}
+									onModelStorageChange={setModelStorage}
+								/>
+							)}
+							{activeTab === 2 && (
+								<ResultsTab results={results} focused={activeTab === 2} />
+							)}
+						</>
+					)}
+				</box>
+
+				{/* Status message */}
+				{status !== "" && (
+					<box
+						paddingX={2}
+						backgroundColor={
+							statusIsError
+								? theme.colors.status.errorBg
+								: theme.colors.status.successBg
+						}
+					>
+						<text
+							fg={
+								statusIsError
+									? theme.colors.status.error
+									: theme.colors.status.success
+							}
+						>
+							{status}
+						</text>
+					</box>
+				)}
+
+				{/* Status bar */}
+				<StatusBar
+					activeTab={activeTab}
+					activePanel={docsOpen ? "docs" : pickerOpen ? "picker" : activePanel}
+					addingParam={activePanel === "adding"}
+					hasResults={results.length > 0}
+					activeOptionField={activeOptionField}
+				/>
+			</box>
+		</ThemeContext.Provider>
 	);
 }

@@ -1,3 +1,5 @@
+import { useTheme } from "../theme/ThemeContext";
+
 interface StatusBarProps {
 	activeTab: number;
 	activePanel: string;
@@ -13,6 +15,7 @@ export function StatusBar({
 	hasResults,
 	activeOptionField,
 }: StatusBarProps) {
+	const theme = useTheme();
 	const hints = getHints(
 		activeTab,
 		activePanel,
@@ -24,7 +27,8 @@ export function StatusBar({
 	return (
 		<box
 			borderStyle="single"
-			borderColor="#444444"
+			borderColor={theme.colors.border.inactive}
+			backgroundColor={theme.colors.bg.header}
 			paddingX={1}
 			flexDirection="row"
 			flexWrap="wrap"
@@ -32,9 +36,9 @@ export function StatusBar({
 			<text>
 				{hints.map((h, i) => (
 					<span key={h.key}>
-						<span fg="#888888">{i > 0 ? "  " : ""}</span>
-						<span fg="#5fafff">[{h.key}]</span>
-						<span fg="#cccccc">{h.label}</span>
+						<span fg={theme.colors.text.muted}>{i > 0 ? "  " : ""}</span>
+						<span fg={theme.colors.accent}>[{h.key}]</span>
+						<span fg={theme.colors.text.secondary}>{h.label}</span>
 					</span>
 				))}
 			</text>
@@ -51,6 +55,7 @@ function getHints(
 ): Array<{ key: string; label: string }> {
 	const common: Array<{ key: string; label: string }> = [
 		{ key: "1/2/3", label: "Switch tab" },
+		{ key: "t", label: "Theme" },
 		{ key: "q", label: "Quit" },
 	];
 

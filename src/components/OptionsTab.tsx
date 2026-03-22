@@ -1,3 +1,4 @@
+import { useTheme } from "../theme/ThemeContext";
 import type { ModelStorageConfig, OutputConfig, PictOptions } from "../types";
 
 interface OptionsTabProps {
@@ -27,14 +28,16 @@ export function OptionsTab({
 	onOptionsChange,
 	onModelStorageChange,
 }: OptionsTabProps) {
+	const theme = useTheme();
+
 	return (
 		<box flexDirection="column" padding={2} gap={1} flexGrow={1}>
-			<text fg="#5fafff">
+			<text fg={theme.colors.accent}>
 				<strong>Output Configuration</strong>
 			</text>
 
 			<box flexDirection="row" gap={2} alignItems="center">
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Output file path:
 				</text>
 				<input
@@ -45,8 +48,8 @@ export function OptionsTab({
 					focused={activeField === "filepath"}
 					width={40}
 					placeholder="./output.txt"
-					backgroundColor="#1a1a2e"
-					focusedBackgroundColor="#1a2a4a"
+					backgroundColor={theme.colors.bg.base}
+					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
 			</box>
 
@@ -55,21 +58,27 @@ export function OptionsTab({
 				gap={2}
 				alignItems="center"
 				paddingX={1}
-				backgroundColor={activeField === "format" ? "#1a2a4a" : "transparent"}
+				backgroundColor={
+					activeField === "format" ? theme.colors.bg.elevated : "transparent"
+				}
 			>
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Format:
 				</text>
-				<text fg="#5fafff">{outputConfig.format.toUpperCase()}</text>
-				{activeField === "format" && <text fg="#888888"> [Enter] cycle</text>}
+				<text fg={theme.colors.accent}>
+					{outputConfig.format.toUpperCase()}
+				</text>
+				{activeField === "format" && (
+					<text fg={theme.colors.text.muted}> [Enter] cycle</text>
+				)}
 			</box>
 
-			<text fg="#5fafff">
+			<text fg={theme.colors.accent}>
 				<strong>PICT Options</strong>
 			</text>
 
 			<box flexDirection="row" gap={2} alignItems="center">
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Combination order:
 				</text>
 				<input
@@ -84,10 +93,10 @@ export function OptionsTab({
 					}}
 					focused={activeField === "order"}
 					width={6}
-					backgroundColor="#1a1a2e"
-					focusedBackgroundColor="#1a2a4a"
+					backgroundColor={theme.colors.bg.base}
+					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
-				<text fg="#666666">(1–6, default: 2)</text>
+				<text fg={theme.colors.text.muted}>(1–6, default: 2)</text>
 			</box>
 
 			<box
@@ -96,17 +105,19 @@ export function OptionsTab({
 				alignItems="center"
 				paddingX={1}
 				backgroundColor={
-					activeField === "randomize" ? "#1a2a4a" : "transparent"
+					activeField === "randomize" ? theme.colors.bg.elevated : "transparent"
 				}
 			>
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Randomize:
 				</text>
-				<text fg={options.randomize ? "#5fafff" : "#666666"}>
+				<text
+					fg={options.randomize ? theme.colors.accent : theme.colors.text.muted}
+				>
 					{options.randomize ? "● ON" : "○ OFF"}
 				</text>
 				{activeField === "randomize" && (
-					<text fg="#888888"> [Enter] toggle</text>
+					<text fg={theme.colors.text.muted}> [Enter] toggle</text>
 				)}
 			</box>
 
@@ -116,26 +127,34 @@ export function OptionsTab({
 				alignItems="center"
 				paddingX={1}
 				backgroundColor={
-					activeField === "caseSensitive" ? "#1a2a4a" : "transparent"
+					activeField === "caseSensitive"
+						? theme.colors.bg.elevated
+						: "transparent"
 				}
 			>
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Case sensitive:
 				</text>
-				<text fg={options.caseSensitive ? "#5fafff" : "#666666"}>
+				<text
+					fg={
+						options.caseSensitive
+							? theme.colors.accent
+							: theme.colors.text.muted
+					}
+				>
 					{options.caseSensitive ? "● ON" : "○ OFF"}
 				</text>
 				{activeField === "caseSensitive" && (
-					<text fg="#888888"> [Enter] toggle</text>
+					<text fg={theme.colors.text.muted}> [Enter] toggle</text>
 				)}
 			</box>
 
-			<text fg="#5fafff">
+			<text fg={theme.colors.accent}>
 				<strong>Model Storage</strong>
 			</text>
 
 			<box flexDirection="row" gap={2} alignItems="center">
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					Storage path:
 				</text>
 				<input
@@ -146,13 +165,13 @@ export function OptionsTab({
 					focused={activeField === "storagePath"}
 					width={40}
 					placeholder="./"
-					backgroundColor="#1a1a2e"
-					focusedBackgroundColor="#1a2a4a"
+					backgroundColor={theme.colors.bg.base}
+					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
 			</box>
 
 			<box flexDirection="row" gap={2} alignItems="center">
-				<text fg="#aaaaaa" width={20}>
+				<text fg={theme.colors.text.muted} width={20}>
 					File template:
 				</text>
 				<input
@@ -163,14 +182,14 @@ export function OptionsTab({
 					focused={activeField === "fileTemplate"}
 					width={40}
 					placeholder="model_{timestamp}"
-					backgroundColor="#1a1a2e"
-					focusedBackgroundColor="#1a2a4a"
+					backgroundColor={theme.colors.bg.base}
+					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
-				<text fg="#666666">{"{timestamp} = ISO date"}</text>
+				<text fg={theme.colors.text.muted}>{"{timestamp} = ISO date"}</text>
 			</box>
 
 			<box marginTop={1}>
-				<text fg="#666666">
+				<text fg={theme.colors.text.muted}>
 					Use [Tab] to cycle through fields, [Esc] to unfocus
 				</text>
 			</box>

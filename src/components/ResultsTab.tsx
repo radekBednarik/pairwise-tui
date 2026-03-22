@@ -1,3 +1,4 @@
+import { useTheme } from "../theme/ThemeContext";
 import type { TestCase } from "../types";
 
 interface ResultsTabProps {
@@ -6,10 +7,14 @@ interface ResultsTabProps {
 }
 
 export function ResultsTab({ results, focused }: ResultsTabProps) {
+	const theme = useTheme();
+
 	if (results.length === 0) {
 		return (
 			<box flexGrow={1} justifyContent="center" alignItems="center">
-				<text fg="#666666">No results yet. Press [g] to generate.</text>
+				<text fg={theme.colors.text.muted}>
+					No results yet. Press [g] to generate.
+				</text>
 			</box>
 		);
 	}
@@ -21,20 +26,34 @@ export function ResultsTab({ results, focused }: ResultsTabProps) {
 	const separator = "─".repeat(headerLine.length);
 
 	return (
-		<box flexGrow={1} flexDirection="column">
-			<box paddingX={1} paddingY={0} backgroundColor="#1a1a2e">
-				<text fg="#5fafff">
+		<box
+			flexGrow={1}
+			flexDirection="column"
+			backgroundColor={theme.colors.bg.panel}
+		>
+			<box paddingX={1} paddingY={0} backgroundColor={theme.colors.bg.elevated}>
+				<text fg={theme.colors.accent}>
 					<strong>{results.length} test cases</strong>
-					<span fg="#666666"> ({headers.length} parameters)</span>
+					<span fg={theme.colors.text.muted}>
+						{" "}
+						({headers.length} parameters)
+					</span>
 				</text>
 			</box>
 			<scrollbox focused={focused} flexGrow={1}>
 				<box flexDirection="column" paddingX={1}>
-					<text fg="#aaaaaa">{headerLine}</text>
-					<text fg="#444444">{separator}</text>
+					<text fg={theme.colors.accent}>{headerLine}</text>
+					<text fg={theme.colors.border.inactive}>{separator}</text>
 					{results.map((row, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: rows are stable and read-only
-						<text key={i} fg={i % 2 === 0 ? "#cccccc" : "#aaaaaa"}>
+						<text
+							// biome-ignore lint/suspicious/noArrayIndexKey: rows are stable and read-only
+							key={i}
+							fg={
+								i % 2 === 0
+									? theme.colors.text.primary
+									: theme.colors.text.secondary
+							}
+						>
 							{headers.map((h) => (row[h] ?? "").padEnd(colWidth)).join(" ")}
 						</text>
 					))}

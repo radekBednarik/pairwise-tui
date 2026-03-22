@@ -7,12 +7,14 @@ export interface AppSettings {
 	options: PictOptions;
 	outputConfig: OutputConfig;
 	modelStorage: ModelStorageConfig;
+	themeName: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
 	options: { order: 2, randomize: false, caseSensitive: false },
 	outputConfig: { filePath: "./output.txt", format: "txt" },
 	modelStorage: { storagePath: "./", fileTemplate: "model_{timestamp}" },
+	themeName: "tokyonight-dark",
 };
 
 function getConfigPath(): string {
@@ -39,6 +41,7 @@ export async function loadSettings(): Promise<AppSettings> {
 				...DEFAULT_SETTINGS.modelStorage,
 				...parsed.modelStorage,
 			},
+			themeName: parsed.themeName ?? DEFAULT_SETTINGS.themeName,
 		};
 	} catch {
 		return { ...DEFAULT_SETTINGS };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "../theme/ThemeContext";
 
 const FRAMES = [
 	"┌─┬─┐\n│█│░│\n└─┴─┘",
@@ -7,9 +8,8 @@ const FRAMES = [
 	"╔═╦═╗\n║█║░║\n╚═╩═╝",
 ] as const;
 
-const COLORS = ["#5fafff", "#af5fff", "#5fafff", "#af5fff"] as const;
-
 export function AnimatedLogo() {
+	const theme = useTheme();
 	const [frame, setFrame] = useState(0);
 
 	useEffect(() => {
@@ -17,5 +17,8 @@ export function AnimatedLogo() {
 		return () => clearInterval(id);
 	}, []);
 
-	return <text fg={COLORS[frame]}>{FRAMES[frame]}</text>;
+	const color =
+		frame % 2 === 0 ? theme.colors.logo.primary : theme.colors.logo.secondary;
+
+	return <text fg={color}>{FRAMES[frame]}</text>;
 }
