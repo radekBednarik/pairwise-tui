@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatedLogo } from "./components/AnimatedLogo";
 import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
+import { MessageLogOverlay } from "./components/MessageLogOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
@@ -22,6 +23,7 @@ import {
 	tokyonightDark,
 } from "./theme/themes";
 import type {
+	LogMessage,
 	ModelStorageConfig,
 	OutputConfig,
 	OutputFormat,
@@ -29,6 +31,13 @@ import type {
 	PictOptions,
 	TestCase,
 } from "./types";
+
+let nextLogId = 0;
+
+function formatLogEntry(msg: LogMessage): string {
+	const ts = msg.timestamp.toLocaleTimeString();
+	return `${ts} [${msg.type === "error" ? "ERR" : "INF"}] ${msg.text}`;
+}
 
 const TAB_OPTIONS = [
 	{ name: "Model", description: "Define parameters and constraints" },
@@ -93,6 +102,10 @@ export function App() {
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [status, setStatus] = useState("");
 	const [statusIsError, setStatusIsError] = useState(false);
+	const [logMessages, setLogMessages] = useState<LogMessage[]>([]);
+	const [logOpen, setLogOpen] = useState(false);
+	const [logSelectedIndex, setLogSelectedIndex] = useState(0);
+	const [logScrollOffset, setLogScrollOffset] = useState(0);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
 	const theme = THEMES[themeName] ?? tokyonightDark;
@@ -142,6 +155,15 @@ export function App() {
 	const showStatus = useCallback((msg: string, isError = false) => {
 		setStatus(msg);
 		setStatusIsError(isError);
+		setLogMessages((prev) => [
+			...prev,
+			{
+				id: nextLogId++,
+				timestamp: new Date(),
+				type: isError ? "error" : "info",
+				text: msg,
+			},
+		]);
 		setTimeout(() => setStatus(""), 4000);
 	}, []);
 
@@ -383,6 +405,36 @@ export function App() {
 			return; // swallow all other keys while docs open
 		}
 
+		// Message log overlay intercept
+		if (logOpen) {
+			if (name === "escape" || name === "m") {
+				setLogOpen(false);
+				return;
+			}
+			if (name === "up") {
+				setLogSelectedIndex((i) => Math.max(0, i - 1));
+				setLogScrollOffset((o) => Math.max(0, o - 1));
+				return;
+			}
+			if (name === "down") {
+				setLogSelectedIndex((i) => Math.min(logMessages.length - 1, i + 1));
+				setLogScrollOffset((o) => o + 1);
+				return;
+			}
+			if (name === "c") {
+				const msg = logMessages[logSelectedIndex];
+				if (msg) renderer.copyToClipboardOSC52(formatLogEntry(msg));
+				return;
+			}
+			if (name === "a") {
+				renderer.copyToClipboardOSC52(
+					logMessages.map(formatLogEntry).join("\n"),
+				);
+				return;
+			}
+			return; // swallow all other keys
+		}
+
 		// Escape: exit current input mode
 		if (name === "escape") {
 			if (activePanel === "adding") {
@@ -482,6 +534,12 @@ export function App() {
 		}
 
 		// Global actions
+		if (name === "m") {
+			setLogOpen(true);
+			setLogSelectedIndex(Math.max(0, logMessages.length - 1));
+			setLogScrollOffset(Math.max(0, logMessages.length - 1));
+			return;
+		}
 		if (name === "?") {
 			setDocsOpen(true);
 			setDocsView("list");
@@ -616,7 +674,13 @@ export function App() {
 
 				{/* Content */}
 				<box flexGrow={1} flexDirection="column">
-					{docsOpen ? (
+					{logOpen ? (
+						<MessageLogOverlay
+							messages={logMessages}
+							selectedIndex={logSelectedIndex}
+							scrollOffset={logScrollOffset}
+						/>
+					) : docsOpen ? (
 						<DocOverlay
 							view={docsView}
 							selectedChapterIdx={docsChapterIdx}
@@ -686,7 +750,15 @@ export function App() {
 				{/* Status bar */}
 				<StatusBar
 					activeTab={activeTab}
-					activePanel={docsOpen ? "docs" : pickerOpen ? "picker" : activePanel}
+					activePanel={
+						logOpen
+							? "log"
+							: docsOpen
+								? "docs"
+								: pickerOpen
+									? "picker"
+									: activePanel
+					}
 					addingParam={activePanel === "adding"}
 					hasResults={results.length > 0}
 					activeOptionField={activeOptionField}

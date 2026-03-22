@@ -27,3 +27,12 @@ export interface ModelStorageConfig {
 }
 
 export type TestCase = Record<string, string>;
+
+export type LogMessageType = "info" | "error";
+
+export interface LogMessage {
+	id: number;
+	timestamp: Date;
+	type: LogMessageType;
+	text: string;
+}

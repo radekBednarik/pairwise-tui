@@ -55,9 +55,19 @@ function getHints(
 ): Array<{ key: string; label: string }> {
 	const common: Array<{ key: string; label: string }> = [
 		{ key: "1/2/3", label: "Switch tab" },
+		{ key: "m", label: "Log" },
 		{ key: "t", label: "Theme" },
 		{ key: "q", label: "Quit" },
 	];
+
+	if (activePanel === "log") {
+		return [
+			{ key: "↑↓", label: "Navigate" },
+			{ key: "c", label: "Copy selected" },
+			{ key: "a", label: "Copy all" },
+			{ key: "m/Esc", label: "Close" },
+		];
+	}
 
 	if (activePanel === "docs") {
 		return [
