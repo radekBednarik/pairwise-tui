@@ -7,6 +7,7 @@ import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
+import { AnimatedLogo } from "./components/AnimatedLogo";
 import { StatusBar } from "./components/StatusBar";
 import { DOC_CHAPTERS } from "./docs/pict-docs";
 import { FORMAT_EXTENSIONS, saveTestCases } from "./output/writer";
@@ -548,13 +549,12 @@ export function App() {
 	});
 
 	return (
-		<box flexDirection="column" width="100%" height="100%">
+		<box flexDirection="column" width="100%" height="100%" paddingX={3}>
 			{/* Header */}
 			<box flexDirection="column" backgroundColor="#0d1117" paddingX={2}>
-				<box paddingY={0}>
-					<text fg="#5fafff">
-						<strong> Pairwise TUI </strong>
-					</text>
+				<box flexDirection="row" alignItems="center" gap={1} paddingY={1}>
+					<AnimatedLogo />
+					<ascii-font text="Pairwise TUI" font="tiny" color="#5fafff" />
 				</box>
 				<box flexDirection="row" gap={1}>
 					{TAB_OPTIONS.map((tab, i) => (
