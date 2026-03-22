@@ -31,6 +31,7 @@ import type {
 	PictOptions,
 	TestCase,
 } from "./types";
+import { copyToClipboard } from "./utils/clipboard";
 
 let nextLogId = 0;
 
@@ -424,22 +425,25 @@ export function App() {
 			if (name === "c") {
 				const msg = logMessages[logSelectedIndex];
 				if (msg) {
-					const ok = renderer.copyToClipboardOSC52(formatLogEntry(msg));
+					const ok = copyToClipboard(formatLogEntry(msg), renderer);
 					showStatus(
-						ok ? "Copied to clipboard" : "Copy failed (OSC 52 not supported)",
+						ok
+							? "Copied to clipboard"
+							: "Copy failed — install wl-clipboard or xclip",
 						!ok,
 					);
 				}
 				return;
 			}
 			if (name === "a") {
-				const ok = renderer.copyToClipboardOSC52(
+				const ok = copyToClipboard(
 					logMessages.map(formatLogEntry).join("\n"),
+					renderer,
 				);
 				showStatus(
 					ok
 						? "Copied all entries to clipboard"
-						: "Copy failed (OSC 52 not supported)",
+						: "Copy failed — install wl-clipboard or xclip",
 					!ok,
 				);
 				return;
