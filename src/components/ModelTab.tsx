@@ -14,6 +14,7 @@ interface ModelTabProps {
 	onParamNavigate: (index: number) => void;
 	onValuesChange: (value: string) => void;
 	onNewParamNameChange: (name: string) => void;
+	onConfirmAddParam: () => void;
 }
 
 export function ModelTab({
@@ -27,6 +28,7 @@ export function ModelTab({
 	onParamNavigate,
 	onValuesChange,
 	onNewParamNameChange,
+	onConfirmAddParam,
 }: ModelTabProps) {
 	const theme = useTheme();
 
@@ -63,6 +65,7 @@ export function ModelTab({
 								<input
 									value={newParamName}
 									onChange={onNewParamNameChange}
+									onSubmit={onConfirmAddParam}
 									focused
 									placeholder="param name..."
 									backgroundColor={theme.colors.bg.elevated}
@@ -83,9 +86,7 @@ export function ModelTab({
 						/>
 					) : (
 						<box flexGrow={1} justifyContent="center" alignItems="center">
-							<text fg={theme.colors.text.muted}>
-								No parameters
-							</text>
+							<text fg={theme.colors.text.muted}>No parameters</text>
 						</box>
 					)}
 				</box>

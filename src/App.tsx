@@ -500,12 +500,8 @@ export function App() {
 			return;
 		}
 
-		// Adding param: Enter to confirm, all other keys handled by <input>
+		// Adding param: all keys handled by <input> (Enter via onSubmit)
 		if (activePanel === "adding") {
-			if (name === "return") {
-				handleConfirmAddParam();
-				return;
-			}
 			return;
 		}
 
@@ -756,6 +752,7 @@ export function App() {
 									onParamNavigate={handleParamNavigate}
 									onValuesChange={handleValuesChange}
 									onNewParamNameChange={handleNewParamNameChange}
+									onConfirmAddParam={handleConfirmAddParam}
 								/>
 							)}
 							{activeTab === 1 && (
