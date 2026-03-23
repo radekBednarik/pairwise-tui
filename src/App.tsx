@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatedLogo } from "./components/AnimatedLogo";
+import { ClearConfirmOverlay } from "./components/ClearConfirmOverlay";
 import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { MessageLogOverlay } from "./components/MessageLogOverlay";
@@ -107,6 +108,8 @@ export function App() {
 	const [logOpen, setLogOpen] = useState(false);
 	const [logSelectedIndex, setLogSelectedIndex] = useState(0);
 	const [logScrollOffset, setLogScrollOffset] = useState(0);
+	const [showClearConfirm, setShowClearConfirm] = useState(false);
+	const [clearConfirmIndex, setClearConfirmIndex] = useState(1);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
 	const theme = THEMES[themeName] ?? tokyonightDark;
@@ -451,6 +454,31 @@ export function App() {
 			return; // swallow all other keys
 		}
 
+		// Clear confirm overlay intercept
+		if (showClearConfirm) {
+			if (name === "escape" || (name === "return" && clearConfirmIndex === 1)) {
+				setShowClearConfirm(false);
+				setClearConfirmIndex(1);
+				return;
+			}
+			if (name === "up" || name === "down") {
+				setClearConfirmIndex((i) => (i === 0 ? 1 : 0));
+				return;
+			}
+			if (name === "return" && clearConfirmIndex === 0) {
+				setModel({ parameters: [], constraints: "" });
+				setSelectedParamIndex(0);
+				setValuesInput("");
+				setActivePanel("params");
+				setConstraintsKey((k) => k + 1);
+				setShowClearConfirm(false);
+				setClearConfirmIndex(1);
+				showStatus("Model cleared");
+				return;
+			}
+			return; // swallow all other keys
+		}
+
 		// Escape: exit current input mode
 		if (name === "escape") {
 			if (activePanel === "adding") {
@@ -609,6 +637,11 @@ export function App() {
 				setActivePanel("constraints");
 				return;
 			}
+			if (name === "x") {
+				setClearConfirmIndex(1);
+				setShowClearConfirm(true);
+				return;
+			}
 			return;
 		}
 
@@ -707,6 +740,8 @@ export function App() {
 							files={pickerFiles}
 							selectedIndex={pickerIndex}
 						/>
+					) : showClearConfirm ? (
+						<ClearConfirmOverlay selectedIndex={clearConfirmIndex} />
 					) : (
 						<>
 							{activeTab === 0 && (
@@ -773,7 +808,9 @@ export function App() {
 								? "docs"
 								: pickerOpen
 									? "picker"
-									: activePanel
+									: showClearConfirm
+										? "clearConfirm"
+										: activePanel
 					}
 					addingParam={activePanel === "adding"}
 					hasResults={results.length > 0}

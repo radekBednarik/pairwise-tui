@@ -85,6 +85,14 @@ function getHints(
 		];
 	}
 
+	if (activePanel === "clearConfirm") {
+		return [
+			{ key: "↑↓", label: "Navigate" },
+			{ key: "Enter", label: "Confirm" },
+			{ key: "Esc", label: "Cancel" },
+		];
+	}
+
 	if (addingParam) {
 		return [
 			{ key: "Enter", label: "Confirm" },
@@ -99,6 +107,7 @@ function getHints(
 				{ key: "d", label: "Delete" },
 				{ key: "e", label: "Edit values" },
 				{ key: "c", label: "Constraints" },
+				{ key: "x", label: "Clear model" },
 				{ key: "g", label: "Generate" },
 				{ key: "o", label: "Open model" },
 				{ key: "w", label: "Save model" },
