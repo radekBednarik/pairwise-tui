@@ -21,16 +21,20 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 
 ### Keyboard shortcuts
 
+**Global:**
+
 | Key | Action |
 |-----|--------|
 | `g` | Generate test cases (runs PICT) |
 | `s` | Save results to output file |
-| `w` | Write model to `model.txt` |
-| `o` | Open model from `model.txt` |
+| `w` | Write model to storage |
+| `o` | Open model from storage (file picker) |
+| `m` | Open message log overlay |
+| `t` | Cycle through themes |
+| `?` | Open PICT documentation |
 | `q` / `Ctrl+C` | Quit |
 | `1` / `2` / `3` | Switch tabs |
 | `[` / `]` | Previous / next tab |
-| `?` | Opens documentation |
 
 **Model tab — params panel:**
 
@@ -40,8 +44,33 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `d` | Delete selected parameter |
 | `e` | Edit values for selected parameter |
 | `c` | Edit constraints |
-| `Tab` | Switch between params and values panels |
-| `Escape` | Return to params panel |
+| `x` | Clear entire model (prompts for confirmation) |
+| `Tab` | Switch to values panel |
+| `↑` / `↓` | Navigate parameters |
+| `Escape` | Return to params panel / cancel edit |
+
+**Results tab:**
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Scroll test cases |
+
+**Message log overlay** (`m`):
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Navigate log entries |
+| `c` | Copy selected entry to clipboard |
+| `a` | Copy all entries to clipboard |
+| `m` / `Escape` | Close overlay |
+
+**Documentation overlay** (`?`):
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Navigate chapters / scroll content |
+| `Enter` | Open selected chapter |
+| `Escape` | Back / close |
 
 ## Model file format
 
@@ -60,11 +89,31 @@ IF [OS] = "Linux" THEN [Browser] <> "Safari";
 ### Requirements
 
 - [Bun](https://bun.sh) runtime
+- [Git LFS](https://git-lfs.github.com/) (for PICT binaries)
+
+The PICT binaries (`binaries/pict` and `binaries/pict.exe`) are stored in Git LFS. You must have Git LFS installed and pull the files before running the app:
+
+```bash
+git lfs install
+git lfs checkout
+```
+
+Then install dependencies and start:
 
 ```bash
 bun install
 bun run dev
 ```
+
+### Available scripts
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Run in watch mode |
+| `bun run start` | Run the app |
+| `bun run check` | Biome lint/format check |
+| `bun run typecheck` | TypeScript type-check |
+| `bun run build:dist` | Cross-compile to `dist/` |
 
 ## Building standalone executables
 
