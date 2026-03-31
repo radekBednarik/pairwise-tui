@@ -6,6 +6,7 @@ interface StatusBarProps {
 	addingParam: boolean;
 	hasResults: boolean;
 	activeOptionField: string;
+	hasAiKey: boolean;
 }
 
 export function StatusBar({
@@ -14,6 +15,7 @@ export function StatusBar({
 	addingParam,
 	hasResults,
 	activeOptionField,
+	hasAiKey,
 }: StatusBarProps) {
 	const theme = useTheme();
 	const hints = getHints(
@@ -22,6 +24,7 @@ export function StatusBar({
 		addingParam,
 		hasResults,
 		activeOptionField,
+		hasAiKey,
 	);
 
 	return (
@@ -52,13 +55,32 @@ function getHints(
 	addingParam: boolean,
 	hasResults: boolean,
 	activeOptionField: string,
+	hasAiKey: boolean,
 ): Array<{ key: string; label: string }> {
 	const common: Array<{ key: string; label: string }> = [
+		{ key: "i", label: hasAiKey ? "AI fill" : "AI setup" },
+		...(hasAiKey ? [{ key: "F2", label: "AI setup" }] : []),
 		{ key: "1/2/3", label: "Switch tab" },
 		{ key: "m", label: "Log" },
 		{ key: "t", label: "Theme" },
 		{ key: "q", label: "Quit" },
 	];
+
+	if (activePanel === "aiSetup") {
+		return [
+			{ key: "Enter", label: "Save key" },
+			{ key: "d", label: "Clear key" },
+			{ key: "Esc", label: "Close" },
+		];
+	}
+
+	if (activePanel === "aiPrompt") {
+		return [
+			{ key: "Ctrl+G", label: "Generate" },
+			{ key: "F2", label: "Setup" },
+			{ key: "Esc", label: "Cancel" },
+		];
+	}
 
 	if (activePanel === "log") {
 		return [

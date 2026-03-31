@@ -2,6 +2,10 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { generateParameters } from "./ai/client";
+import { clearApiKey, loadApiKey, saveApiKey } from "./ai/credentials";
+import { AiPromptOverlay } from "./components/AiPromptOverlay";
+import { AiSetupOverlay } from "./components/AiSetupOverlay";
 import { AnimatedLogo } from "./components/AnimatedLogo";
 import { ClearConfirmOverlay } from "./components/ClearConfirmOverlay";
 import { DocOverlay } from "./components/DocOverlay";
@@ -74,6 +78,8 @@ export function App() {
 
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 	const constraintsRef = useRef<any>(null);
+	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
+	const aiPromptRef = useRef<any>(null);
 
 	// --- Main state ---
 	const [activeTab, setActiveTabState] = useState(0);
@@ -112,6 +118,15 @@ export function App() {
 	const [clearConfirmIndex, setClearConfirmIndex] = useState(1);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
+
+	// --- AI state ---
+	const [apiKey, setApiKey] = useState<string | null>(null);
+	const [aiSetupOpen, setAiSetupOpen] = useState(false);
+	const [aiPromptOpen, setAiPromptOpen] = useState(false);
+	const [aiKeyInput, setAiKeyInput] = useState("");
+	const [aiPromptKey, setAiPromptKey] = useState(0);
+	const [aiIsLoading, setAiIsLoading] = useState(false);
+	const [aiError, setAiError] = useState("");
 	const theme = THEMES[themeName] ?? tokyonightDark;
 
 	// --- Persistent settings ---
@@ -125,6 +140,7 @@ export function App() {
 			setThemeName(s.themeName);
 			settingsLoadedRef.current = true;
 		});
+		loadApiKey().then(setApiKey);
 	}, []);
 
 	useEffect(() => {
@@ -334,6 +350,47 @@ export function App() {
 		}
 	}, [modelStorage, showStatus, loadModelFromPath]);
 
+	// --- AI actions ---
+	const handleSaveApiKey = useCallback(() => {
+		const key = aiKeyInput.trim();
+		if (!key) return;
+		void saveApiKey(key).then(() => {
+			setApiKey(key);
+			setAiKeyInput("");
+			setAiSetupOpen(false);
+			showStatus("AI configured");
+		});
+	}, [aiKeyInput, showStatus]);
+
+	const handleClearApiKey = useCallback(() => {
+		void clearApiKey().then(() => {
+			setApiKey(null);
+			setAiKeyInput("");
+			showStatus("API key cleared");
+		});
+	}, [showStatus]);
+
+	const handleAiGenerate = useCallback(() => {
+		const prompt = aiPromptRef.current?.editBuffer?.getText()?.trim() ?? "";
+		if (!apiKey || !prompt || aiIsLoading) return;
+		setAiIsLoading(true);
+		setAiError("");
+		void generateParameters(prompt, apiKey)
+			.then((params) => {
+				setModel((m) => ({ ...m, parameters: params }));
+				setAiPromptOpen(false);
+				setAiIsLoading(false);
+				setActiveTab(0);
+				showStatus(
+					`AI generated ${params.length} parameters — verify and press [g]`,
+				);
+			})
+			.catch((err) => {
+				setAiIsLoading(false);
+				setAiError(err instanceof Error ? err.message : "Unknown error");
+			});
+	}, [apiKey, aiIsLoading, showStatus, setActiveTab]);
+
 	// --- Keyboard handler ---
 	useKeyboard((key) => {
 		const { name, ctrl } = key;
@@ -341,6 +398,15 @@ export function App() {
 		// Always: quit via Ctrl+C
 		if (ctrl && name === "c") {
 			renderer.destroy();
+			return;
+		}
+
+		// F2: open AI setup from anywhere (safe in text inputs — not a character)
+		if (name === "f2" && !aiSetupOpen) {
+			setAiPromptOpen(false);
+			setAiError("");
+			setAiKeyInput("");
+			setAiSetupOpen(true);
 			return;
 		}
 
@@ -479,6 +545,36 @@ export function App() {
 			return; // swallow all other keys
 		}
 
+		// AI setup overlay intercept
+		if (aiSetupOpen) {
+			if (name === "escape") {
+				setAiSetupOpen(false);
+				setAiKeyInput("");
+				return;
+			}
+			if (name === "d") {
+				handleClearApiKey();
+				return;
+			}
+			return; // <input> handles typing; Enter via onSubmit
+		}
+
+		// AI prompt overlay intercept
+		if (aiPromptOpen) {
+			if (name === "escape") {
+				if (!aiIsLoading) {
+					setAiPromptOpen(false);
+					setAiError("");
+				}
+				return;
+			}
+			if (ctrl && name === "g" && !aiIsLoading) {
+				handleAiGenerate();
+				return;
+			}
+			return; // textarea handles all other keys (Enter = newline)
+		}
+
 		// Escape: exit current input mode
 		if (name === "escape") {
 			if (activePanel === "adding") {
@@ -613,6 +709,17 @@ export function App() {
 			showStatus(`Theme: ${newThemeName}`);
 			return;
 		}
+		if (name === "i") {
+			if (apiKey) {
+				setAiPromptKey((k) => k + 1);
+				setAiError("");
+				setAiPromptOpen(true);
+			} else {
+				setAiKeyInput("");
+				setAiSetupOpen(true);
+			}
+			return;
+		}
 
 		// Model tab – params panel shortcuts
 		if (activeTab === 0 && activePanel === "params") {
@@ -736,6 +843,20 @@ export function App() {
 							files={pickerFiles}
 							selectedIndex={pickerIndex}
 						/>
+					) : aiSetupOpen ? (
+						<AiSetupOverlay
+							currentKey={apiKey}
+							inputValue={aiKeyInput}
+							onInputChange={setAiKeyInput}
+							onSubmit={handleSaveApiKey}
+						/>
+					) : aiPromptOpen ? (
+						<AiPromptOverlay
+							textareaRef={aiPromptRef}
+							textareaKey={aiPromptKey}
+							isLoading={aiIsLoading}
+							error={aiError}
+						/>
 					) : showClearConfirm ? (
 						<ClearConfirmOverlay selectedIndex={clearConfirmIndex} />
 					) : (
@@ -805,13 +926,18 @@ export function App() {
 								? "docs"
 								: pickerOpen
 									? "picker"
-									: showClearConfirm
-										? "clearConfirm"
-										: activePanel
+									: aiSetupOpen
+										? "aiSetup"
+										: aiPromptOpen
+											? "aiPrompt"
+											: showClearConfirm
+												? "clearConfirm"
+												: activePanel
 					}
 					addingParam={activePanel === "adding"}
 					hasResults={results.length > 0}
 					activeOptionField={activeOptionField}
+					hasAiKey={apiKey !== null}
 				/>
 			</box>
 		</ThemeContext.Provider>
