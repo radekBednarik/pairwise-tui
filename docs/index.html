@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pairwise-tui — Terminal UI for Pairwise Test Case Generation</title>
+  <meta name="description" content="pairwise-tui is a keyboard-driven terminal UI for generating PICT pairwise combinatorial test cases. AI-powered, zero dependencies, runs on Linux and Windows." />
+  <meta property="og:title" content="pairwise-tui" />
+  <meta property="og:description" content="Terminal UI for generating PICT pairwise test cases. AI-powered parameter generation, multiple export formats, zero dependencies." />
+  <meta property="og:url" content="https://radekbednarik.github.io/pairwise-tui/" />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="https://radekbednarik.github.io/pairwise-tui/" />
+  <base href="/pairwise-tui/" />
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav class="site-nav" aria-label="Site navigation">
+  <div class="container nav-inner">
+    <a href="/pairwise-tui/" class="nav-logo" aria-label="pairwise-tui home">
+      <span class="nav-logo-mark" aria-hidden="true">┌─┬─┐</span>
+      pairwise-tui
+    </a>
+
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
+      ☰
+    </button>
+
+    <ul class="nav-links" id="nav-menu" role="list">
+      <li><a class="nav-link" href="/pairwise-tui/#features">Features</a></li>
+      <li><a class="nav-link" href="/pairwise-tui/#mockups">Screenshots</a></li>
+      <li><a class="nav-link" href="/pairwise-tui/#getting-started">Get Started</a></li>
+      <li><a class="nav-link" href="/pairwise-tui/#shortcuts">Shortcuts</a></li>
+      <li><a class="nav-link" href="/pairwise-tui/#ai">AI</a></li>
+      <li>
+        <a class="nav-link nav-cta" href="https://github.com/radekBednarik/pairwise-tui" target="_blank" rel="noopener noreferrer">
+          GitHub ↗
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero" id="hero" aria-labelledby="hero-heading">
+  <div class="container hero-inner">
+    <div class="hero-text">
+      <span class="hero-eyebrow">Terminal · Pairwise · AI-powered</span>
+      <h1 class="hero-title" id="hero-heading">
+        <span class="hero-title-gradient">pairwise-tui</span><br />
+        Test smarter,<br />not exhaustively
+      </h1>
+      <p class="hero-desc">
+        A keyboard-driven terminal UI for generating PICT pairwise combinatorial
+        test cases. Define parameters, add constraints, let the AI help — then
+        export to CSV, JSON, or Excel in seconds.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary"
+           href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
+           target="_blank" rel="noopener noreferrer">
+          ↓ Download for Linux
+        </a>
+        <a class="btn btn-secondary"
+           href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
+           target="_blank" rel="noopener noreferrer">
+          ↓ Download for Windows
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="term-window">
+        <div class="term-titlebar">
+          <span class="term-dot term-dot--close"></span>
+          <span class="term-dot term-dot--min"></span>
+          <span class="term-dot term-dot--max"></span>
+          <span class="term-title">pairwise-tui</span>
+        </div>
+        <pre class="term-body"><span class="term-muted"> pairwise-tui  v1.x.x                        </span>
+<span class="term-muted">────────────────────────────────────────────</span>
+ <span class="term-accent">[1] Model</span>  [2] Options  [3] Results
+
+<span class="term-muted">┌ Parameters ──────────┐┌ Values: OS ─────────┐</span>
+<span class="term-muted">│</span> <span class="term-accent">></span> <span class="term-primary">OS</span>    <span class="term-value">Windows,...</span> <span class="term-muted">││</span> <span class="term-value">Windows, Linux, macOS</span><span class="term-muted">│</span>
+<span class="term-muted">│</span>   <span class="term-primary">Browser</span> <span class="term-value">Chrome,...  </span><span class="term-muted">││</span>                     <span class="term-muted">│</span>
+<span class="term-muted">│</span>   <span class="term-primary">Language</span><span class="term-value"> EN, DE, FR </span><span class="term-muted">││</span> 3 values            <span class="term-muted">│</span>
+<span class="term-muted">└──────────────────────┘└─────────────────────┘</span>
+<span class="term-muted">┌ Constraints ─────────────────────────────────┐</span>
+<span class="term-muted">│</span> <span class="term-purple">IF</span> [<span class="term-accent">OS</span>] = <span class="term-value">"Linux"</span> <span class="term-purple">THEN</span> [<span class="term-accent">Browser</span>] &lt;&gt; <span class="term-value">"Safari"</span>;<span class="term-muted">│</span>
+<span class="term-muted">└──────────────────────────────────────────────┘</span>
+<span class="term-muted"> [</span><span class="term-accent">a</span><span class="term-muted">] Add [</span><span class="term-accent">d</span><span class="term-muted">] Del [</span><span class="term-accent">g</span><span class="term-muted">] Generate [</span><span class="term-accent">q</span><span class="term-muted">] Quit</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURES ===================== -->
+<section class="features" id="features" aria-labelledby="features-heading">
+  <div class="container">
+    <h2 class="section-title" id="features-heading">Why pairwise-tui?</h2>
+    <p class="section-subtitle">Everything you need to generate comprehensive test coverage without the busywork.</p>
+
+    <div class="features-grid">
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">⚡</span>
+        <h3 class="feature-title">Pairwise Coverage</h3>
+        <p class="feature-desc">
+          Powered by Microsoft PICT. Reduce thousands of combinations to a minimal
+          high-coverage set — typically a 40–70% reduction with no loss of pairwise coverage.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">🤖</span>
+        <h3 class="feature-title">AI Parameter Generation</h3>
+        <p class="feature-desc">
+          Describe your feature in plain English. Claude AI identifies test
+          parameters, values, and constraints automatically — no manual model
+          building needed.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">⌨️</span>
+        <h3 class="feature-title">Keyboard-Driven Workflow</h3>
+        <p class="feature-desc">
+          Three-tab interface — Model, Options, Results — fully navigable by
+          keyboard. No mouse required. Single-keypress actions for every operation.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">📤</span>
+        <h3 class="feature-title">Export Anywhere</h3>
+        <p class="feature-desc">
+          Save results as plain TXT, JSON, CSV, or native XLSX. Press
+          <kbd>s</kbd> once — the format you chose in Options is applied instantly.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">📦</span>
+        <h3 class="feature-title">Zero Dependencies</h3>
+        <p class="feature-desc">
+          Single self-contained binary for Linux and Windows. No runtime, no
+          installer, no package manager. Download and run.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">🎨</span>
+        <h3 class="feature-title">Themes &amp; Persistence</h3>
+        <p class="feature-desc">
+          Tokyo Night Dark, Tokyo Night Storm, Catppuccin Mocha. Cycle with
+          <kbd>t</kbd>. All settings — theme, output format, model storage path —
+          persist across sessions automatically.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MOCKUPS ===================== -->
+<section class="mockups" id="mockups" aria-labelledby="mockups-heading">
+  <div class="container">
+    <h2 class="section-title" id="mockups-heading">See it in action</h2>
+    <p class="section-subtitle">Four views of the app — click the tabs to explore each screen.</p>
+
+    <div class="tab-switcher" role="tablist" aria-label="App screen tabs">
+      <button class="tab-btn" role="tab" aria-selected="true"
+              data-tab-btn="mockup" data-tab-target="model">
+        [1] Model
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false"
+              data-tab-btn="mockup" data-tab-target="options">
+        [2] Options
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false"
+              data-tab-btn="mockup" data-tab-target="results">
+        [3] Results
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false"
+              data-tab-btn="mockup" data-tab-target="ai">
+        AI Prompt
+      </button>
+    </div>
+
+    <!-- Model tab mockup -->
+    <div data-tab-panel="mockup" data-tab-id="model" role="tabpanel">
+      <div class="term-window">
+        <div class="term-titlebar">
+          <span class="term-dot term-dot--close"></span>
+          <span class="term-dot term-dot--min"></span>
+          <span class="term-dot term-dot--max"></span>
+          <span class="term-title">pairwise-tui — Model</span>
+        </div>
+        <pre class="term-body"><span class="term-muted"> pairwise-tui                                                        </span>
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+ <span class="term-accent">[1] Model</span>  [2] Options  [3] Results
+
+<span class="term-accent">┌ Parameters ───────────────────────┐</span><span class="term-muted">┌ Values: OS ──────────────────────────┐</span>
+<span class="term-accent">│</span> <span class="term-accent">></span> <span class="term-secondary">OS            </span><span class="term-value">Windows,Linux,m...</span><span class="term-accent">│</span><span class="term-muted">│</span> Comma-separated values:              <span class="term-muted">│</span>
+<span class="term-accent">│</span>   <span class="term-secondary">Browser       </span><span class="term-value">Chrome,Firefox,S...</span><span class="term-accent">│</span><span class="term-muted">│</span> <span class="term-value">Windows, Linux, macOS</span>               <span class="term-muted">│</span>
+<span class="term-accent">│</span>   <span class="term-secondary">Language      </span><span class="term-value">EN, DE, FR       </span><span class="term-accent">│</span><span class="term-muted">│</span>                                     <span class="term-muted">│</span>
+<span class="term-accent">│</span>                                   <span class="term-accent">│</span><span class="term-muted">│</span> 3 values: <span class="term-value">Windows  Linux  macOS</span>    <span class="term-muted">│</span>
+<span class="term-accent">│</span>                                   <span class="term-accent">│</span><span class="term-muted">│</span>                                     <span class="term-muted">│</span>
+<span class="term-accent">└───────────────────────────────────┘</span><span class="term-muted">└─────────────────────────────────────┘</span>
+<span class="term-muted">┌ Constraints ─────────────────────────────────────────────────────────────┐</span>
+<span class="term-muted">│</span> <span class="term-purple">IF</span> [<span class="term-accent">OS</span>] = <span class="term-value">"Linux"</span> <span class="term-purple">THEN</span> [<span class="term-accent">Browser</span>] &lt;&gt; <span class="term-value">"Safari"</span>;                         <span class="term-muted">│</span>
+<span class="term-muted">└──────────────────────────────────────────────────────────────────────────┘</span>
+<span class="term-muted"> [</span><span class="term-accent">a</span><span class="term-muted">] Add  [</span><span class="term-accent">d</span><span class="term-muted">] Del  [</span><span class="term-accent">e</span><span class="term-muted">] Edit values  [</span><span class="term-accent">c</span><span class="term-muted">] Constraints  [</span><span class="term-accent">g</span><span class="term-muted">] Generate  [</span><span class="term-accent">?</span><span class="term-muted">] Docs  [</span><span class="term-accent">q</span><span class="term-muted">] Quit</span></pre>
+      </div>
+    </div>
+
+    <!-- Options tab mockup -->
+    <div data-tab-panel="mockup" data-tab-id="options" role="tabpanel" hidden>
+      <div class="term-window">
+        <div class="term-titlebar">
+          <span class="term-dot term-dot--close"></span>
+          <span class="term-dot term-dot--min"></span>
+          <span class="term-dot term-dot--max"></span>
+          <span class="term-title">pairwise-tui — Options</span>
+        </div>
+        <pre class="term-body"><span class="term-muted"> pairwise-tui                                                        </span>
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+ [1] Model  <span class="term-accent">[2] Options</span>  [3] Results
+
+  <span class="term-accent">Output Configuration</span>
+  <span class="term-secondary">Output file path:  </span> <span class="term-value">./results.csv</span>
+  <span class="term-secondary">Format:            </span> <span class="term-accent">CSV</span>              <span class="term-muted">[Enter] cycle: txt / json / csv / xlsx</span>
+
+  <span class="term-accent">PICT Options</span>
+  <span class="term-secondary">Combination order: </span> <span class="term-accent">2</span>               <span class="term-muted">(1–6, default: 2 = pairwise)</span>
+  <span class="term-secondary">Randomize:         </span> <span class="term-muted">○</span> OFF            <span class="term-muted">[Enter] toggle</span>
+  <span class="term-secondary">Case sensitive:    </span> <span class="term-muted">○</span> OFF            <span class="term-muted">[Enter] toggle</span>
+
+  <span class="term-accent">Model Storage</span>
+  <span class="term-secondary">Storage path:      </span> <span class="term-value">./</span>
+  <span class="term-secondary">File template:     </span> <span class="term-value">model_{timestamp}</span>
+
+  <span class="term-accent">AI Settings</span>
+  <span class="term-secondary">AI Model:          </span> <span class="term-accent">claude-haiku-4-5</span>  <span class="term-muted">[Enter] cycle model</span>
+
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+<span class="term-muted"> [Tab] Next field  [Esc] Unfocus  [g] Generate  [w] Save model  [q] Quit</span></pre>
+      </div>
+    </div>
+
+    <!-- Results tab mockup -->
+    <div data-tab-panel="mockup" data-tab-id="results" role="tabpanel" hidden>
+      <div class="term-window">
+        <div class="term-titlebar">
+          <span class="term-dot term-dot--close"></span>
+          <span class="term-dot term-dot--min"></span>
+          <span class="term-dot term-dot--max"></span>
+          <span class="term-title">pairwise-tui — Results</span>
+        </div>
+        <pre class="term-body"><span class="term-muted"> pairwise-tui                                                        </span>
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+ [1] Model  [2] Options  <span class="term-accent">[3] Results</span>
+
+  <span class="term-success">✓</span> <span class="term-accent">18 test cases</span>  <span class="term-muted">(3 parameters — OS × Browser × Language)</span>
+
+  <span class="term-accent">OS          Browser     Language</span>
+  <span class="term-muted">──────────────────────────────────────</span>
+  <span class="term-secondary">Windows     Chrome      EN</span>
+  <span class="term-muted">Linux       Firefox     DE</span>
+  <span class="term-secondary">macOS       Safari      FR</span>
+  <span class="term-muted">Windows     Firefox     FR</span>
+  <span class="term-secondary">Linux       Chrome      FR</span>
+  <span class="term-muted">macOS       Chrome      DE</span>
+  <span class="term-secondary">Windows     Safari      DE</span>
+  <span class="term-muted">Linux       Safari      EN</span>
+  <span class="term-secondary">macOS       Firefox     EN</span>
+  <span class="term-muted">Windows     Chrome      DE</span>
+  <span class="term-secondary">Linux       Firefox     EN</span>
+  <span class="term-muted">macOS       Safari      EN</span>
+  <span class="term-secondary">...</span>
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+<span class="term-muted"> [↑↓] Scroll  [</span><span class="term-accent">s</span><span class="term-muted">] Save results  [</span><span class="term-accent">m</span><span class="term-muted">] Log  [</span><span class="term-accent">t</span><span class="term-muted">] Theme  [</span><span class="term-accent">q</span><span class="term-muted">] Quit</span></pre>
+      </div>
+    </div>
+
+    <!-- AI Prompt mockup -->
+    <div data-tab-panel="mockup" data-tab-id="ai" role="tabpanel" hidden>
+      <div class="term-window">
+        <div class="term-titlebar">
+          <span class="term-dot term-dot--close"></span>
+          <span class="term-dot term-dot--min"></span>
+          <span class="term-dot term-dot--max"></span>
+          <span class="term-title">pairwise-tui — AI Parameter Generator</span>
+        </div>
+        <pre class="term-body"><span class="term-muted"> pairwise-tui                                                        </span>
+<span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
+ [1] Model  [2] Options  [3] Results
+
+       <span class="term-muted">┌───────────────────────────────────────────────────────────┐</span>
+       <span class="term-muted">│</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">claude-haiku-4-5</span>           <span class="term-muted">│</span>
+       <span class="term-muted">│</span>                                                           <span class="term-muted">│</span>
+       <span class="term-muted">│</span>  Describe your test scenario:                            <span class="term-muted">│</span>
+       <span class="term-muted">│  ┌─────────────────────────────────────────────────────┐  │</span>
+       <span class="term-muted">│  │</span> <span class="term-secondary">Login form with email (valid/invalid/empty),</span>        <span class="term-muted">│  │</span>
+       <span class="term-muted">│  │</span> <span class="term-secondary">password strength (weak/strong/empty),</span>              <span class="term-muted">│  │</span>
+       <span class="term-muted">│  │</span> <span class="term-secondary">remember-me checkbox. Test on Chrome/Firefox/Edge.</span>  <span class="term-muted">│  │</span>
+       <span class="term-muted">│  └─────────────────────────────────────────────────────┘  │</span>
+       <span class="term-muted">│</span>                                                           <span class="term-muted">│</span>
+       <span class="term-muted">│</span>  <span class="term-muted">Tip: paste a feature spec, user story, or brief desc.</span>   <span class="term-muted">│</span>
+       <span class="term-muted">│</span>                                                           <span class="term-muted">│</span>
+       <span class="term-muted">│</span>  <span class="term-muted">[</span><span class="term-accent">Ctrl+G</span><span class="term-muted">] Generate  [</span><span class="term-accent">F2</span><span class="term-muted">] Setup  [</span><span class="term-accent">Esc</span><span class="term-muted">] Cancel         │</span>
+       <span class="term-muted">└───────────────────────────────────────────────────────────┘</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GETTING STARTED ===================== -->
+<section class="getting-started" id="getting-started" aria-labelledby="gs-heading">
+  <div class="container">
+    <h2 class="section-title" id="gs-heading">Getting Started</h2>
+    <p class="section-subtitle">From download to your first test cases in under two minutes.</p>
+
+    <ol class="steps" role="list">
+      <li class="step">
+        <span class="step-number" aria-hidden="true">1</span>
+        <div class="step-content">
+          <h3>Download the binary</h3>
+          <p>
+            Head to the <a href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
+              target="_blank" rel="noopener noreferrer">Releases page</a> and grab
+            the executable for your OS. No installer needed — it's a single file.
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-number" aria-hidden="true">2</span>
+        <div class="step-content">
+          <h3>Make it executable <span class="badge badge-teal">Linux only</span></h3>
+          <p>Give the binary execute permission:</p>
+          <div class="code-block">
+            <code>chmod +x pairwise-tui</code>
+            <button class="copy-btn" data-copy="chmod +x pairwise-tui" aria-label="Copy command">copy</button>
+          </div>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-number" aria-hidden="true">3</span>
+        <div class="step-content">
+          <h3>Run the app</h3>
+          <div class="code-block">
+            <code>./pairwise-tui</code>
+            <button class="copy-btn" data-copy="./pairwise-tui" aria-label="Copy command">copy</button>
+          </div>
+          <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+            Windows: double-click <code style="font-family: var(--font-mono); color: var(--value);">pairwise-tui.exe</code>
+            or run it from PowerShell.
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-number" aria-hidden="true">4</span>
+        <div class="step-content">
+          <h3>Define parameters</h3>
+          <p>
+            Press <kbd>a</kbd> to add a parameter. Enter a name (e.g. <code style="font-family:var(--font-mono);color:var(--value)">Browser</code>),
+            then press <kbd>Tab</kbd> to move to the values field and type
+            comma-separated values (e.g. <code style="font-family:var(--font-mono);color:var(--value)">Chrome, Firefox, Safari</code>).
+            Repeat for each test dimension.
+          </p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-number" aria-hidden="true">5</span>
+        <div class="step-content">
+          <h3>Generate test cases</h3>
+          <p>Press <kbd>g</kbd> from any tab. PICT runs instantly and the Results tab shows your minimal pairwise test suite.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-number" aria-hidden="true">6</span>
+        <div class="step-content">
+          <h3>Export results</h3>
+          <p>
+            Choose your format in Options (<kbd>2</kbd> → Format field → <kbd>Enter</kbd> to cycle),
+            then press <kbd>s</kbd> to save. Done.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================== SHORTCUTS ===================== -->
+<section class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-heading">
+  <div class="container">
+    <h2 class="section-title" id="shortcuts-heading">Keyboard Shortcuts</h2>
+    <p class="section-subtitle">Every action is one keypress away. Click a group to expand.</p>
+
+    <div class="shortcuts-groups">
+
+      <details class="shortcuts-group" open>
+        <summary>Global — available in all tabs</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>g</kbd></td><td>Generate test cases (run PICT)</td></tr>
+            <tr><td><kbd>s</kbd></td><td>Save results to output file</td></tr>
+            <tr><td><kbd>w</kbd></td><td>Save current model to storage</td></tr>
+            <tr><td><kbd>o</kbd></td><td>Open a saved model (file picker)</td></tr>
+            <tr><td><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></td><td>Switch to Model / Options / Results tab</td></tr>
+            <tr><td><kbd>[</kbd> / <kbd>]</kbd></td><td>Previous / next tab (cycle)</td></tr>
+            <tr><td><kbd>t</kbd></td><td>Cycle through color themes</td></tr>
+            <tr><td><kbd>m</kbd></td><td>Open message log overlay</td></tr>
+            <tr><td><kbd>i</kbd></td><td>Open AI prompt (or AI setup if no key configured)</td></tr>
+            <tr><td><kbd>F2</kbd></td><td>Open AI setup overlay</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Open built-in PICT documentation</td></tr>
+            <tr><td><kbd>q</kbd> / <kbd>Ctrl+C</kbd></td><td>Quit application</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Model tab — Parameters panel</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>a</kbd></td><td>Add new parameter</td></tr>
+            <tr><td><kbd>d</kbd></td><td>Delete selected parameter</td></tr>
+            <tr><td><kbd>e</kbd></td><td>Edit values for selected parameter</td></tr>
+            <tr><td><kbd>c</kbd></td><td>Jump to constraints editor</td></tr>
+            <tr><td><kbd>x</kbd></td><td>Clear entire model (with confirmation)</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate parameter list</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Switch to values / constraints panel</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel / return to parameters panel</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Options tab</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>Tab</kbd></td><td>Focus next field</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Toggle or cycle current field (format, randomize, AI model…)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Unfocus current field</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Results tab</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Scroll through test cases</td></tr>
+            <tr><td><kbd>s</kbd></td><td>Save results to file</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Overlays — Message log, AI, Documentation, File picker</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate entries / chapters</td></tr>
+            <tr><td><kbd>c</kbd> <span style="color:var(--text-muted);font-size:0.8em">(log)</span></td><td>Copy selected entry to clipboard</td></tr>
+            <tr><td><kbd>a</kbd> <span style="color:var(--text-muted);font-size:0.8em">(log)</span></td><td>Copy all log entries to clipboard</td></tr>
+            <tr><td><kbd>Ctrl+G</kbd> <span style="color:var(--text-muted);font-size:0.8em">(AI)</span></td><td>Generate parameters from description</td></tr>
+            <tr><td><kbd>Enter</kbd> <span style="color:var(--text-muted);font-size:0.8em">(docs/picker)</span></td><td>Open selected chapter / file</td></tr>
+            <tr><td><kbd>Esc</kbd> / <kbd>m</kbd></td><td>Close overlay</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== AI SECTION ===================== -->
+<section class="ai-section" id="ai" aria-labelledby="ai-heading">
+  <div class="container">
+    <h2 class="section-title" id="ai-heading">AI-Powered Parameter Generation</h2>
+    <p class="section-subtitle">Describe your feature. Claude builds the model.</p>
+
+    <div class="two-col">
+      <div>
+        <p class="ai-desc">
+          Instead of manually listing every parameter and value, press <kbd>i</kbd> and
+          describe your test scenario in plain English. The AI identifies the key test
+          dimensions, suggests 2–6 values for each, and adds PICT constraints where
+          logical dependencies exist.
+        </p>
+
+        <h3 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 0.75rem;">Setup (one-time)</h3>
+        <ol class="ai-setup-steps">
+          <li>Get an API key from <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer">console.anthropic.com</a></li>
+          <li>Press <kbd>F2</kbd> in pairwise-tui to open AI Setup</li>
+          <li>Paste your key and press <kbd>Enter</kbd></li>
+          <li>Key is saved to <code style="font-family:var(--font-mono);color:var(--value);font-size:0.85em">~/.config/pairwise-tui/credentials.json</code></li>
+        </ol>
+        <p style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          You can also set the <code style="font-family:var(--font-mono)">ANTHROPIC_API_KEY</code> environment variable — it takes precedence over the stored key.
+        </p>
+
+        <h3 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 0.75rem;">Available Models</h3>
+        <table class="model-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Speed</th>
+              <th>Best for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>claude-haiku-4-5</td>
+              <td>Fastest ⚡</td>
+              <td>Quick parameter sketches (default)</td>
+            </tr>
+            <tr>
+              <td>claude-sonnet-4-6</td>
+              <td>Balanced</td>
+              <td>Most scenarios</td>
+            </tr>
+            <tr>
+              <td>claude-opus-4-6</td>
+              <td>Thorough</td>
+              <td>Complex domain models</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div aria-hidden="true">
+        <div class="term-window">
+          <div class="term-titlebar">
+            <span class="term-dot term-dot--close"></span>
+            <span class="term-dot term-dot--min"></span>
+            <span class="term-dot term-dot--max"></span>
+            <span class="term-title">AI Parameter Generator</span>
+          </div>
+          <pre class="term-body"><span class="term-muted">  ┌───────────────────────────────────────────┐</span>
+<span class="term-muted">  │</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">haiku-4-5</span>   <span class="term-muted">│</span>
+<span class="term-muted">  │</span>                                           <span class="term-muted">│</span>
+<span class="term-muted">  │</span>  <span class="term-secondary">Describe your test scenario:</span>            <span class="term-muted">│</span>
+<span class="term-muted">  │  ┌─────────────────────────────────────┐  │</span>
+<span class="term-muted">  │  │</span> <span class="term-value">Payment checkout:</span>                   <span class="term-muted">│  │</span>
+<span class="term-muted">  │  │</span> <span class="term-secondary">Visa/Mastercard/PayPal,</span>             <span class="term-muted">│  │</span>
+<span class="term-muted">  │  │</span> <span class="term-secondary">USD/EUR/GBP,</span>                        <span class="term-muted">│  │</span>
+<span class="term-muted">  │  │</span> <span class="term-secondary">iOS/Android/Web</span>                     <span class="term-muted">│  │</span>
+<span class="term-muted">  │  └─────────────────────────────────────┘  │</span>
+<span class="term-muted">  │</span>                                           <span class="term-muted">│</span>
+<span class="term-muted">  │</span>  <span class="term-muted">[Ctrl+G] Generate  [F2] Setup  [Esc]</span>   <span class="term-muted">│</span>
+<span class="term-muted">  └───────────────────────────────────────────┘</span>
+
+  <span class="term-success">✓ Generated 4 parameters, 1 constraint</span>
+  <span class="term-muted">  → Review in Model tab, then press [g]</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PICT FORMAT ===================== -->
+<section class="pict-format" id="pict-format" aria-labelledby="pict-heading">
+  <div class="container">
+    <h2 class="section-title" id="pict-heading">PICT Model Format</h2>
+    <p class="pict-desc">
+      Models are saved as plain text files compatible with the PICT engine.
+      Each line defines a parameter with a colon-separated list of values.
+      Constraints use <code style="font-family:var(--font-mono);color:var(--value)">IF / THEN</code> rules
+      with comparison operators. Press <kbd>w</kbd> to save and <kbd>o</kbd> to reload.
+    </p>
+
+    <div class="term-window" style="max-width: 640px;">
+      <div class="term-titlebar">
+        <span class="term-dot term-dot--close"></span>
+        <span class="term-dot term-dot--min"></span>
+        <span class="term-dot term-dot--max"></span>
+        <span class="term-title">model_2025-04-01.txt</span>
+      </div>
+      <pre class="term-body"><span class="term-accent">OS</span>: <span class="term-value">Windows, Linux, macOS</span>
+<span class="term-accent">Browser</span>: <span class="term-value">Chrome, Firefox, Safari</span>
+<span class="term-accent">Language</span>: <span class="term-value">EN, DE, FR</span>
+<span class="term-accent">APIVersion</span>: <span class="term-value">v1, v2</span>
+
+<span class="term-purple">IF</span> [<span class="term-accent">OS</span>] = <span class="term-value">"Linux"</span> <span class="term-purple">THEN</span> [<span class="term-accent">Browser</span>] &lt;&gt; <span class="term-value">"Safari"</span>;
+<span class="term-purple">IF</span> [<span class="term-accent">APIVersion</span>] = <span class="term-value">"v1"</span> <span class="term-purple">THEN</span> [<span class="term-accent">Browser</span>] &lt;&gt; <span class="term-value">"Chrome"</span>;</pre>
+    </div>
+
+    <div class="pict-links">
+      <a class="pict-link" href="https://github.com/microsoft/pict" target="_blank" rel="noopener noreferrer">
+        PICT on GitHub ↗
+      </a>
+      <span style="color: var(--text-muted); font-size: 0.9rem;">
+        — Full constraint syntax is also available in-app: press <kbd>?</kbd> to open the built-in docs overlay.
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="site-footer" aria-label="Site footer">
+  <div class="container footer-inner">
+    <nav class="footer-links" aria-label="Footer links">
+      <a class="footer-link"
+         href="https://github.com/radekBednarik/pairwise-tui"
+         target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a class="footer-link"
+         href="https://github.com/radekBednarik/pairwise-tui/releases"
+         target="_blank" rel="noopener noreferrer">Releases</a>
+      <a class="footer-link"
+         href="https://github.com/microsoft/pict"
+         target="_blank" rel="noopener noreferrer">PICT</a>
+      <a class="footer-link"
+         href="https://github.com/radekBednarik/pairwise-tui/issues"
+         target="_blank" rel="noopener noreferrer">Report a Bug</a>
+    </nav>
+    <p class="footer-copy">
+      © 2025 radekBednarik · Built with pairwise-tui &amp; Claude
+    </p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
