@@ -37,10 +37,35 @@ jobs:
           name: pict-win
           path: pict.exe
 
+  build-pict-linux:
+    name: Build pict (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone microsoft/pict
+        run: git clone --depth 1 https://github.com/microsoft/pict pict-src
+
+      - name: Build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Release -S pict-src -B pict-src/build
+          cmake --build pict-src/build
+
+      - name: Stage pict
+        run: |
+          exe=$(find pict-src/build -name pict -type f | head -1)
+          if [ -z "$exe" ]; then echo "pict not found after build" && exit 1; fi
+          echo "Found: $exe"
+          cp "$exe" pict
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pict-linux
+          path: pict
+
   release:
     name: Build and Release
     runs-on: ubuntu-latest
-    needs: build-pict-win
+    needs: [build-pict-win, build-pict-linux]
 
     steps:
       - name: Checkout
@@ -51,6 +76,15 @@ jobs:
         with:
           name: pict-win
           path: binaries
+
+      - name: Download pict (Linux)
+        uses: actions/download-artifact@v4
+        with:
+          name: pict-linux
+          path: binaries
+
+      - name: Make pict executable
+        run: chmod +x binaries/pict
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
