@@ -28,6 +28,7 @@ import {
 	tokyonightDark,
 } from "./theme/themes";
 import type {
+	AiModel,
 	LogMessage,
 	ModelStorageConfig,
 	OutputConfig,
@@ -60,6 +61,7 @@ type ActiveOptionField =
 	| "caseSensitive"
 	| "storagePath"
 	| "fileTemplate"
+	| "aiModel"
 	| "none";
 
 const OPTION_FIELDS: ActiveOptionField[] = [
@@ -70,7 +72,14 @@ const OPTION_FIELDS: ActiveOptionField[] = [
 	"caseSensitive",
 	"storagePath",
 	"fileTemplate",
+	"aiModel",
 	"none",
+];
+
+const AI_MODELS: AiModel[] = [
+	"claude-haiku-4-5",
+	"claude-sonnet-4-6",
+	"claude-opus-4-6",
 ];
 
 export function App() {
@@ -118,6 +127,7 @@ export function App() {
 	const [clearConfirmIndex, setClearConfirmIndex] = useState(1);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
+	const [aiModel, setAiModel] = useState<AiModel>("claude-haiku-4-5");
 
 	// --- AI state ---
 	const [apiKey, setApiKey] = useState<string | null>(null);
@@ -138,6 +148,7 @@ export function App() {
 			setOutputConfig(s.outputConfig);
 			setModelStorage(s.modelStorage);
 			setThemeName(s.themeName);
+			setAiModel(s.aiModel);
 			settingsLoadedRef.current = true;
 		});
 		loadApiKey().then(setApiKey);
@@ -145,8 +156,14 @@ export function App() {
 
 	useEffect(() => {
 		if (!settingsLoadedRef.current) return;
-		void saveSettings({ options, outputConfig, modelStorage, themeName });
-	}, [options, outputConfig, modelStorage, themeName]);
+		void saveSettings({
+			options,
+			outputConfig,
+			modelStorage,
+			themeName,
+			aiModel,
+		});
+	}, [options, outputConfig, modelStorage, themeName, aiModel]);
 
 	// --- Model tab state ---
 	const [activePanel, setActivePanel] = useState<ActivePanel>("params");
@@ -375,7 +392,7 @@ export function App() {
 		if (!apiKey || !prompt || aiIsLoading) return;
 		setAiIsLoading(true);
 		setAiError("");
-		void generateParameters(prompt, apiKey)
+		void generateParameters(prompt, apiKey, aiModel)
 			.then((params) => {
 				setModel((m) => ({ ...m, parameters: params }));
 				setAiPromptOpen(false);
@@ -389,7 +406,7 @@ export function App() {
 				setAiIsLoading(false);
 				setAiError(err instanceof Error ? err.message : "Unknown error");
 			});
-	}, [apiKey, aiIsLoading, showStatus, setActiveTab]);
+	}, [apiKey, aiModel, aiIsLoading, showStatus, setActiveTab]);
 
 	// --- Keyboard handler ---
 	useKeyboard((key) => {
@@ -772,6 +789,13 @@ export function App() {
 					setOptions((o) => ({ ...o, caseSensitive: !o.caseSensitive }));
 					return;
 				}
+				if (activeOptionField === "aiModel") {
+					const next =
+						AI_MODELS[(AI_MODELS.indexOf(aiModel) + 1) % AI_MODELS.length] ??
+						"claude-haiku-4-5";
+					setAiModel(next);
+					return;
+				}
 			}
 		}
 	});
@@ -881,6 +905,7 @@ export function App() {
 									options={options}
 									outputConfig={outputConfig}
 									modelStorage={modelStorage}
+									aiModel={aiModel}
 									activeField={activeOptionField}
 									onOutputConfigChange={setOutputConfig}
 									onOptionsChange={setOptions}

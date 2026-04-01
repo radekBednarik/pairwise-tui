@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Parameter } from "../types";
+import type { AiModel, Parameter } from "../types";
 
 const SYSTEM_PROMPT = `You are a PICT (Pairwise Independent Combinatorial Testing) parameter extractor.
 Given a description of a software feature or test scenario, identify the key test parameters and their possible values.
@@ -12,11 +12,12 @@ Respond ONLY with valid JSON in this exact format, no additional text:
 export async function generateParameters(
 	prompt: string,
 	apiKey: string,
+	model: AiModel = "claude-haiku-4-5",
 ): Promise<Parameter[]> {
 	const client = new Anthropic({ apiKey });
 
 	const message = await client.messages.create({
-		model: "claude-haiku-4-5-20251001",
+		model,
 		max_tokens: 1024,
 		system: SYSTEM_PROMPT,
 		messages: [{ role: "user", content: prompt }],

@@ -1,13 +1,19 @@
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { ModelStorageConfig, OutputConfig, PictOptions } from "../types";
+import type {
+	AiModel,
+	ModelStorageConfig,
+	OutputConfig,
+	PictOptions,
+} from "../types";
 
 export interface AppSettings {
 	options: PictOptions;
 	outputConfig: OutputConfig;
 	modelStorage: ModelStorageConfig;
 	themeName: string;
+	aiModel: AiModel;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -15,6 +21,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 	outputConfig: { filePath: "./output.txt", format: "txt" },
 	modelStorage: { storagePath: "./", fileTemplate: "model_{timestamp}" },
 	themeName: "tokyonight-dark",
+	aiModel: "claude-haiku-4-5",
 };
 
 function getConfigPath(): string {
@@ -42,6 +49,7 @@ export async function loadSettings(): Promise<AppSettings> {
 				...parsed.modelStorage,
 			},
 			themeName: parsed.themeName ?? DEFAULT_SETTINGS.themeName,
+			aiModel: parsed.aiModel ?? DEFAULT_SETTINGS.aiModel,
 		};
 	} catch {
 		return { ...DEFAULT_SETTINGS };

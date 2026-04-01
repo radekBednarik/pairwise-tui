@@ -1,10 +1,22 @@
 import { useTheme } from "../theme/ThemeContext";
-import type { ModelStorageConfig, OutputConfig, PictOptions } from "../types";
+import type {
+	AiModel,
+	ModelStorageConfig,
+	OutputConfig,
+	PictOptions,
+} from "../types";
+
+const AI_MODEL_LABELS: Record<AiModel, string> = {
+	"claude-haiku-4-5": "Haiku 4.5",
+	"claude-sonnet-4-6": "Sonnet 4.6",
+	"claude-opus-4-6": "Opus 4.6",
+};
 
 interface OptionsTabProps {
 	options: PictOptions;
 	outputConfig: OutputConfig;
 	modelStorage: ModelStorageConfig;
+	aiModel: AiModel;
 	activeField:
 		| "filepath"
 		| "format"
@@ -13,6 +25,7 @@ interface OptionsTabProps {
 		| "caseSensitive"
 		| "storagePath"
 		| "fileTemplate"
+		| "aiModel"
 		| "none";
 	onOutputConfigChange: (config: OutputConfig) => void;
 	onOptionsChange: (opts: PictOptions) => void;
@@ -23,6 +36,7 @@ export function OptionsTab({
 	options,
 	outputConfig,
 	modelStorage,
+	aiModel,
 	activeField,
 	onOutputConfigChange,
 	onOptionsChange,
@@ -186,6 +200,28 @@ export function OptionsTab({
 					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
 				<text fg={theme.colors.text.muted}>{"{timestamp} = ISO date"}</text>
+			</box>
+
+			<text fg={theme.colors.accent}>
+				<strong>AI Settings</strong>
+			</text>
+
+			<box
+				flexDirection="row"
+				gap={2}
+				alignItems="center"
+				paddingX={1}
+				backgroundColor={
+					activeField === "aiModel" ? theme.colors.bg.elevated : "transparent"
+				}
+			>
+				<text fg={theme.colors.text.muted} width={20}>
+					AI Model:
+				</text>
+				<text fg={theme.colors.accent}>{AI_MODEL_LABELS[aiModel]}</text>
+				{activeField === "aiModel" && (
+					<text fg={theme.colors.text.muted}> [Enter] cycle</text>
+				)}
 			</box>
 
 			<box marginTop={1}>
