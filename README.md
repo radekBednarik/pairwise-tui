@@ -16,7 +16,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | Tab | Purpose |
 |-----|---------|
 | **Model** | Define parameters (name + comma-separated values) and PICT constraints |
-| **Options** | Set combination order, randomize seed, case sensitivity, output file path |
+| **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, storage path, file template, AI model |
 | **Results** | View generated test cases in a scrollable table |
 
 ### Keyboard shortcuts
@@ -32,6 +32,8 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `m` | Open message log overlay |
 | `t` | Cycle through themes |
 | `?` | Open PICT documentation |
+| `i` | Open AI prompt overlay (or AI setup if no API key configured) |
+| `F2` | Open AI setup overlay |
 | `q` / `Ctrl+C` | Quit |
 | `1` / `2` / `3` | Switch tabs |
 | `[` / `]` | Previous / next tab |
@@ -64,6 +66,22 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `a` | Copy all entries to clipboard |
 | `m` / `Escape` | Close overlay |
 
+**AI setup overlay** (`F2` or `i` without key):
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Save API key |
+| `d` | Clear saved API key |
+| `Escape` | Close overlay |
+
+**AI prompt overlay** (`i`):
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+G` | Generate parameters from description |
+| `F2` | Switch to AI setup |
+| `Escape` | Cancel |
+
 **Documentation overlay** (`?`):
 
 | Key | Action |
@@ -71,6 +89,40 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `↑` / `↓` | Navigate chapters / scroll content |
 | `Enter` | Open selected chapter |
 | `Escape` | Back / close |
+
+## AI Parameter Generation
+
+Pairwise-TUI can generate PICT parameters automatically from a natural language description using Claude.
+
+### Setup
+
+1. Get an Anthropic API key from [console.anthropic.com](https://console.anthropic.com).
+2. Press `F2` (or press `i` when no key is configured) to open the AI Setup overlay.
+3. Type your API key and press `Enter` to save it. Press `d` to clear a saved key.
+
+The key is stored at:
+- Linux/macOS: `~/.config/pairwise-tui/credentials.json` (chmod 600)
+- Windows: `%APPDATA%\pairwise-tui\credentials.json`
+
+The `ANTHROPIC_API_KEY` environment variable takes precedence over the stored key.
+
+### Usage
+
+1. Press `i` to open the AI prompt overlay.
+2. Describe the feature or test scenario in plain text, e.g. `Login form with email, password, and remember-me checkbox`.
+3. Press `Ctrl+G` to generate parameters.
+4. Review the generated parameters in the Model tab.
+5. Press `g` to run PICT and generate test cases.
+
+### Model selection
+
+In the **Options** tab, tab to the **AI Model** field and press `Enter` to cycle through models:
+
+| Model | Characteristics |
+|-------|----------------|
+| `claude-haiku-4-5` | Fastest, lowest cost (default) |
+| `claude-sonnet-4-6` | Balanced speed and capability |
+| `claude-opus-4-6` | Most capable, highest cost |
 
 ## Model file format
 
