@@ -2,7 +2,7 @@ import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { generateParameters } from "./ai/client";
+import { generateModel } from "./ai/client";
 import { clearApiKey, loadApiKey, saveApiKey } from "./ai/credentials";
 import { AiPromptOverlay } from "./components/AiPromptOverlay";
 import { AiSetupOverlay } from "./components/AiSetupOverlay";
@@ -392,14 +392,16 @@ export function App() {
 		if (!apiKey || !prompt || aiIsLoading) return;
 		setAiIsLoading(true);
 		setAiError("");
-		void generateParameters(prompt, apiKey, aiModel)
-			.then((params) => {
-				setModel((m) => ({ ...m, parameters: params }));
+		void generateModel(prompt, apiKey, aiModel)
+			.then(({ parameters, constraints }) => {
+				setModel((m) => ({ ...m, parameters, constraints }));
+				setConstraintsKey((k) => k + 1);
 				setAiPromptOpen(false);
 				setAiIsLoading(false);
 				setActiveTab(0);
+				const constraintNote = constraints ? " and constraints" : "";
 				showStatus(
-					`AI generated ${params.length} parameters — verify and press [g]`,
+					`AI generated ${parameters.length} parameters${constraintNote} — verify and press [g]`,
 				);
 			})
 			.catch((err) => {

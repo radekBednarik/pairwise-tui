@@ -51,7 +51,7 @@ export function AiPromptOverlay({
 					<box paddingX={1} marginBottom={1} flexDirection="column">
 						<text fg={theme.colors.text.muted}>Asking Claude...</text>
 						<text fg={theme.colors.text.secondary}>
-							Generating parameters...
+							Generating parameters and constraints...
 						</text>
 					</box>
 				) : (
