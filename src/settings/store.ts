@@ -1,12 +1,11 @@
 import { mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type {
 	AiModel,
 	ModelStorageConfig,
 	OutputConfig,
 	PictOptions,
 } from "../types";
+import { getAppConfigPath } from "../utils/configPath";
 
 export interface AppSettings {
 	options: PictOptions;
@@ -25,13 +24,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 function getConfigPath(): string {
-	if (process.platform === "win32") {
-		const appData =
-			process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
-		return join(appData, "pairwise-tui", "config.json");
-	}
-	const xdgConfig = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config");
-	return join(xdgConfig, "pairwise-tui", "config.json");
+	return getAppConfigPath("config.json");
 }
 
 export async function loadSettings(): Promise<AppSettings> {

@@ -1,15 +1,8 @@
 import { chmod, mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { getAppConfigPath } from "../utils/configPath";
 
 function getCredentialsPath(): string {
-	if (process.platform === "win32") {
-		const appData =
-			process.env.APPDATA ?? join(homedir(), "AppData", "Roaming");
-		return join(appData, "pairwise-tui", "credentials.json");
-	}
-	const xdgConfig = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config");
-	return join(xdgConfig, "pairwise-tui", "credentials.json");
+	return getAppConfigPath("credentials.json");
 }
 
 export async function loadApiKey(): Promise<string | null> {

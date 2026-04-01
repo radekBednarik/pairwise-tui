@@ -1,3 +1,4 @@
+import type { ActiveOptionField } from "../constants";
 import { useTheme } from "../theme/ThemeContext";
 import {
 	AI_MODEL_LABELS,
@@ -12,16 +13,7 @@ interface OptionsTabProps {
 	outputConfig: OutputConfig;
 	modelStorage: ModelStorageConfig;
 	aiModel: AiModel;
-	activeField:
-		| "filepath"
-		| "format"
-		| "order"
-		| "randomize"
-		| "caseSensitive"
-		| "storagePath"
-		| "fileTemplate"
-		| "aiModel"
-		| "none";
+	activeField: ActiveOptionField;
 	onOutputConfigChange: (config: OutputConfig) => void;
 	onOptionsChange: (opts: PictOptions) => void;
 	onModelStorageChange: (cfg: ModelStorageConfig) => void;
