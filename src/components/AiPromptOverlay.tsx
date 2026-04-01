@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
 import { useTheme } from "../theme/ThemeContext";
+import { AI_MODEL_LABELS, type AiModel } from "../types";
 
 interface AiPromptOverlayProps {
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
@@ -7,6 +8,7 @@ interface AiPromptOverlayProps {
 	textareaKey: number;
 	isLoading: boolean;
 	error: string;
+	aiModel: AiModel;
 }
 
 export function AiPromptOverlay({
@@ -14,6 +16,7 @@ export function AiPromptOverlay({
 	textareaKey,
 	isLoading,
 	error,
+	aiModel,
 }: AiPromptOverlayProps) {
 	const theme = useTheme();
 
@@ -36,7 +39,10 @@ export function AiPromptOverlay({
 				<box paddingX={1} marginBottom={1}>
 					<text>
 						<span fg={theme.colors.accent}>AI Parameter Generator</span>
-						<span fg={theme.colors.text.muted}> — claude-haiku-4-5</span>
+						<span fg={theme.colors.text.muted}>
+							{" "}
+							— {AI_MODEL_LABELS[aiModel]}
+						</span>
 					</text>
 				</box>
 

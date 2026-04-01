@@ -880,6 +880,7 @@ export function App() {
 							textareaKey={aiPromptKey}
 							isLoading={aiIsLoading}
 							error={aiError}
+							aiModel={aiModel}
 						/>
 					) : showClearConfirm ? (
 						<ClearConfirmOverlay selectedIndex={clearConfirmIndex} />

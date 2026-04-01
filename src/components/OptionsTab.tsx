@@ -1,16 +1,11 @@
 import { useTheme } from "../theme/ThemeContext";
-import type {
-	AiModel,
-	ModelStorageConfig,
-	OutputConfig,
-	PictOptions,
+import {
+	AI_MODEL_LABELS,
+	type AiModel,
+	type ModelStorageConfig,
+	type OutputConfig,
+	type PictOptions,
 } from "../types";
-
-const AI_MODEL_LABELS: Record<AiModel, string> = {
-	"claude-haiku-4-5": "Haiku 4.5",
-	"claude-sonnet-4-6": "Sonnet 4.6",
-	"claude-opus-4-6": "Opus 4.6",
-};
 
 interface OptionsTabProps {
 	options: PictOptions;

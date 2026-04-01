@@ -31,6 +31,12 @@ export type AiModel =
 	| "claude-sonnet-4-6"
 	| "claude-opus-4-6";
 
+export const AI_MODEL_LABELS: Record<AiModel, string> = {
+	"claude-haiku-4-5": "Haiku 4.5",
+	"claude-sonnet-4-6": "Sonnet 4.6",
+	"claude-opus-4-6": "Opus 4.6",
+};
+
 export type TestCase = Record<string, string>;
 
 export type LogMessageType = "info" | "error";
