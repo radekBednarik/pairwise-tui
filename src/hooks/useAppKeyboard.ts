@@ -217,6 +217,12 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
+		// Quit always works, even while in text editing panels
+		if (name === "q") {
+			renderer.destroy();
+			return;
+		}
+
 		// Values panel: Escape handled above; all other keys go to <input>
 		if (activeTab === 0 && modelTab.activePanel === "values") {
 			return;
