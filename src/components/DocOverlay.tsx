@@ -40,7 +40,7 @@ export function DocOverlay({
 					padding={1}
 				>
 					<box marginBottom={1}>
-						<text fg={theme.colors.accent}>PICT Documentation</text>
+						<text fg={theme.colors.accent}>Pairwise TUI docs</text>
 					</box>
 					{DOC_CHAPTERS.map((ch, i) => (
 						<box
