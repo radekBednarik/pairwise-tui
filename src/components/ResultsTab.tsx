@@ -20,9 +20,15 @@ export function ResultsTab({ results, focused }: ResultsTabProps) {
 	}
 
 	const headers = Object.keys(results[0] ?? {});
-	const colWidth = Math.max(12, Math.floor(60 / headers.length));
 
-	const headerLine = headers.map((h) => h.padEnd(colWidth)).join(" ");
+	// Per-column width = max of header length and the longest value in that column
+	const colWidths = headers.map((h) =>
+		Math.max(h.length, ...results.map((row) => (row[h] ?? "").length)),
+	);
+
+	const headerLine = headers
+		.map((h, i) => h.padEnd(colWidths[i] ?? 0))
+		.join("  ");
 	const separator = "─".repeat(headerLine.length);
 
 	return (
@@ -54,7 +60,9 @@ export function ResultsTab({ results, focused }: ResultsTabProps) {
 									: theme.colors.text.secondary
 							}
 						>
-							{headers.map((h) => (row[h] ?? "").padEnd(colWidth)).join(" ")}
+							{headers
+								.map((h, i) => (row[h] ?? "").padEnd(colWidths[i] ?? 0))
+								.join("  ")}
 						</text>
 					))}
 				</box>
