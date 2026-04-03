@@ -11,6 +11,7 @@
   <meta property="og:type" content="website" />
   <link rel="canonical" href="https://radekbednarik.github.io/pairwise-tui/" />
   <base href="/pairwise-tui/" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.bunny.net" />
   <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
@@ -25,7 +26,7 @@
       pairwise-tui
     </a>
 
-    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
+    <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle navigation">
       ☰
     </button>
 
@@ -171,19 +172,19 @@
     <p class="section-subtitle">Four views of the app — click the tabs to explore each screen.</p>
 
     <div class="tab-switcher" role="tablist" aria-label="App screen tabs">
-      <button class="tab-btn" role="tab" aria-selected="true"
+      <button type="button" class="tab-btn" role="tab" aria-selected="true"
               data-tab-btn="mockup" data-tab-target="model">
         [1] Model
       </button>
-      <button class="tab-btn" role="tab" aria-selected="false"
+      <button type="button" class="tab-btn" role="tab" aria-selected="false"
               data-tab-btn="mockup" data-tab-target="options">
         [2] Options
       </button>
-      <button class="tab-btn" role="tab" aria-selected="false"
+      <button type="button" class="tab-btn" role="tab" aria-selected="false"
               data-tab-btn="mockup" data-tab-target="results">
         [3] Results
       </button>
-      <button class="tab-btn" role="tab" aria-selected="false"
+      <button type="button" class="tab-btn" role="tab" aria-selected="false"
               data-tab-btn="mockup" data-tab-target="ai">
         AI Prompt
       </button>
@@ -343,7 +344,7 @@
           <p>Give the binary execute permission:</p>
           <div class="code-block">
             <code>chmod +x pairwise-tui</code>
-            <button class="copy-btn" data-copy="chmod +x pairwise-tui" aria-label="Copy command">copy</button>
+            <button type="button" class="copy-btn" data-copy="chmod +x pairwise-tui" aria-label="Copy command">copy</button>
           </div>
         </div>
       </li>
@@ -354,7 +355,7 @@
           <h3>Run the app</h3>
           <div class="code-block">
             <code>./pairwise-tui</code>
-            <button class="copy-btn" data-copy="./pairwise-tui" aria-label="Copy command">copy</button>
+            <button type="button" class="copy-btn" data-copy="./pairwise-tui" aria-label="Copy command">copy</button>
           </div>
           <p style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
             Windows: double-click <code style="font-family: var(--font-mono); color: var(--value);">pairwise-tui.exe</code>
