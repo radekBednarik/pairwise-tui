@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Pairwise TUI
+Exec=pairwise-tui
+Icon=pairwise-tui
+Type=Application
+Categories=Development;
+Terminal=true
+Comment=Terminal UI for generating PICT pairwise test cases

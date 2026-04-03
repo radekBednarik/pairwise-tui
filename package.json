@@ -5,7 +5,10 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun --watch src/index.tsx",
-		"build::dist": "bun build.ts",
+		"build:dist": "bun run build:dist:linux && bun run build:dist:windows",
+		"build:dist:linux": "bun scripts/build-linux.ts",
+		"build:dist:windows": "bun scripts/build-windows.ts",
+		"package:appimage": "bun scripts/package-appimage.ts",
 		"start": "bun src/index.tsx",
 		"check": "biome check .",
 		"typecheck": "tsc --noEmit"

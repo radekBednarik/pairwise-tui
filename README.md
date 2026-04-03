@@ -165,7 +165,10 @@ bun run dev
 | `bun run start` | Run the app |
 | `bun run check` | Biome lint/format check |
 | `bun run typecheck` | TypeScript type-check |
-| `bun run build:dist` | Cross-compile to `dist/` |
+| `bun run build:dist` | Build Linux and Windows executables to `dist/` |
+| `bun run build:dist:linux` | Build the Linux executable |
+| `bun run build:dist:windows` | Build the Windows executable |
+| `bun run package:appimage` | Package the Linux AppImage |
 
 ## Building standalone executables
 
@@ -175,6 +178,21 @@ bun run build:dist
 
 Outputs self-contained executables to `dist/` for Linux and Windows (no Bun required to run).
 
+Windows builds must run on Windows for the custom executable icon to be embedded.
+
+To package the Linux AppImage after building the Linux executable:
+
+```bash
+bun run build:dist:linux
+APPIMAGETOOL=./dist/appimagetool.AppImage bun run package:appimage
+```
+
+The release workflow publishes three artifacts:
+
+- `pairwise-tui.exe` for Windows with the custom app icon
+- `pairwise-tui` as the raw Linux executable
+- `Pairwise-TUI-x86_64.AppImage` as the desktop-friendly Linux download
+
 To create a new release:
 
 ```bash
@@ -182,4 +200,4 @@ git tag v1.2.3
 git push --tags
 ```
 
-This triggers the GitHub Actions release workflow, which builds both executables and publishes them to the Releases page automatically.
+This triggers the GitHub Actions release workflow, which builds the Windows executable, Linux executable, and Linux AppImage, then publishes them to the Releases page automatically.
