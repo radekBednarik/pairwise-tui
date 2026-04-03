@@ -31,6 +31,11 @@
 		"build:dist:windows": "bun scripts/build-windows.ts",
 		"package:appimage": "bun scripts/package-appimage.ts",
 		"start": "bun src/index.tsx",
+		"stats:releases": "gh api repos/radekBednarik/pairwise-tui/releases --jq '[.[] | {tag: .tag_name, name: .name, totalDownloads: ([.assets[].download_count] | add // 0), assets: [.assets[] | {name: .name, downloads: .download_count}]}]'",
+		"stats:releases:total": "gh api repos/radekBednarik/pairwise-tui/releases --jq '[.[].assets[].download_count] | add // 0'",
+		"stats:traffic:repo": "gh api repos/radekBednarik/pairwise-tui/traffic/views",
+		"stats:traffic:clones": "gh api repos/radekBednarik/pairwise-tui/traffic/clones",
+		"stats:summary": "printf 'Release downloads total: '; gh api repos/radekBednarik/pairwise-tui/releases --jq '[.[].assets[].download_count] | add // 0' && printf 'Repo views (14d): '; gh api repos/radekBednarik/pairwise-tui/traffic/views --jq '.count' && printf 'Unique repo visitors (14d): '; gh api repos/radekBednarik/pairwise-tui/traffic/views --jq '.uniques'",
 		"check": "biome check .",
 		"typecheck": "tsc --noEmit"
 	},
