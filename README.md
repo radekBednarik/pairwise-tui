@@ -1,13 +1,27 @@
 # pairwise-tui
 
-A terminal UI for generating [PICT](https://github.com/microsoft/pict) pairwise test cases. Define parameters, configure options, and generate combinatorial test cases — all from the terminal.
+A keyboard-driven terminal UI for QA engineers and developers who want to generate pairwise and combinatorial test cases with [Microsoft PICT](https://github.com/microsoft/pict). Build PICT models, define constraints, generate high-coverage test suites, and export results on Linux or Windows.
+
+[Live site](https://radekbednarik.github.io/pairwise-tui/) • [Releases](../../releases) • [PICT](https://github.com/microsoft/pict)
+
+PICT-powered • Linux and Windows binaries • TXT / JSON / CSV / XLSX export
+
+![pairwise-tui screenshot](docs/readme-screenshot.png)
+
+## Why use pairwise-tui?
+
+- Generate pairwise and higher-order combinatorial test cases with Microsoft PICT
+- Build and edit PICT-compatible models from a fast terminal UI
+- Add constraints without leaving the keyboard
+- Export test cases to TXT, JSON, CSV, or XLSX
+- Use AI assistance to draft parameters and constraints faster
 
 ## Download & Run
 
 Pre-built binaries for Linux and Windows are available on the [Releases page](../../releases) — no runtime required.
 
 1. Download the binary for your platform from the latest release.
-3. Run it: `./pairwise-tui.exe` on Windows or `./pairwise-tui` on Linux.
+2. Run it: `./pairwise-tui.exe` on Windows or `./pairwise-tui` on Linux.
 
 ## Interface
 

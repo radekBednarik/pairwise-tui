@@ -1,5 +1,26 @@
 {
 	"name": "pairwise-tui",
+	"description": "Terminal UI for pairwise and combinatorial test case generation with Microsoft PICT",
+	"homepage": "https://radekbednarik.github.io/pairwise-tui/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/radekBednarik/pairwise-tui.git"
+	},
+	"bugs": {
+		"url": "https://github.com/radekBednarik/pairwise-tui/issues"
+	},
+	"keywords": [
+		"pairwise-testing",
+		"combinatorial-testing",
+		"pict",
+		"test-case-generator",
+		"testing-tool",
+		"terminal-ui",
+		"qa",
+		"tui"
+	],
+	"license": "MIT",
+	"author": "Radek Bednarik",
 	"module": "src/index.tsx",
 	"type": "module",
 	"private": true,

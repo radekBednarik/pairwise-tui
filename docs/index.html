@@ -3,18 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>pairwise-tui — Terminal UI for Pairwise Test Case Generation</title>
-  <meta name="description" content="pairwise-tui is a keyboard-driven terminal UI for generating PICT pairwise combinatorial test cases. AI-powered, zero dependencies, runs on Linux and Windows." />
-  <meta property="og:title" content="pairwise-tui" />
-  <meta property="og:description" content="Terminal UI for generating PICT pairwise test cases. AI-powered parameter generation, multiple export formats, zero dependencies." />
+  <title>pairwise-tui: PICT Pairwise Testing Tool for Terminal-Based Combinatorial Test Case Generation</title>
+  <meta name="description" content="pairwise-tui is a terminal UI for pairwise and combinatorial testing with Microsoft PICT. Build models, add constraints, generate test cases, and export results on Linux and Windows." />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:title" content="pairwise-tui: PICT Pairwise Testing Tool" />
+  <meta property="og:description" content="Generate pairwise and combinatorial test cases with Microsoft PICT from a keyboard-driven terminal UI. Build models faster, add constraints, and export results on Linux and Windows." />
   <meta property="og:url" content="https://radekbednarik.github.io/pairwise-tui/" />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://radekbednarik.github.io/pairwise-tui/og-image.png" />
+  <meta property="og:image:alt" content="pairwise-tui terminal interface for PICT pairwise test generation" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="pairwise-tui: PICT Pairwise Testing Tool" />
+  <meta name="twitter:description" content="Generate pairwise and combinatorial test cases with Microsoft PICT from a keyboard-driven terminal UI." />
+  <meta name="twitter:image" content="https://radekbednarik.github.io/pairwise-tui/og-image.png" />
   <link rel="canonical" href="https://radekbednarik.github.io/pairwise-tui/" />
   <base href="/pairwise-tui/" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.bunny.net" />
   <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "pairwise-tui",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux, Windows",
+      "description": "A terminal UI for pairwise and combinatorial test case generation using Microsoft PICT.",
+      "url": "https://radekbednarik.github.io/pairwise-tui/",
+      "downloadUrl": "https://github.com/radekBednarik/pairwise-tui/releases/latest",
+      "codeRepository": "https://github.com/radekBednarik/pairwise-tui",
+      "creator": {
+        "@type": "Person",
+        "name": "Radek Bednarik"
+      },
+      "keywords": [
+        "pairwise testing",
+        "combinatorial testing",
+        "PICT",
+        "test case generator",
+        "terminal UI"
+      ]
+    }
+  </script>
 </head>
 <body>
 
@@ -49,28 +80,33 @@
 <section class="hero" id="hero" aria-labelledby="hero-heading">
   <div class="container hero-inner">
     <div class="hero-text">
-      <span class="hero-eyebrow">Terminal · Pairwise · AI-powered</span>
+      <span class="hero-eyebrow">Terminal · Pairwise testing · PICT</span>
       <h1 class="hero-title" id="hero-heading">
         <span class="hero-title-gradient">pairwise-tui</span><br />
-        Test smarter,<br />not exhaustively
+        Generate pairwise test cases<br />with PICT
       </h1>
       <p class="hero-desc">
-        A keyboard-driven terminal UI for generating PICT pairwise combinatorial
-        test cases. Define parameters, add constraints, let the AI help — then
-        export to CSV, JSON, or Excel in seconds.
+        Build PICT models, add constraints, generate pairwise and combinatorial
+        test cases, and export results from a fast keyboard-driven terminal UI
+        for Linux and Windows.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary"
            href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
            target="_blank" rel="noopener noreferrer">
-          ↓ Download for Linux
+          Download pairwise-tui
         </a>
         <a class="btn btn-secondary"
-           href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
+           href="https://github.com/radekBednarik/pairwise-tui"
            target="_blank" rel="noopener noreferrer">
-          ↓ Download for Windows
+          View on GitHub
         </a>
       </div>
+      <ul class="hero-proof" role="list" aria-label="Key product highlights">
+        <li>PICT-powered</li>
+        <li>Linux + Windows binaries</li>
+        <li>TXT, JSON, CSV, XLSX export</li>
+      </ul>
     </div>
 
     <div class="hero-visual" aria-hidden="true">
@@ -102,63 +138,61 @@
 <!-- ===================== FEATURES ===================== -->
 <section class="features" id="features" aria-labelledby="features-heading">
   <div class="container">
-    <h2 class="section-title" id="features-heading">Why pairwise-tui?</h2>
-    <p class="section-subtitle">Everything you need to generate comprehensive test coverage without the busywork.</p>
+    <h2 class="section-title" id="features-heading">Built for fast pairwise test design</h2>
+    <p class="section-subtitle">Move from test idea to high-coverage cases faster, with less manual modeling and less repetitive setup.</p>
 
     <div class="features-grid">
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">⚡</span>
-        <h3 class="feature-title">Pairwise Coverage</h3>
+        <h3 class="feature-title">Shrink huge test spaces fast</h3>
         <p class="feature-desc">
-          Powered by Microsoft PICT. Reduce thousands of combinations to a minimal
-          high-coverage set — typically a 40–70% reduction with no loss of pairwise coverage.
+          Powered by Microsoft PICT. Turn thousands of possible combinations into a
+          compact, high-coverage test set so you can test more intelligently in less time.
         </p>
       </article>
 
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">🤖</span>
-        <h3 class="feature-title">AI Parameter Generation</h3>
+        <h3 class="feature-title">Start from a plain-English scenario</h3>
         <p class="feature-desc">
-          Describe your feature in plain English. Claude AI identifies test
-          parameters, values, and constraints automatically — no manual model
-          building needed.
+          Describe the workflow you want to test and let Claude draft parameters,
+          values, and constraints. You review the model, then generate with PICT.
         </p>
       </article>
 
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">⌨️</span>
-        <h3 class="feature-title">Keyboard-Driven Workflow</h3>
+        <h3 class="feature-title">Stay in flow with the keyboard</h3>
         <p class="feature-desc">
-          Three-tab interface — Model, Options, Results — fully navigable by
-          keyboard. No mouse required. Single-keypress actions for every operation.
+          Build models, switch tabs, generate cases, and save results without
+          leaving the keyboard. The entire workflow is optimized for fast iteration.
         </p>
       </article>
 
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">📤</span>
-        <h3 class="feature-title">Export Anywhere</h3>
+        <h3 class="feature-title">Ship results where your team works</h3>
         <p class="feature-desc">
-          Save results as plain TXT, JSON, CSV, or native XLSX. Press
-          <kbd>s</kbd> once — the format you chose in Options is applied instantly.
+          Export finished test cases as TXT, JSON, CSV, or XLSX so they are ready
+          for spreadsheets, test management tools, and automation workflows.
         </p>
       </article>
 
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">📦</span>
-        <h3 class="feature-title">Zero Dependencies</h3>
+        <h3 class="feature-title">Download and run in seconds</h3>
         <p class="feature-desc">
-          Single self-contained binary for Linux and Windows. No runtime, no
-          installer, no package manager. Download and run.
+          Use a single self-contained binary on Linux or Windows. No runtime,
+          installer, or package manager required.
         </p>
       </article>
 
       <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">🎨</span>
-        <h3 class="feature-title">Themes &amp; Persistence</h3>
+        <h3 class="feature-title">Keep your setup between sessions</h3>
         <p class="feature-desc">
-          Tokyo Night Dark, Tokyo Night Storm, Catppuccin Mocha. Cycle with
-          <kbd>t</kbd>. All settings — theme, output format, model storage path —
-          persist across sessions automatically.
+          Themes, output format, and model storage settings persist automatically,
+          so you can reopen the app and continue working without reconfiguration.
         </p>
       </article>
     </div>
@@ -322,7 +356,7 @@
 <section class="getting-started" id="getting-started" aria-labelledby="gs-heading">
   <div class="container">
     <h2 class="section-title" id="gs-heading">Getting Started</h2>
-    <p class="section-subtitle">From download to your first test cases in under two minutes.</p>
+    <p class="section-subtitle">Go from download to your first shareable pairwise test suite with only a few quick steps.</p>
 
     <ol class="steps" role="list">
       <li class="step">
@@ -332,7 +366,7 @@
           <p>
             Head to the <a href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
               target="_blank" rel="noopener noreferrer">Releases page</a> and grab
-            the executable for your OS. No installer needed — it's a single file.
+            the executable for your OS. No installer needed, no extra runtime, and no setup wizard.
           </p>
         </div>
       </li>
@@ -341,7 +375,7 @@
         <span class="step-number" aria-hidden="true">2</span>
         <div class="step-content">
           <h3>Make it executable <span class="badge badge-teal">Linux only</span></h3>
-          <p>Give the binary execute permission:</p>
+          <p>On Linux, grant execute permission once:</p>
           <div class="code-block">
             <code>chmod +x pairwise-tui</code>
             <button type="button" class="copy-btn" data-copy="chmod +x pairwise-tui" aria-label="Copy command">copy</button>
@@ -352,7 +386,7 @@
       <li class="step">
         <span class="step-number" aria-hidden="true">3</span>
         <div class="step-content">
-          <h3>Run the app</h3>
+          <h3>Launch pairwise-tui</h3>
           <div class="code-block">
             <code>./pairwise-tui</code>
             <button type="button" class="copy-btn" data-copy="./pairwise-tui" aria-label="Copy command">copy</button>
@@ -367,12 +401,12 @@
       <li class="step">
         <span class="step-number" aria-hidden="true">4</span>
         <div class="step-content">
-          <h3>Define parameters</h3>
+          <h3>Define the test dimensions</h3>
           <p>
             Press <kbd>a</kbd> to add a parameter. Enter a name (e.g. <code style="font-family:var(--font-mono);color:var(--value)">Browser</code>),
             then press <kbd>Tab</kbd> to move to the values field and type
             comma-separated values (e.g. <code style="font-family:var(--font-mono);color:var(--value)">Chrome, Firefox, Safari</code>).
-            Repeat for each test dimension.
+            Repeat for each dimension you want covered in the final test suite.
           </p>
         </div>
       </li>
@@ -380,8 +414,8 @@
       <li class="step">
         <span class="step-number" aria-hidden="true">5</span>
         <div class="step-content">
-          <h3>Generate test cases</h3>
-          <p>Press <kbd>g</kbd> from any tab. PICT runs instantly and the Results tab shows your minimal pairwise test suite.</p>
+          <h3>Generate the test suite</h3>
+          <p>Press <kbd>g</kbd> from any tab. PICT runs immediately and the Results tab shows a compact, high-coverage pairwise test suite you can review or export.</p>
         </div>
       </li>
 
@@ -486,7 +520,7 @@
 <section class="ai-section" id="ai" aria-labelledby="ai-heading">
   <div class="container">
     <h2 class="section-title" id="ai-heading">AI-Powered Parameter Generation</h2>
-    <p class="section-subtitle">Describe your feature. Claude builds the model.</p>
+    <p class="section-subtitle">Draft test parameters faster, then review and generate with PICT.</p>
 
     <div class="two-col">
       <div>
