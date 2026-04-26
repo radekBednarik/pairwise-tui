@@ -184,6 +184,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          body: |
+            > **Windows users:** If SmartScreen blocks the `.exe` on first launch, click **More info → Run anyway**. This is a reputation warning for unsigned binaries, not a malware detection.
           files: |
             dist/pairwise-tui
             dist/pairwise-tui.exe

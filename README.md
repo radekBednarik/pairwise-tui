@@ -23,6 +23,18 @@ Pre-built binaries for Linux and Windows are available on the [Releases page](..
 1. Download the binary for your platform from the latest release.
 2. Run it: `./pairwise-tui.exe` on Windows or `./pairwise-tui` on Linux.
 
+<details>
+<summary>Windows SmartScreen warning</summary>
+
+On first launch Windows may show "Windows protected your PC". This happens because the binary is not yet known to Microsoft's reputation system — it is not a malware detection.
+
+To run the app:
+1. Click **More info** in the SmartScreen dialog.
+2. Click **Run anyway**.
+
+Alternatively: right-click the `.exe` → **Properties** → check **Unblock** → **OK**, then run normally.
+</details>
+
 ## Interface
 
 Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
