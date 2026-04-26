@@ -9,6 +9,7 @@ const desktopFilePath = "./assets/linux/pairwise-tui.desktop";
 const appRunPath = "./assets/linux/AppRun";
 const appImageToolPath =
 	process.env.APPIMAGETOOL ?? join(distDir, "appimagetool.AppImage");
+const runtimeFile = process.env.APPIMAGE_RUNTIME_FILE;
 const outputPath = join(distDir, "Pairwise-TUI-x86_64.AppImage");
 
 await rm(appDir, { force: true, recursive: true });
@@ -24,7 +25,13 @@ await chmod(join(appDir, "AppRun"), 0o755);
 await chmod(appImageToolPath, 0o755);
 
 const packaged = Bun.spawnSync(
-	[appImageToolPath, "--no-appstream", appDir, outputPath],
+	[
+		appImageToolPath,
+		"--no-appstream",
+		...(runtimeFile ? ["--runtime-file", runtimeFile] : []),
+		appDir,
+		outputPath,
+	],
 	{
 		stdout: "inherit",
 		stderr: "inherit",
