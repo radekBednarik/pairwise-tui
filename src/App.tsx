@@ -52,6 +52,7 @@ export function App() {
 	const [activeTab, setActiveTabState] = useState(0);
 	const [model, setModel] = useState<PictModel>({
 		parameters: [],
+		submodels: [],
 		constraints: "",
 	});
 	const [options, setOptions] = useState<PictOptions>({
@@ -127,10 +128,20 @@ export function App() {
 		constraintsKey,
 		setConstraintsKey,
 		newParamName,
+		selectedSubmodelIndex,
+		submodelAddingStep,
+		submodelParamsInput,
+		submodelOrderInput,
+		setSelectedSubmodelIndex,
 		handleParamNavigate,
 		handleValuesChange,
 		handleNewParamNameChange,
 		handleConfirmAddParam,
+		handleSubmodelNavigate,
+		handleSubmodelParamsInputChange,
+		handleSubmodelOrderInputChange,
+		handleConfirmSubmodelParams,
+		handleConfirmSubmodelOrder,
 	} = modelTab;
 
 	// --- Persistent settings ---
@@ -230,6 +241,7 @@ export function App() {
 				const loaded = await loadModelFromFile(path);
 				setModel(loaded);
 				setSelectedParamIndex(0);
+				setSelectedSubmodelIndex(0);
 				setValuesInput(loaded.parameters[0]?.values.join(", ") ?? "");
 				setConstraintsKey((k) => k + 1);
 				setActiveTab(0);
@@ -245,6 +257,7 @@ export function App() {
 			showStatus,
 			setActiveTab,
 			setSelectedParamIndex,
+			setSelectedSubmodelIndex,
 			setValuesInput,
 			setConstraintsKey,
 			setActivePanel,
@@ -294,15 +307,17 @@ export function App() {
 		setAiIsLoading(true);
 		setAiError("");
 		void generateModelFromPrompt(prompt, apiKey, aiModel)
-			.then(({ parameters, constraints }) => {
-				setModel((m) => ({ ...m, parameters, constraints }));
+			.then(({ parameters, submodels, constraints }) => {
+				setModel((m) => ({ ...m, parameters, submodels, constraints }));
 				setConstraintsKey((k) => k + 1);
 				closeAiPrompt();
 				setAiIsLoading(false);
 				setActiveTab(0);
 				const constraintNote = constraints ? " and constraints" : "";
+				const submodelNote =
+					submodels.length > 0 ? `, ${submodels.length} sub-model(s)` : "";
 				showStatus(
-					`AI generated ${parameters.length} parameters${constraintNote} — verify and press [g]`,
+					`AI generated ${parameters.length} parameters${submodelNote}${constraintNote} — verify and press [g]`,
 				);
 			})
 			.catch((err) => {
@@ -323,7 +338,7 @@ export function App() {
 
 	// --- Clear model action (passed to keyboard handler) ---
 	const clearModel = useCallback(() => {
-		setModel({ parameters: [], constraints: "" });
+		setModel({ parameters: [], submodels: [], constraints: "" });
 		setSelectedParamIndex(0);
 		setValuesInput("");
 		setActivePanel("params");
@@ -462,10 +477,19 @@ export function App() {
 									valuesInput={valuesInput}
 									constraintsKey={constraintsKey}
 									constraintsRef={constraintsRef}
+									selectedSubmodelIndex={selectedSubmodelIndex}
+									submodelAddingStep={submodelAddingStep}
+									submodelParamsInput={submodelParamsInput}
+									submodelOrderInput={submodelOrderInput}
 									onParamNavigate={handleParamNavigate}
 									onValuesChange={handleValuesChange}
 									onNewParamNameChange={handleNewParamNameChange}
 									onConfirmAddParam={handleConfirmAddParam}
+									onSubmodelNavigate={handleSubmodelNavigate}
+									onSubmodelParamsChange={handleSubmodelParamsInputChange}
+									onSubmodelOrderChange={handleSubmodelOrderInputChange}
+									onConfirmSubmodelParams={handleConfirmSubmodelParams}
+									onConfirmSubmodelOrder={handleConfirmSubmodelOrder}
 								/>
 							)}
 							{activeTab === 1 && (

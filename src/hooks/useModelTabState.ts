@@ -13,6 +13,7 @@ export interface ModelTabState {
 	submodelAddingStep: "params" | "order";
 	submodelParamsInput: string;
 	submodelOrderInput: string;
+	setSelectedSubmodelIndex: Dispatch<SetStateAction<number>>;
 	setActivePanel: (panel: ActivePanel) => void;
 	setSelectedParamIndex: Dispatch<SetStateAction<number>>;
 	setValuesInput: (v: string) => void;
@@ -193,6 +194,7 @@ export function useModelTabState(
 		submodelAddingStep,
 		submodelParamsInput,
 		submodelOrderInput,
+		setSelectedSubmodelIndex,
 		setActivePanel,
 		setSelectedParamIndex,
 		setValuesInput,

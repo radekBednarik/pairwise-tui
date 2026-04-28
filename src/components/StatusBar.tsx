@@ -115,7 +115,7 @@ function getHints(
 		];
 	}
 
-	if (addingParam) {
+	if (addingParam || activePanel === "submodel-adding") {
 		return [
 			{ key: "Enter", label: "Confirm" },
 			{ key: "Esc", label: "Cancel" },
@@ -129,6 +129,7 @@ function getHints(
 				{ key: "d", label: "Delete" },
 				{ key: "e", label: "Edit values" },
 				{ key: "c", label: "Constraints" },
+				{ key: "b", label: "Sub-models" },
 				{ key: "x", label: "Clear model" },
 				{ key: "g", label: "Generate" },
 				{ key: "o", label: "Open model" },
@@ -139,6 +140,15 @@ function getHints(
 		}
 		if (activePanel === "values" || activePanel === "constraints") {
 			return [
+				{ key: "Esc", label: "Back to params" },
+				{ key: "g", label: "Generate" },
+				...common,
+			];
+		}
+		if (activePanel === "submodels") {
+			return [
+				{ key: "a", label: "Add sub-model" },
+				{ key: "d", label: "Delete" },
 				{ key: "Esc", label: "Back to params" },
 				{ key: "g", label: "Generate" },
 				...common,
