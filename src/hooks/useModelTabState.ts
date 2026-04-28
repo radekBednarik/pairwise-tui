@@ -51,6 +51,8 @@ export function useModelTabState(
 	const [submodelParamsInput, setSubmodelParamsInput] = useState("");
 	const [submodelOrderInput, setSubmodelOrderInput] = useState("2");
 	const submodelPartsRef = useRef<string[]>([]);
+	const submodelParamsInputRef = useRef<string>("");
+	const submodelOrderInputRef = useRef<string>("2");
 
 	// Sync valuesInput when selected param changes (intentionally omits model.parameters
 	// to avoid overwriting the user's input on every keystroke)
@@ -119,6 +121,8 @@ export function useModelTabState(
 
 	const startAddSubmodel = useCallback(() => {
 		submodelPartsRef.current = [];
+		submodelParamsInputRef.current = "";
+		submodelOrderInputRef.current = "2";
 		setSubmodelParamsInput("");
 		setSubmodelOrderInput("2");
 		setSubmodelAddingStep("params");
@@ -127,6 +131,8 @@ export function useModelTabState(
 
 	const cancelAddSubmodel = useCallback(() => {
 		submodelPartsRef.current = [];
+		submodelParamsInputRef.current = "";
+		submodelOrderInputRef.current = "2";
 		setSubmodelParamsInput("");
 		setSubmodelOrderInput("2");
 		setSubmodelAddingStep("params");
@@ -138,27 +144,30 @@ export function useModelTabState(
 	}, []);
 
 	const handleSubmodelParamsInputChange = useCallback((value: string) => {
+		submodelParamsInputRef.current = value;
 		setSubmodelParamsInput(value);
 	}, []);
 
 	const handleSubmodelOrderInputChange = useCallback((value: string) => {
+		submodelOrderInputRef.current = value;
 		setSubmodelOrderInput(value);
 	}, []);
 
 	const handleConfirmSubmodelParams = useCallback(() => {
-		const parts = submodelParamsInput
+		const parts = submodelParamsInputRef.current
 			.split(",")
 			.map((s) => s.trim())
 			.filter((s) => s.length > 0);
 		if (parts.length === 0) return;
+		submodelParamsInputRef.current = "";
 		submodelPartsRef.current = parts;
 		setSubmodelAddingStep("order");
-	}, [submodelParamsInput]);
+	}, []);
 
 	const handleConfirmSubmodelOrder = useCallback(() => {
 		const parts = submodelPartsRef.current;
 		if (parts.length === 0) return;
-		const parsed = Number.parseInt(submodelOrderInput, 10);
+		const parsed = Number.parseInt(submodelOrderInputRef.current, 10);
 		if (Number.isNaN(parsed)) return;
 		const order = Math.max(1, parsed);
 		setModel((m) => {
@@ -167,11 +176,13 @@ export function useModelTabState(
 			return { ...m, submodels: newSubmodels };
 		});
 		submodelPartsRef.current = [];
+		submodelParamsInputRef.current = "";
+		submodelOrderInputRef.current = "2";
 		setSubmodelParamsInput("");
 		setSubmodelOrderInput("2");
 		setSubmodelAddingStep("params");
 		setActivePanel("submodels");
-	}, [submodelOrderInput, setModel]);
+	}, [setModel]);
 
 	const handleDeleteSubmodel = useCallback(() => {
 		setModel((m) => {
