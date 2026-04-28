@@ -25,7 +25,10 @@ import {
 	handleLogKeys,
 	handlePickerKeys,
 } from "./keyboard/modalHandlers";
-import { handleModelTabParamKeys } from "./keyboard/modelTabHandlers";
+import {
+	handleModelTabParamKeys,
+	handleModelTabSubmodelKeys,
+} from "./keyboard/modelTabHandlers";
 import { handleOptionsTabKeys } from "./keyboard/optionsTabHandlers";
 import type { AiState } from "./useAiState";
 import type { ModalState } from "./useModalState";
@@ -185,6 +188,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				activePanel: modelTab.activePanel,
 				activeOptionField,
 				cancelAddParam: modelTab.cancelAddParam,
+				cancelAddSubmodel: modelTab.cancelAddSubmodel,
 				setActivePanel: modelTab.setActivePanel,
 				setActiveOptionField,
 				themeName,
@@ -214,6 +218,11 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 
 		// Adding param: all keys handled by <input> (Enter via onSubmit)
 		if (modelTab.activePanel === "adding") {
+			return;
+		}
+
+		// Adding submodel (two-step): all keys handled by <input> (Enter via onSubmit)
+		if (modelTab.activePanel === "submodel-adding") {
 			return;
 		}
 
@@ -299,6 +308,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				activePanel: modelTab.activePanel,
 				activeOptionField,
 				cancelAddParam: modelTab.cancelAddParam,
+				cancelAddSubmodel: modelTab.cancelAddSubmodel,
 				setActivePanel: modelTab.setActivePanel,
 				setActiveOptionField,
 			})
@@ -311,6 +321,15 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				setActivePanel: modelTab.setActivePanel,
 				handleDeleteParam: modelTab.handleDeleteParam,
 				openClearConfirm: modal.openClearConfirm,
+			});
+			return;
+		}
+
+		// Model tab – submodels panel shortcuts
+		if (activeTab === 0 && modelTab.activePanel === "submodels") {
+			handleModelTabSubmodelKeys(key, {
+				startAddSubmodel: modelTab.startAddSubmodel,
+				handleDeleteSubmodel: modelTab.handleDeleteSubmodel,
 			});
 			return;
 		}

@@ -7,6 +7,11 @@ interface ModelTabActions {
 	openClearConfirm: () => void;
 }
 
+interface SubmodelActions {
+	startAddSubmodel: ModelTabState["startAddSubmodel"];
+	handleDeleteSubmodel: ModelTabState["handleDeleteSubmodel"];
+}
+
 export function handleModelTabParamKeys(
 	key: KeyEvent,
 	actions: ModelTabActions,
@@ -28,9 +33,29 @@ export function handleModelTabParamKeys(
 		actions.setActivePanel("constraints");
 		return true;
 	}
+	if (name === "b") {
+		actions.setActivePanel("submodels");
+		return true;
+	}
 	if (name === "x") {
 		actions.openClearConfirm();
 		return true;
 	}
 	return true; // swallow other keys in params panel
+}
+
+export function handleModelTabSubmodelKeys(
+	key: KeyEvent,
+	actions: SubmodelActions,
+): boolean {
+	const { name } = key;
+	if (name === "a") {
+		actions.startAddSubmodel();
+		return true;
+	}
+	if (name === "d") {
+		actions.handleDeleteSubmodel();
+		return true;
+	}
+	return true; // swallow — Up/Down handled by focused <select> via onChange
 }

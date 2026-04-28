@@ -30,6 +30,7 @@ interface GlobalActions {
 	activePanel: ActivePanel;
 	activeOptionField: ActiveOptionField;
 	cancelAddParam: () => void;
+	cancelAddSubmodel: () => void;
 	setActivePanel: (panel: ActivePanel) => void;
 	setActiveOptionField: Dispatch<SetStateAction<ActiveOptionField>>;
 }
@@ -39,9 +40,15 @@ export function handleEscapeKey(actions: GlobalActions): boolean {
 		actions.cancelAddParam();
 		return true;
 	}
+	if (actions.activePanel === "submodel-adding") {
+		actions.cancelAddSubmodel();
+		return true;
+	}
 	if (
 		actions.activeTab === 0 &&
-		(actions.activePanel === "values" || actions.activePanel === "constraints")
+		(actions.activePanel === "values" ||
+			actions.activePanel === "constraints" ||
+			actions.activePanel === "submodels")
 	) {
 		actions.setActivePanel("params");
 		return true;
