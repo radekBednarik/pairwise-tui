@@ -309,6 +309,7 @@ export function App() {
 		void generateModelFromPrompt(prompt, apiKey, aiModel)
 			.then(({ parameters, submodels, constraints }) => {
 				setModel((m) => ({ ...m, parameters, submodels, constraints }));
+				setSelectedSubmodelIndex(0);
 				setConstraintsKey((k) => k + 1);
 				closeAiPrompt();
 				setAiIsLoading(false);
@@ -330,6 +331,7 @@ export function App() {
 		aiIsLoading,
 		showStatus,
 		setActiveTab,
+		setSelectedSubmodelIndex,
 		setConstraintsKey,
 		closeAiPrompt,
 		setAiIsLoading,
@@ -340,6 +342,7 @@ export function App() {
 	const clearModel = useCallback(() => {
 		setModel({ parameters: [], submodels: [], constraints: "" });
 		setSelectedParamIndex(0);
+		setSelectedSubmodelIndex(0);
 		setValuesInput("");
 		setActivePanel("params");
 		setConstraintsKey((k) => k + 1);
@@ -347,6 +350,7 @@ export function App() {
 	}, [
 		showStatus,
 		setSelectedParamIndex,
+		setSelectedSubmodelIndex,
 		setValuesInput,
 		setActivePanel,
 		setConstraintsKey,
