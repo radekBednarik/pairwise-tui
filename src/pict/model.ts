@@ -1,9 +1,15 @@
-import type { PictModel } from "../types";
+import type { PictModel, Submodel } from "../types";
 
 export function buildModelFile(model: PictModel): string {
 	const lines: string[] = [];
 	for (const param of model.parameters) {
 		lines.push(`${param.name}: ${param.values.join(", ")}`);
+	}
+	if (model.submodels.length > 0) {
+		lines.push("");
+		for (const sub of model.submodels) {
+			lines.push(`{ ${sub.paramNames.join(", ")} } @ ${sub.order}`);
+		}
 	}
 	if (model.constraints.trim()) {
 		lines.push("");
@@ -15,6 +21,7 @@ export function buildModelFile(model: PictModel): string {
 export function parseModelFile(content: string): PictModel {
 	const lines = content.split("\n");
 	const parameters: Array<{ name: string; values: string[] }> = [];
+	const submodels: Submodel[] = [];
 	const constraintLines: string[] = [];
 	let inConstraints = false;
 
@@ -23,6 +30,21 @@ export function parseModelFile(content: string): PictModel {
 		if (!trimmed) {
 			if (parameters.length > 0) inConstraints = true;
 			continue;
+		}
+
+		// Submodel lines: { Param1, Param2 } @ N — check before inConstraints branch
+		if (trimmed.startsWith("{")) {
+			const match = trimmed.match(/^\{\s*([^}]+)\}\s*@\s*([1-9]\d*)/);
+			if (match?.[1] && match?.[2]) {
+				const paramNames = match[1]
+					.split(",")
+					.map((s) => s.trim())
+					.filter((s) => s.length > 0);
+				if (paramNames.length === 0) continue;
+				const order = Number.parseInt(match[2], 10);
+				submodels.push({ paramNames, order });
+				continue;
+			}
 		}
 
 		if (inConstraints) {
@@ -55,5 +77,5 @@ export function parseModelFile(content: string): PictModel {
 		}
 	}
 
-	return { parameters, constraints: constraintLines.join("\n") };
+	return { parameters, submodels, constraints: constraintLines.join("\n") };
 }

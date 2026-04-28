@@ -1,6 +1,12 @@
 import type { AiModel } from "./types";
 
-export type ActivePanel = "params" | "values" | "constraints" | "adding";
+export type ActivePanel =
+	| "params"
+	| "values"
+	| "constraints"
+	| "adding"
+	| "submodels"
+	| "submodel-adding";
 
 export type ActiveOptionField =
 	| "filepath"

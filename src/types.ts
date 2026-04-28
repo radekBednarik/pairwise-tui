@@ -3,8 +3,14 @@ export interface Parameter {
 	values: string[];
 }
 
+export interface Submodel {
+	paramNames: string[];
+	order: number;
+}
+
 export interface PictModel {
 	parameters: Parameter[];
+	submodels: Submodel[];
 	constraints: string;
 }
 
