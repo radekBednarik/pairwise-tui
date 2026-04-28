@@ -280,8 +280,8 @@ export const DOC_CHAPTERS: DocChapter[] = [
 			"",
 			"── Notes ────────────────────────────────────────────────",
 			"",
-			"  - AI fill generates parameters, values, and PICT constraints.",
-			"  - Existing parameters and constraints are replaced when AI fill runs.",
+			"  - AI fill generates parameters, values, sub-models, and PICT constraints.",
+			"  - Existing parameters, sub-models, and constraints are replaced when AI fill runs.",
 		],
 	},
 ];
