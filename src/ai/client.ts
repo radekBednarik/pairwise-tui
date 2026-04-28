@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AiModel, Parameter } from "../types";
+import type { AiModel, Parameter, Submodel } from "../types";
 
 const SYSTEM_PROMPT = `You are a PICT (Pairwise Independent Combinatorial Testing) model generator.
 Given a description of a software feature or test scenario, identify the key test parameters and their possible values, and optionally generate PICT constraints when logical dependencies exist between parameters.
@@ -10,7 +10,7 @@ Keep parameters focused and relevant — typically 3–8 parameters with 2–6 v
 
 PICT model file format:
   Parameters are declared as: ParameterName: Value1, Value2, Value3
-  Sections must appear in this order: parameters first, then constraints.
+  Sections must appear in this order: parameters first, then sub-models (if any), then constraints.
   Example:
     Browser: Chrome, Firefox, Edge
     OS:      Windows, macOS, Linux
@@ -47,15 +47,25 @@ Rules:
   - Type system: if all values of a parameter are numeric they support numeric comparisons; otherwise string comparisons apply (case-insensitive by default)
   - Only generate constraints when they reflect real-world impossibilities or strong dependencies
 
+Sub-models (use sparingly, only when a parameter group clearly needs deeper coverage):
+  {"paramNames": ["Param1", "Param2"], "order": 3}
+  order = combination order (2 = pairwise, 3 = three-way, etc.)
+  Example: { Platform, Browser } @ 3 means all 3-way combinations of Platform and Browser
+  Only generate sub-models when there is a strong reason for N-way coverage of a specific group.
+
 Respond ONLY with valid JSON in this exact format, no additional text:
-{"parameters": [{"name": "ParameterName", "values": ["value1", "value2", "value3"]}], "constraints": ["IF [P] = \\"v1\\" THEN [Q] <> \\"v2\\";"]}
-The "constraints" field is optional — omit it or use an empty array if no constraints are needed.`;
+{"parameters": [{"name": "ParameterName", "values": ["value1", "value2", "value3"]}], "submodels": [{"paramNames": ["Param1", "Param2"], "order": 3}], "constraints": ["IF [P] = \\"v1\\" THEN [Q] <> \\"v2\\";"]}
+The "submodels" and "constraints" fields are optional — omit them or use empty arrays if not needed.`;
 
 export async function generateModel(
 	prompt: string,
 	apiKey: string,
 	model: AiModel = "claude-haiku-4-5",
-): Promise<{ parameters: Parameter[]; constraints: string }> {
+): Promise<{
+	parameters: Parameter[];
+	submodels: Submodel[];
+	constraints: string;
+}> {
 	const client = new Anthropic({ apiKey });
 
 	const message = await client.messages.create({
@@ -72,6 +82,7 @@ export async function generateModel(
 
 	let parsed: {
 		parameters: Array<{ name: string; values: string[] }>;
+		submodels?: Array<{ paramNames: string[]; order: number }>;
 		constraints?: string[];
 	};
 	try {
@@ -99,6 +110,23 @@ export async function generateModel(
 		}))
 		.filter((p) => p.name.length > 0);
 
+	const submodels: Submodel[] = Array.isArray(parsed.submodels)
+		? parsed.submodels
+				.filter(
+					(s) =>
+						Array.isArray(s?.paramNames) &&
+						typeof s?.order === "number" &&
+						s.order >= 1,
+				)
+				.map((s) => ({
+					paramNames: s.paramNames
+						.map((n) => String(n).trim())
+						.filter((n) => n.length > 0),
+					order: Math.max(1, Math.floor(s.order)),
+				}))
+				.filter((s) => s.paramNames.length > 0)
+		: [];
+
 	const constraints = Array.isArray(parsed.constraints)
 		? parsed.constraints
 				.map((c) => String(c).trim())
@@ -106,5 +134,5 @@ export async function generateModel(
 				.join("\n")
 		: "";
 
-	return { parameters, constraints };
+	return { parameters, submodels, constraints };
 }
