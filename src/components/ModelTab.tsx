@@ -1,20 +1,30 @@
 import type { RefObject } from "react";
+import type { ActivePanel } from "../constants";
 import { useTheme } from "../theme/ThemeContext";
 import type { PictModel } from "../types";
 
 interface ModelTabProps {
 	model: PictModel;
-	activePanel: "params" | "values" | "constraints" | "adding";
+	activePanel: ActivePanel;
 	selectedParamIndex: number;
 	newParamName: string;
 	valuesInput: string;
 	constraintsKey: number;
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 	constraintsRef: RefObject<any>;
+	selectedSubmodelIndex: number;
+	submodelAddingStep: "params" | "order";
+	submodelParamsInput: string;
+	submodelOrderInput: string;
 	onParamNavigate: (index: number) => void;
 	onValuesChange: (value: string) => void;
 	onNewParamNameChange: (name: string) => void;
 	onConfirmAddParam: () => void;
+	onSubmodelNavigate: (index: number) => void;
+	onSubmodelParamsChange: (value: string) => void;
+	onSubmodelOrderChange: (value: string) => void;
+	onConfirmSubmodelParams: () => void;
+	onConfirmSubmodelOrder: () => void;
 }
 
 export function ModelTab({
@@ -25,10 +35,19 @@ export function ModelTab({
 	valuesInput,
 	constraintsKey,
 	constraintsRef,
+	selectedSubmodelIndex,
+	submodelAddingStep,
+	submodelParamsInput,
+	submodelOrderInput,
 	onParamNavigate,
 	onValuesChange,
 	onNewParamNameChange,
 	onConfirmAddParam,
+	onSubmodelNavigate,
+	onSubmodelParamsChange,
+	onSubmodelOrderChange,
+	onConfirmSubmodelParams,
+	onConfirmSubmodelOrder,
 }: ModelTabProps) {
 	const theme = useTheme();
 
@@ -38,6 +57,14 @@ export function ModelTab({
 	}));
 
 	const selectedParam = model.parameters[selectedParamIndex];
+
+	const submodelOptions = model.submodels.map((s) => ({
+		name: `{ ${s.paramNames.join(", ")} } @ ${s.order}`,
+		description: "",
+	}));
+
+	const submodelPanelActive =
+		activePanel === "submodels" || activePanel === "submodel-adding";
 
 	return (
 		<box flexDirection="column" flexGrow={1}>
@@ -170,6 +197,70 @@ export function ModelTab({
 					wrapMode="word"
 					flexGrow={1}
 				/>
+			</box>
+
+			{/* Sub-models panel */}
+			<box
+				border
+				borderStyle="single"
+				borderColor={
+					submodelPanelActive
+						? theme.colors.border.active
+						: theme.colors.border.inactive
+				}
+				backgroundColor={theme.colors.bg.panel}
+				title=" Sub-Models "
+				titleAlignment="left"
+				height={8}
+				flexDirection="column"
+			>
+				{activePanel === "submodel-adding" && (
+					<box paddingX={1} backgroundColor={theme.colors.bg.elevated}>
+						{submodelAddingStep === "params" ? (
+							<box flexDirection="row" gap={1} alignItems="center">
+								<text fg={theme.colors.accent}>Params:</text>
+								<input
+									value={submodelParamsInput}
+									onChange={onSubmodelParamsChange}
+									onSubmit={onConfirmSubmodelParams}
+									focused
+									placeholder="Param1, Param2..."
+									backgroundColor={theme.colors.bg.elevated}
+									focusedBackgroundColor={theme.colors.bg.selected}
+									flexGrow={1}
+								/>
+							</box>
+						) : (
+							<box flexDirection="row" gap={1} alignItems="center">
+								<text fg={theme.colors.accent}>Order:</text>
+								<input
+									value={submodelOrderInput}
+									onChange={onSubmodelOrderChange}
+									onSubmit={onConfirmSubmodelOrder}
+									focused
+									placeholder="2"
+									backgroundColor={theme.colors.bg.elevated}
+									focusedBackgroundColor={theme.colors.bg.selected}
+									flexGrow={1}
+								/>
+							</box>
+						)}
+					</box>
+				)}
+				{submodelOptions.length > 0 ? (
+					<select
+						options={submodelOptions}
+						selectedIndex={selectedSubmodelIndex}
+						onChange={(index) => onSubmodelNavigate(index)}
+						focused={activePanel === "submodels"}
+						showScrollIndicator
+						flexGrow={1}
+					/>
+				) : activePanel !== "submodel-adding" ? (
+					<box flexGrow={1} justifyContent="center" alignItems="center">
+						<text fg={theme.colors.text.muted}>No sub-models — [a] add</text>
+					</box>
+				) : null}
 			</box>
 		</box>
 	);
