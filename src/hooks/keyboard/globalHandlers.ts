@@ -26,22 +26,30 @@ interface GlobalActions {
 	handleOpenModel: () => Promise<void>;
 	handleSaveModel: () => Promise<void>;
 	destroy: () => void;
-	// Escape handling
+}
+
+interface EscapeActions extends GlobalActions {
 	activePanel: ActivePanel;
 	activeOptionField: ActiveOptionField;
 	cancelAddParam: () => void;
 	cancelAddSubmodel: () => void;
+	submodelDropdownFocused: boolean;
+	cancelSubmodelDropdown: () => void;
 	setActivePanel: (panel: ActivePanel) => void;
 	setActiveOptionField: Dispatch<SetStateAction<ActiveOptionField>>;
 }
 
-export function handleEscapeKey(actions: GlobalActions): boolean {
+export function handleEscapeKey(actions: EscapeActions): boolean {
 	if (actions.activePanel === "adding") {
 		actions.cancelAddParam();
 		return true;
 	}
 	if (actions.activePanel === "submodel-adding") {
-		actions.cancelAddSubmodel();
+		if (actions.submodelDropdownFocused) {
+			actions.cancelSubmodelDropdown();
+		} else {
+			actions.cancelAddSubmodel();
+		}
 		return true;
 	}
 	if (

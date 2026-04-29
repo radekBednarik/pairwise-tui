@@ -16,6 +16,9 @@ interface ModelTabProps {
 	submodelAddingStep: "params" | "order";
 	submodelParamsInput: string;
 	submodelOrderInput: string;
+	submodelDropdownFocused: boolean;
+	submodelDropdownOptions: Array<{ name: string; description: string }>;
+	submodelValidationError: string | null;
 	onParamNavigate: (index: number) => void;
 	onValuesChange: (value: string) => void;
 	onNewParamNameChange: (name: string) => void;
@@ -25,6 +28,7 @@ interface ModelTabProps {
 	onSubmodelOrderChange: (value: string) => void;
 	onConfirmSubmodelParams: () => void;
 	onConfirmSubmodelOrder: () => void;
+	onSubmodelDropdownSelect: (paramName: string) => void;
 }
 
 export function ModelTab({
@@ -39,6 +43,9 @@ export function ModelTab({
 	submodelAddingStep,
 	submodelParamsInput,
 	submodelOrderInput,
+	submodelDropdownFocused,
+	submodelDropdownOptions,
+	submodelValidationError,
 	onParamNavigate,
 	onValuesChange,
 	onNewParamNameChange,
@@ -48,6 +55,7 @@ export function ModelTab({
 	onSubmodelOrderChange,
 	onConfirmSubmodelParams,
 	onConfirmSubmodelOrder,
+	onSubmodelDropdownSelect,
 }: ModelTabProps) {
 	const theme = useTheme();
 
@@ -217,18 +225,45 @@ export function ModelTab({
 				{activePanel === "submodel-adding" && (
 					<box paddingX={1} backgroundColor={theme.colors.bg.elevated}>
 						{submodelAddingStep === "params" ? (
-							<box flexDirection="row" gap={1} alignItems="center">
-								<text fg={theme.colors.accent}>Params:</text>
-								<input
-									value={submodelParamsInput}
-									onChange={onSubmodelParamsChange}
-									onSubmit={onConfirmSubmodelParams}
-									focused
-									placeholder="Param1, Param2..."
-									backgroundColor={theme.colors.bg.elevated}
-									focusedBackgroundColor={theme.colors.bg.selected}
-									flexGrow={1}
-								/>
+							<box flexDirection="column" position="relative">
+								<box flexDirection="row" gap={1} alignItems="center">
+									<text fg={theme.colors.accent}>Params:</text>
+									<input
+										value={submodelParamsInput}
+										onChange={onSubmodelParamsChange}
+										onSubmit={onConfirmSubmodelParams}
+										focused={!submodelDropdownFocused}
+										placeholder="Param1, Param2..."
+										backgroundColor={theme.colors.bg.elevated}
+										focusedBackgroundColor={theme.colors.bg.selected}
+										flexGrow={1}
+									/>
+								</box>
+								{submodelValidationError && (
+									<text fg="#ff5555">{submodelValidationError}</text>
+								)}
+								{submodelDropdownOptions.length > 0 && (
+									<box
+										position="absolute"
+										top={1}
+										left={8}
+										width={30}
+										zIndex={10}
+										backgroundColor={theme.colors.bg.elevated}
+										border
+										borderStyle="single"
+										borderColor={theme.colors.border.active}
+									>
+										<select
+											options={submodelDropdownOptions}
+											focused={submodelDropdownFocused}
+											onSelect={(_, option) =>
+												option && onSubmodelDropdownSelect(option.name)
+											}
+											height={Math.min(submodelDropdownOptions.length, 4)}
+										/>
+									</box>
+								)}
 							</box>
 						) : (
 							<box flexDirection="row" gap={1} alignItems="center">

@@ -142,6 +142,10 @@ export function App() {
 		handleSubmodelOrderInputChange,
 		handleConfirmSubmodelParams,
 		handleConfirmSubmodelOrder,
+		submodelDropdownFocused,
+		submodelDropdownOptions,
+		submodelValidationError,
+		handleSubmodelDropdownSelect,
 	} = modelTab;
 
 	// --- Persistent settings ---
@@ -494,6 +498,10 @@ export function App() {
 									onSubmodelOrderChange={handleSubmodelOrderInputChange}
 									onConfirmSubmodelParams={handleConfirmSubmodelParams}
 									onConfirmSubmodelOrder={handleConfirmSubmodelOrder}
+									submodelDropdownFocused={submodelDropdownFocused}
+									submodelDropdownOptions={submodelDropdownOptions}
+									submodelValidationError={submodelValidationError}
+									onSubmodelDropdownSelect={handleSubmodelDropdownSelect}
 								/>
 							)}
 							{activeTab === 1 && (

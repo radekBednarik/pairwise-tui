@@ -189,6 +189,8 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				activeOptionField,
 				cancelAddParam: modelTab.cancelAddParam,
 				cancelAddSubmodel: modelTab.cancelAddSubmodel,
+				submodelDropdownFocused: modelTab.submodelDropdownFocused,
+				cancelSubmodelDropdown: modelTab.cancelSubmodelDropdown,
 				setActivePanel: modelTab.setActivePanel,
 				setActiveOptionField,
 				themeName,
@@ -223,6 +225,14 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 
 		// Adding submodel (two-step): all keys handled by <input> (Enter via onSubmit)
 		if (modelTab.activePanel === "submodel-adding") {
+			if (
+				name === "down" &&
+				modelTab.submodelAddingStep === "params" &&
+				!modelTab.submodelDropdownFocused &&
+				modelTab.submodelDropdownOptions.length > 0
+			) {
+				modelTab.handleSubmodelDropdownFocus();
+			}
 			return;
 		}
 
@@ -305,12 +315,6 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				handleOpenModel,
 				handleSaveModel,
 				destroy: renderer.destroy,
-				activePanel: modelTab.activePanel,
-				activeOptionField,
-				cancelAddParam: modelTab.cancelAddParam,
-				cancelAddSubmodel: modelTab.cancelAddSubmodel,
-				setActivePanel: modelTab.setActivePanel,
-				setActiveOptionField,
 			})
 		)
 			return;
