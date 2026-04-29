@@ -261,6 +261,7 @@ export function ModelTab({
 												option && onSubmodelDropdownSelect(option.name)
 											}
 											height={Math.min(submodelDropdownOptions.length, 4)}
+											showScrollIndicator
 										/>
 									</box>
 								)}
