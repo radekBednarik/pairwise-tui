@@ -262,6 +262,9 @@ export function ModelTab({
 											}
 											height={Math.min(submodelDropdownOptions.length, 4)}
 											showScrollIndicator
+											backgroundColor={theme.colors.bg.elevated}
+											selectedBackgroundColor={theme.colors.bg.selected}
+											selectedTextColor={theme.colors.text.primary}
 										/>
 									</box>
 								)}
