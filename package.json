@@ -51,7 +51,7 @@
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.91.0",
 		"@opentui/core": "^0.1.88",
-		"@opentui/react": "^0.1.88",
+		"@opentui/react": "^0.2.1",
 		"react": "^19.2.4",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
 	}
