@@ -405,6 +405,7 @@ export function App() {
 					flexDirection="column"
 					backgroundColor={theme.colors.bg.header}
 					paddingX={2}
+					flexShrink={0}
 				>
 					<box flexDirection="row" alignItems="center" gap={1} paddingY={1}>
 						<AnimatedLogo />

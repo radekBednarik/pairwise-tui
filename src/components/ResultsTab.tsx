@@ -46,27 +46,29 @@ export function ResultsTab({ results, focused }: ResultsTabProps) {
 					</span>
 				</text>
 			</box>
-			<scrollbox focused={focused} flexGrow={1}>
-				<box flexDirection="column" paddingX={1}>
-					<text fg={theme.colors.accent}>{headerLine}</text>
-					<text fg={theme.colors.border.inactive}>{separator}</text>
-					{results.map((row, i) => (
-						<text
-							// biome-ignore lint/suspicious/noArrayIndexKey: rows are stable and read-only
-							key={i}
-							fg={
-								i % 2 === 0
-									? theme.colors.text.primary
-									: theme.colors.text.secondary
-							}
-						>
-							{headers
-								.map((h, i) => (row[h] ?? "").padEnd(colWidths[i] ?? 0))
-								.join("  ")}
-						</text>
-					))}
-				</box>
-			</scrollbox>
+			<box flexGrow={1}>
+				<scrollbox focused={focused} height="100%">
+					<box flexDirection="column" paddingX={1}>
+						<text fg={theme.colors.accent}>{headerLine}</text>
+						<text fg={theme.colors.border.inactive}>{separator}</text>
+						{results.map((row, i) => (
+							<text
+								// biome-ignore lint/suspicious/noArrayIndexKey: rows are stable and read-only
+								key={i}
+								fg={
+									i % 2 === 0
+										? theme.colors.text.primary
+										: theme.colors.text.secondary
+								}
+							>
+								{headers
+									.map((h, i) => (row[h] ?? "").padEnd(colWidths[i] ?? 0))
+									.join("  ")}
+							</text>
+						))}
+					</box>
+				</scrollbox>
+			</box>
 		</box>
 	);
 }
