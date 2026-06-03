@@ -28,6 +28,7 @@ interface ModelTabProps {
 	onSubmodelOrderChange: (value: string) => void;
 	onConfirmSubmodelParams: () => void;
 	onConfirmSubmodelOrder: () => void;
+	onConstraintsChange: (value: string) => void;
 	onSubmodelDropdownSelect: (paramName: string) => void;
 }
 
@@ -55,6 +56,7 @@ export function ModelTab({
 	onSubmodelOrderChange,
 	onConfirmSubmodelParams,
 	onConfirmSubmodelOrder,
+	onConstraintsChange,
 	onSubmodelDropdownSelect,
 }: ModelTabProps) {
 	const theme = useTheme();
@@ -204,6 +206,11 @@ export function ModelTab({
 					}
 					wrapMode="word"
 					flexGrow={1}
+					onContentChange={() =>
+						onConstraintsChange(
+							constraintsRef.current?.editBuffer?.getText() ?? "",
+						)
+					}
 				/>
 			</box>
 

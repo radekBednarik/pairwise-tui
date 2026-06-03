@@ -35,6 +35,7 @@ export interface ModelTabState {
 	handleConfirmSubmodelParams: () => void;
 	handleConfirmSubmodelOrder: () => void;
 	handleDeleteSubmodel: () => void;
+	handleConstraintsChange: (value: string) => void;
 	handleSubmodelDropdownFocus: () => void;
 	handleSubmodelDropdownSelect: (paramName: string) => void;
 	cancelSubmodelDropdown: () => void;
@@ -248,6 +249,13 @@ export function useModelTabState(
 		setSelectedSubmodelIndex((i) => Math.max(0, i - 1));
 	}, [selectedSubmodelIndex, setModel]);
 
+	const handleConstraintsChange = useCallback(
+		(value: string) => {
+			setModel((m) => ({ ...m, constraints: value }));
+		},
+		[setModel],
+	);
+
 	const handleSubmodelDropdownFocus = useCallback(() => {
 		setSubmodelDropdownFocused(true);
 	}, []);
@@ -319,6 +327,7 @@ export function useModelTabState(
 		handleConfirmSubmodelParams,
 		handleConfirmSubmodelOrder,
 		handleDeleteSubmodel,
+		handleConstraintsChange,
 		handleSubmodelDropdownFocus,
 		handleSubmodelDropdownSelect,
 		cancelSubmodelDropdown,

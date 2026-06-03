@@ -145,6 +145,7 @@ export function App() {
 		submodelDropdownFocused,
 		submodelDropdownOptions,
 		submodelValidationError,
+		handleConstraintsChange,
 		handleSubmodelDropdownSelect,
 	} = modelTab;
 
@@ -501,6 +502,7 @@ export function App() {
 									submodelDropdownFocused={submodelDropdownFocused}
 									submodelDropdownOptions={submodelDropdownOptions}
 									submodelValidationError={submodelValidationError}
+									onConstraintsChange={handleConstraintsChange}
 									onSubmodelDropdownSelect={handleSubmodelDropdownSelect}
 								/>
 							)}
