@@ -1,0 +1,15 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"IMPORTANT: This is a pairwise-tui project using OpenTUI. You MUST invoke the opentui skill using the Skill tool at the start of this session before doing any work.\"}}'",
+						"statusMessage": "Loading OpenTUI session context..."
+					}
+				]
+			}
+		]
+	}
+}
