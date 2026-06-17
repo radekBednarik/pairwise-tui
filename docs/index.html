@@ -470,9 +470,33 @@
             <tr><td><kbd>e</kbd></td><td>Edit values for selected parameter</td></tr>
             <tr><td><kbd>c</kbd></td><td>Jump to constraints editor</td></tr>
             <tr><td><kbd>x</kbd></td><td>Clear entire model (with confirmation)</td></tr>
+            <tr><td><kbd>b</kbd></td><td>Switch to sub-models panel</td></tr>
             <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate parameter list</td></tr>
             <tr><td><kbd>Tab</kbd></td><td>Switch to values / constraints panel</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Cancel / return to parameters panel</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Model tab — Sub-models panel</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>a</kbd></td><td>Add new sub-model</td></tr>
+            <tr><td><kbd>d</kbd></td><td>Delete selected sub-model</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate sub-model list</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Return to parameters panel</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="shortcuts-group">
+        <summary>Model tab — Add sub-model dialog</summary>
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>Enter</kbd></td><td>Confirm current step (parameters or combination order)</td></tr>
+            <tr><td><kbd>↓</kbd></td><td>Focus parameter dropdown (parameters step)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cancel and close dialog</td></tr>
           </tbody>
         </table>
       </details>
@@ -508,6 +532,9 @@
             <tr><td><kbd>Ctrl+G</kbd> <span style="color:var(--text-muted);font-size:0.8em">(AI)</span></td><td>Generate parameters from description</td></tr>
             <tr><td><kbd>Enter</kbd> <span style="color:var(--text-muted);font-size:0.8em">(docs/picker)</span></td><td>Open selected chapter / file</td></tr>
             <tr><td><kbd>Esc</kbd> / <kbd>m</kbd></td><td>Close overlay</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Toggle between Cancel and Confirm</td></tr>
+            <tr><td><kbd>Enter</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Confirm selection</td></tr>
+            <tr><td><kbd>Esc</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Cancel clear operation</td></tr>
           </tbody>
         </table>
       </details>
@@ -563,7 +590,7 @@
               <td>Most scenarios</td>
             </tr>
             <tr>
-              <td>claude-opus-4-6</td>
+              <td>claude-opus-4-8</td>
               <td>Thorough</td>
               <td>Complex domain models</td>
             </tr>
