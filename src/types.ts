@@ -25,7 +25,15 @@ export interface OutputConfig {
 	format: OutputFormat;
 }
 
-export type OutputFormat = "txt" | "json" | "csv" | "xlsx";
+export type OutputFormat = "txt" | "json" | "csv" | "xlsx" | "md";
+
+export interface ExportContext {
+	headers: string[];
+	rows: TestCase[];
+	config: OutputConfig;
+	model: PictModel;
+	options: PictOptions;
+}
 
 export interface ModelStorageConfig {
 	storagePath: string;

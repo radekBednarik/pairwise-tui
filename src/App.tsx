@@ -33,6 +33,7 @@ import { loadSettings, saveSettings } from "./settings/store";
 import { ThemeContext } from "./theme/ThemeContext";
 import { DEFAULT_THEME_NAME, THEMES, tokyonightDark } from "./theme/themes";
 import type {
+	ExportContext,
 	ModelStorageConfig,
 	OutputConfig,
 	PictModel,
@@ -215,15 +216,22 @@ export function App() {
 	const handleSaveResults = useCallback(async () => {
 		if (results.length === 0) return;
 		const headers = Object.keys(results[0] ?? {});
+		const context: ExportContext = {
+			headers,
+			rows: results,
+			config: outputConfig,
+			model,
+			options,
+		};
 		try {
-			await saveTestCases(headers, results, outputConfig);
+			await saveTestCases(context);
 			showStatus(
 				`Saved ${results.length} test cases to ${outputConfig.filePath}`,
 			);
 		} catch (err) {
 			showStatus(err instanceof Error ? err.message : "Save failed", true);
 		}
-	}, [results, outputConfig, showStatus]);
+	}, [results, outputConfig, model, options, showStatus]);
 
 	const handleSaveModel = useCallback(async () => {
 		const currentConstraints =

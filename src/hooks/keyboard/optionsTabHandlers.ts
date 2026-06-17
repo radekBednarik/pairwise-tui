@@ -29,7 +29,7 @@ export function handleOptionsTabKeys(
 	const { name } = key;
 	if (name === "return") {
 		if (actions.activeOptionField === "format") {
-			const formats: OutputFormat[] = ["txt", "json", "csv", "xlsx"];
+			const formats: OutputFormat[] = ["txt", "json", "csv", "xlsx", "md"];
 			const next =
 				formats[
 					(formats.indexOf(actions.outputConfig.format) + 1) % formats.length
