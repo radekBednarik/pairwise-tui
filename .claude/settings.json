@@ -9,6 +9,24 @@
 						"statusMessage": "Loading OpenTUI session context..."
 					}
 				]
+			},
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"SKILL AVAILABLE: caveman — invoke via Skill tool when user says caveman mode, talk like caveman, less tokens, be brief, or /caveman.\"}}'",
+						"statusMessage": "Loading caveman skill context..."
+					}
+				]
+			},
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"SKILL AVAILABLE: ponytail — invoke via Skill tool when user says ponytail, be lazy, lazy mode, simplest solution, yagni, do less, or complains about over-engineering.\"}}'",
+						"statusMessage": "Loading ponytail skill context..."
+					}
+				]
 			}
 		]
 	}
