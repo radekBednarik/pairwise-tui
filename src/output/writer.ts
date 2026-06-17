@@ -15,7 +15,7 @@ export const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
 };
 
 function mdEscape(v: string): string {
-	return v.replace(/\|/g, "\\|");
+	return v.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 }
 
 function renderMdTable(headers: string[], rows: TestCase[]): string {
