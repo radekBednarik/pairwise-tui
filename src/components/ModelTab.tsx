@@ -1,5 +1,10 @@
 import type { RefObject } from "react";
+import { useEffect } from "react";
 import type { ActivePanel } from "../constants";
+import {
+	applyPictHighlights,
+	getPictSyntaxStyle,
+} from "../pict/constraintsHighlighter";
 import { useTheme } from "../theme/ThemeContext";
 import type { PictModel } from "../types";
 
@@ -60,6 +65,11 @@ export function ModelTab({
 	onSubmodelDropdownSelect,
 }: ModelTabProps) {
 	const theme = useTheme();
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: constraintsKey signals textarea remount; model.constraints read intentionally without re-triggering on keystrokes
+	useEffect(() => {
+		applyPictHighlights(constraintsRef.current, model.constraints);
+	}, [constraintsKey]);
 
 	const paramOptions = model.parameters.map((p) => ({
 		name: p.name,
@@ -204,13 +214,14 @@ export function ModelTab({
 					placeholder={
 						'IF [Param] = "Value" THEN [OtherParam] <> "OtherValue";'
 					}
+					syntaxStyle={getPictSyntaxStyle()}
 					wrapMode="word"
 					flexGrow={1}
-					onContentChange={() =>
-						onConstraintsChange(
-							constraintsRef.current?.editBuffer?.getText() ?? "",
-						)
-					}
+					onContentChange={() => {
+						const text = constraintsRef.current?.editBuffer?.getText() ?? "";
+						onConstraintsChange(text);
+						applyPictHighlights(constraintsRef.current, text);
+					}}
 				/>
 			</box>
 
