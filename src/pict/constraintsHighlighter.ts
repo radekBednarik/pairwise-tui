@@ -83,6 +83,19 @@ function tokenize(text: string): Token[] {
 	return tokens;
 }
 
+// OpenTUI's addHighlightByCharRange counts positions excluding newline characters.
+// This maps raw JS string offsets (which include \n) to OpenTUI visual offsets.
+function buildHighlightPosMap(text: string): Uint32Array {
+	const map = new Uint32Array(text.length + 1);
+	let visualPos = 0;
+	for (let i = 0; i < text.length; i++) {
+		map[i] = visualPos;
+		if (text[i] !== "\n") visualPos++;
+	}
+	map[text.length] = visualPos;
+	return map;
+}
+
 // biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 export function applyPictHighlights(ref: any, text: string): void {
 	if (!ref) return;
@@ -90,12 +103,14 @@ export function applyPictHighlights(ref: any, text: string): void {
 
 	ref.clearAllHighlights();
 
+	const posMap = buildHighlightPosMap(text);
+
 	for (const token of tokenize(text)) {
 		const styleId = _styleIds[token.type];
 		if (styleId !== undefined) {
 			ref.addHighlightByCharRange({
-				start: token.start,
-				end: token.end,
+				start: posMap[token.start],
+				end: posMap[token.end],
 				styleId,
 			});
 		}
