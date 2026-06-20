@@ -281,7 +281,10 @@ export function App() {
 		try {
 			const files = await listModelFiles(modelStorage.storagePath);
 			if (files.length === 0) {
-				showStatus(`No .txt files found in ${modelStorage.storagePath}`, true);
+				showStatus(
+					`No .pictm files found in ${modelStorage.storagePath}`,
+					true,
+				);
 				return;
 			}
 			if (files.length === 1 && files[0]) {

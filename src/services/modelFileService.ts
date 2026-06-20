@@ -10,7 +10,7 @@ export async function saveModelToFile(
 ): Promise<string> {
 	const modelToSave = { ...model, constraints: constraintsText };
 	const ts = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
-	const filename = `${storage.fileTemplate.replace("{timestamp}", ts)}.txt`;
+	const filename = `${storage.fileTemplate.replace("{timestamp}", ts)}.pictm`;
 	const path = join(resolve(storage.storagePath), filename);
 	await Bun.write(path, buildModelFile(modelToSave));
 	return path;
@@ -21,9 +21,9 @@ export async function listModelFiles(
 ): Promise<{ fp: string; mtime: number }[]> {
 	const dir = resolve(storagePath);
 	const entries = await readdir(dir);
-	const txtFiles = entries.filter((e) => e.endsWith(".txt"));
+	const pictmFiles = entries.filter((e) => e.endsWith(".pictm"));
 	const withMtime = await Promise.all(
-		txtFiles.map(async (name) => {
+		pictmFiles.map(async (name) => {
 			const fp = join(dir, name);
 			return { fp, mtime: (await stat(fp)).mtimeMs };
 		}),
