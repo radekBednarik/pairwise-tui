@@ -70,13 +70,35 @@ export async function generateModel(
 
 	const message = await client.messages.create({
 		model,
-		max_tokens: 2048,
+		// High enough to leave room for both thinking and the JSON output:
+		// Sonnet 5 enables adaptive thinking by default, and thinking tokens
+		// count toward max_tokens. Also keeps this non-streaming call under the
+		// SDK's HTTP timeout.
+		max_tokens: 16000,
 		system: SYSTEM_PROMPT,
 		messages: [{ role: "user", content: prompt }],
 	});
 
-	const firstContent = message.content[0];
-	if (!firstContent || firstContent.type !== "text") {
+	if (message.stop_reason === "refusal") {
+		throw new Error("Claude declined to respond to this request");
+	}
+	if (message.stop_reason === "max_tokens") {
+		throw new Error(
+			"Claude response was cut off (max_tokens reached) before completing the model",
+		);
+	}
+
+	// Find the first text block rather than assuming it is at index 0. Models
+	// with thinking enabled (e.g. Sonnet 5) return a leading `thinking` block,
+	// so content[0] is not guaranteed to be the text response.
+	let textContent: string | undefined;
+	for (const block of message.content) {
+		if (block.type === "text") {
+			textContent = block.text;
+			break;
+		}
+	}
+	if (textContent === undefined) {
 		throw new Error("Unexpected response format from Claude API");
 	}
 
@@ -86,7 +108,7 @@ export async function generateModel(
 		constraints?: string[];
 	};
 	try {
-		const text = firstContent.text.trim();
+		const text = textContent.trim();
 		// Claude may wrap JSON in markdown code blocks
 		const jsonMatch = text.match(/\{[\s\S]*\}/);
 		if (!jsonMatch) throw new Error("No JSON found in response");

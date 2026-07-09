@@ -39,6 +39,6 @@ export const OPTION_FIELDS: ActiveOptionField[] = [
 
 export const AI_MODELS: AiModel[] = [
 	"claude-haiku-4-5",
-	"claude-sonnet-4-6",
+	"claude-sonnet-5",
 	"claude-opus-4-8",
 ];
