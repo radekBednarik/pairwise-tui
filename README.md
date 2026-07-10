@@ -4,7 +4,7 @@ A keyboard-driven terminal UI for QA engineers and developers who want to genera
 
 [Live site](https://radekbednarik.github.io/pairwise-tui/) • [Releases](../../releases) • [PICT](https://github.com/microsoft/pict)
 
-PICT-powered • Linux and Windows binaries • TXT / JSON / CSV / XLSX export
+PICT-powered • Linux and Windows binaries • TXT / JSON / CSV / XLSX / MD export
 
 ![pairwise-tui screenshot](docs/readme-screenshot.png)
 
@@ -13,7 +13,8 @@ PICT-powered • Linux and Windows binaries • TXT / JSON / CSV / XLSX export
 - Generate pairwise and higher-order combinatorial test cases with Microsoft PICT
 - Build and edit PICT-compatible models from a fast terminal UI
 - Add constraints without leaving the keyboard
-- Export test cases to TXT, JSON, CSV, or XLSX
+- Group parameters into sub-models with their own combination order for finer-grained coverage
+- Export test cases to TXT, JSON, CSV, XLSX, or Markdown
 - Use AI assistance to draft parameters and constraints faster
 
 ## Download & Run
@@ -41,7 +42,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 
 | Tab | Purpose |
 |-----|---------|
-| **Model** | Define parameters (name + comma-separated values) and PICT constraints |
+| **Model** | Define parameters (name + comma-separated values), PICT constraints, and sub-models with their own combination order |
 | **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, storage path, file template, AI model |
 | **Results** | View generated test cases in a scrollable table |
 
@@ -73,6 +74,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `e` | Edit values for selected parameter |
 | `c` | Edit constraints |
 | `x` | Clear entire model (prompts for confirmation) |
+| `b` | Switch to sub-models panel |
 | `Tab` | Switch to values panel |
 | `↑` / `↓` | Navigate parameters |
 | `Escape` | Return to params panel / cancel edit |
@@ -152,7 +154,7 @@ In the **Options** tab, tab to the **AI Model** field and press `Enter` to cycle
 
 ## Model file format
 
-The model is saved/loaded as a plain PICT text file (`model.txt`):
+Saved model files use the `.pictm` extension (e.g. `model_2026-07-10T....pictm`) and contain plain PICT-compatible text:
 
 ```
 OS: Windows, Linux, macOS
@@ -161,6 +163,8 @@ Language: EN, DE, FR
 
 IF [OS] = "Linux" THEN [Browser] <> "Safari";
 ```
+
+Related parameters can be grouped into a sub-model with its own combination order using `{ Param1, Param2 } @ N` syntax.
 
 ## Development
 

@@ -173,8 +173,8 @@
         <span class="feature-icon" aria-hidden="true">📤</span>
         <h3 class="feature-title">Ship results where your team works</h3>
         <p class="feature-desc">
-          Export finished test cases as TXT, JSON, CSV, or XLSX so they are ready
-          for spreadsheets, test management tools, and automation workflows.
+          Export finished test cases as TXT, JSON, CSV, XLSX, or Markdown so they
+          are ready for spreadsheets, test management tools, reports, and automation workflows.
         </p>
       </article>
 
@@ -193,6 +193,16 @@
         <p class="feature-desc">
           Themes, output format, and model storage settings persist automatically,
           so you can reopen the app and continue working without reconfiguration.
+        </p>
+      </article>
+
+      <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">🧩</span>
+        <h3 class="feature-title">Scope combinations with sub-models</h3>
+        <p class="feature-desc">
+          Group related parameters into sub-models with their own combination order,
+          so tightly-coupled dimensions get deeper coverage without exploding the
+          size of the overall test suite.
         </p>
       </article>
     </div>
@@ -247,7 +257,7 @@
 <span class="term-muted">┌ Constraints ─────────────────────────────────────────────────────────────┐</span>
 <span class="term-muted">│</span> <span class="term-purple">IF</span> [<span class="term-accent">OS</span>] = <span class="term-value">"Linux"</span> <span class="term-purple">THEN</span> [<span class="term-accent">Browser</span>] &lt;&gt; <span class="term-value">"Safari"</span>;                         <span class="term-muted">│</span>
 <span class="term-muted">└──────────────────────────────────────────────────────────────────────────┘</span>
-<span class="term-muted"> [</span><span class="term-accent">a</span><span class="term-muted">] Add  [</span><span class="term-accent">d</span><span class="term-muted">] Del  [</span><span class="term-accent">e</span><span class="term-muted">] Edit values  [</span><span class="term-accent">c</span><span class="term-muted">] Constraints  [</span><span class="term-accent">g</span><span class="term-muted">] Generate  [</span><span class="term-accent">?</span><span class="term-muted">] Docs  [</span><span class="term-accent">q</span><span class="term-muted">] Quit</span></pre>
+<span class="term-muted"> [</span><span class="term-accent">a</span><span class="term-muted">] Add  [</span><span class="term-accent">d</span><span class="term-muted">] Del  [</span><span class="term-accent">e</span><span class="term-muted">] Edit values  [</span><span class="term-accent">c</span><span class="term-muted">] Constraints  [</span><span class="term-accent">b</span><span class="term-muted">] Sub-models  [</span><span class="term-accent">g</span><span class="term-muted">] Generate  [</span><span class="term-accent">?</span><span class="term-muted">] Docs  [</span><span class="term-accent">q</span><span class="term-muted">] Quit</span></pre>
       </div>
     </div>
 
@@ -266,7 +276,7 @@
 
   <span class="term-accent">Output Configuration</span>
   <span class="term-secondary">Output file path:  </span> <span class="term-value">./results.csv</span>
-  <span class="term-secondary">Format:            </span> <span class="term-accent">CSV</span>              <span class="term-muted">[Enter] cycle: txt / json / csv / xlsx</span>
+  <span class="term-secondary">Format:            </span> <span class="term-accent">CSV</span>              <span class="term-muted">[Enter] cycle: txt / json / csv / xlsx / md</span>
 
   <span class="term-accent">PICT Options</span>
   <span class="term-secondary">Combination order: </span> <span class="term-accent">2</span>               <span class="term-muted">(1–6, default: 2 = pairwise)</span>
@@ -585,7 +595,7 @@
               <td>Quick parameter sketches (default)</td>
             </tr>
             <tr>
-              <td>claude-sonnet-4-6</td>
+              <td>claude-sonnet-5</td>
               <td>Balanced</td>
               <td>Most scenarios</td>
             </tr>
@@ -633,10 +643,12 @@
   <div class="container">
     <h2 class="section-title" id="pict-heading">PICT Model Format</h2>
     <p class="pict-desc">
-      Models are saved as plain text files compatible with the PICT engine.
-      Each line defines a parameter with a colon-separated list of values.
-      Constraints use <code style="font-family:var(--font-mono);color:var(--value)">IF / THEN</code> rules
-      with comparison operators. Press <kbd>w</kbd> to save and <kbd>o</kbd> to reload.
+      Models are saved as plain-text <code style="font-family:var(--font-mono);color:var(--value)">.pictm</code> files
+      compatible with the PICT engine. Each line defines a parameter with a colon-separated list
+      of values. Constraints use <code style="font-family:var(--font-mono);color:var(--value)">IF / THEN</code> rules
+      with comparison operators, and related parameters can be grouped into sub-models with their
+      own combination order using <code style="font-family:var(--font-mono);color:var(--value)">{ Param1, Param2 } @ N</code> syntax.
+      Press <kbd>w</kbd> to save and <kbd>o</kbd> to reload.
     </p>
 
     <div class="term-window" style="max-width: 640px;">
@@ -644,7 +656,7 @@
         <span class="term-dot term-dot--close"></span>
         <span class="term-dot term-dot--min"></span>
         <span class="term-dot term-dot--max"></span>
-        <span class="term-title">model_2025-04-01.txt</span>
+        <span class="term-title">model_2025-04-01.pictm</span>
       </div>
       <pre class="term-body"><span class="term-accent">OS</span>: <span class="term-value">Windows, Linux, macOS</span>
 <span class="term-accent">Browser</span>: <span class="term-value">Chrome, Firefox, Safari</span>
