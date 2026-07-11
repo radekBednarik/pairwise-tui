@@ -124,9 +124,10 @@ pre {
 }
 
 .nav-logo-mark {
-	color: var(--accent);
-	font-size: 1.25rem;
-	letter-spacing: -0.05em;
+	display: block;
+	flex-shrink: 0;
+	width: 22px;
+	height: 22px;
 }
 
 .nav-links {
