@@ -150,7 +150,7 @@ In the **Options** tab, tab to the **AI Model** field and press `Enter` to cycle
 |-------|----------------|
 | `claude-haiku-4-5` | Fastest, lowest cost (default) |
 | `claude-sonnet-5` | Balanced speed and capability |
-| `claude-opus-4-8` | Most capable, highest cost |
+| `claude-opus-5` | Most capable, highest cost |
 
 ## Model file format
 
