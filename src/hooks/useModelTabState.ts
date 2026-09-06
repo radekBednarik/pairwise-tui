@@ -114,15 +114,20 @@ export function useModelTabState(
 	}, [setModel]);
 
 	const handleDeleteParam = useCallback(() => {
-		setModel((m) => {
-			if (m.parameters.length === 0) return m;
-			return {
-				...m,
-				parameters: m.parameters.filter((_, i) => i !== selectedParamIndex),
-			};
-		});
-		setSelectedParamIndex((i) => Math.max(0, i - 1));
-	}, [selectedParamIndex, setModel]);
+		if (model.parameters.length === 0) return;
+		const remaining = model.parameters.filter(
+			(_, i) => i !== selectedParamIndex,
+		);
+		// Deleting the first parameter leaves the index unchanged, so the effect
+		// that syncs valuesInput does not fire — resync it here instead.
+		const nextIndex = Math.max(0, selectedParamIndex - 1);
+		setModel((m) => ({
+			...m,
+			parameters: m.parameters.filter((_, i) => i !== selectedParamIndex),
+		}));
+		setSelectedParamIndex(nextIndex);
+		setValuesInput(remaining[nextIndex]?.values.join(", ") ?? "");
+	}, [model.parameters, selectedParamIndex, setModel]);
 
 	const cancelAddParam = useCallback(() => {
 		newParamNameRef.current = "";

@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export interface ModalState {
 	// File picker
@@ -36,6 +36,12 @@ export interface ModalState {
 	openAiPrompt: () => void;
 	closeAiPrompt: () => void;
 	setAiKeyInput: (v: string) => void;
+	/**
+	 * OpenTUI inputs emit `change` only on blur or submit, and submit emits it
+	 * immediately before `enter` — so a handler reacting to Enter still sees the
+	 * pre-change render's state. Read the key through this instead.
+	 */
+	getAiKeyInput: () => string;
 	setAiError: (v: string) => void;
 	setAiIsLoading: (v: boolean) => void;
 }
@@ -56,9 +62,17 @@ export function useModalState(): ModalState {
 	const [aiSetupOpen, setAiSetupOpen] = useState(false);
 	const [aiPromptOpen, setAiPromptOpen] = useState(false);
 	const [aiPromptKey, setAiPromptKey] = useState(0);
-	const [aiKeyInput, setAiKeyInput] = useState("");
+	const [aiKeyInput, setAiKeyInputState] = useState("");
+	const aiKeyInputRef = useRef("");
 	const [aiError, setAiError] = useState("");
 	const [aiIsLoading, setAiIsLoading] = useState(false);
+
+	const setAiKeyInput = useCallback((v: string) => {
+		aiKeyInputRef.current = v;
+		setAiKeyInputState(v);
+	}, []);
+
+	const getAiKeyInput = useCallback(() => aiKeyInputRef.current, []);
 
 	const openPicker = useCallback((files: string[]) => {
 		setPickerFiles(files);
@@ -86,12 +100,12 @@ export function useModalState(): ModalState {
 		setAiError("");
 		setAiKeyInput("");
 		setAiSetupOpen(true);
-	}, []);
+	}, [setAiKeyInput]);
 
 	const closeAiSetup = useCallback(() => {
 		setAiSetupOpen(false);
 		setAiKeyInput("");
-	}, []);
+	}, [setAiKeyInput]);
 
 	const openAiPrompt = useCallback(() => {
 		setAiPromptKey((k) => k + 1);
@@ -135,6 +149,7 @@ export function useModalState(): ModalState {
 		openAiPrompt,
 		closeAiPrompt,
 		setAiKeyInput,
+		getAiKeyInput,
 		setAiError,
 		setAiIsLoading,
 	};

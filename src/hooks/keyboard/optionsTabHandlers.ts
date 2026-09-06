@@ -29,7 +29,9 @@ export function handleOptionsTabKeys(
 	const { name } = key;
 	if (name === "return") {
 		if (actions.activeOptionField === "format") {
-			const formats: OutputFormat[] = ["txt", "json", "csv", "xlsx", "md"];
+			// Single source of truth — a new format added to FORMAT_EXTENSIONS
+			// joins the cycle automatically.
+			const formats = Object.keys(actions.formatExtensions) as OutputFormat[];
 			const next =
 				formats[
 					(formats.indexOf(actions.outputConfig.format) + 1) % formats.length

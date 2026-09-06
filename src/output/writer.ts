@@ -14,6 +14,14 @@ export const FORMAT_EXTENSIONS: Record<OutputFormat, string> = {
 	md: ".md",
 };
 
+// A cell starting with one of these is executed as a formula when the CSV is
+// opened in Excel or LibreOffice. Prefixing an apostrophe keeps it literal text.
+const FORMULA_PREFIXES = ["=", "+", "-", "@", "\t", "\r"];
+
+function neutraliseFormula(v: string): string {
+	return FORMULA_PREFIXES.some((p) => v.startsWith(p)) ? `'${v}` : v;
+}
+
 function mdEscape(v: string): string {
 	return v.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 }
@@ -47,10 +55,13 @@ const writers: Record<OutputFormat, OutputWriter> = {
 	csv: {
 		extension: ".csv",
 		async write({ headers, rows, config }) {
-			const csvEscape = (v: string) =>
-				v.includes(",") || v.includes('"') || v.includes("\n")
-					? `"${v.replace(/"/g, '""')}"`
-					: v;
+			const csvEscape = (v: string) => {
+				const cell = neutraliseFormula(v);
+				// A bare CR terminates a record in Excel/LibreOffice, so it has to
+				// force quoting too — otherwise text after it starts a new record in
+				// first-cell position, where a formula would be evaluated.
+				return /[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+			};
 			const lines = [
 				headers.map(csvEscape).join(","),
 				...rows.map((r) => headers.map((h) => csvEscape(r[h] ?? "")).join(",")),
@@ -108,6 +119,11 @@ const writers: Record<OutputFormat, OutputWriter> = {
 };
 
 export async function saveTestCases(context: ExportContext): Promise<void> {
-	const writer = writers[context.config.format];
+	const writer = Object.hasOwn(writers, context.config.format)
+		? writers[context.config.format]
+		: undefined;
+	if (!writer) {
+		throw new Error(`Unsupported output format: ${context.config.format}`);
+	}
 	await writer.write(context);
 }

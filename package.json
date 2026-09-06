@@ -36,6 +36,7 @@
 		"stats:traffic:repo": "gh api repos/radekBednarik/pairwise-tui/traffic/views",
 		"stats:traffic:clones": "gh api repos/radekBednarik/pairwise-tui/traffic/clones",
 		"stats:summary": "printf 'Release downloads total: '; gh api repos/radekBednarik/pairwise-tui/releases --jq '[.[].assets[].download_count] | add // 0' && printf 'Repo views (14d): '; gh api repos/radekBednarik/pairwise-tui/traffic/views --jq '.count' && printf 'Unique repo visitors (14d): '; gh api repos/radekBednarik/pairwise-tui/traffic/views --jq '.uniques'",
+		"test": "bun test",
 		"check": "biome check .",
 		"typecheck": "tsc --noEmit"
 	},

@@ -61,7 +61,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `?` | Open PICT documentation |
 | `i` | Open AI prompt overlay (or AI setup if no API key configured) |
 | `F2` | Open AI setup overlay |
-| `q` / `Ctrl+C` | Quit |
+| `q` / `Ctrl+C` | Quit (`q` only when no text field is focused — press `Esc` first; `Ctrl+C` always works) |
 | `1` / `2` / `3` | Switch tabs |
 | `[` / `]` | Previous / next tab |
 

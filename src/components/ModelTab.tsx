@@ -171,7 +171,8 @@ export function ModelTab({
 									{selectedParam.values.length !== 1 ? "s" : ""}
 									{selectedParam.values.length > 0 && ": "}
 									{selectedParam.values.map((v, i) => (
-										<span key={v}>
+										// biome-ignore lint/suspicious/noArrayIndexKey: values are user text and may repeat, so the position must be part of the key
+										<span key={`${i}-${v}`}>
 											{i > 0 && (
 												<span fg={theme.colors.border.inactive}>, </span>
 											)}

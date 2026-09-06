@@ -111,6 +111,7 @@ export function App() {
 		closeAiSetup,
 		closeAiPrompt,
 		setAiKeyInput,
+		getAiKeyInput,
 		setAiError,
 		setAiIsLoading,
 	} = modal;
@@ -299,7 +300,7 @@ export function App() {
 
 	// --- AI actions ---
 	const handleSaveApiKey = useCallback(() => {
-		const key = aiKeyInput.trim();
+		const key = getAiKeyInput().trim();
 		if (!key) return;
 		void configureApiKey(key).then(() => {
 			setApiKey(key);
@@ -307,14 +308,22 @@ export function App() {
 			closeAiSetup();
 			showStatus("AI configured");
 		});
-	}, [aiKeyInput, showStatus, setApiKey, setAiKeyInput, closeAiSetup]);
+	}, [getAiKeyInput, showStatus, setApiKey, setAiKeyInput, closeAiSetup]);
 
 	const handleClearApiKey = useCallback(() => {
-		void removeApiKey().then(() => {
-			setApiKey(null);
-			setAiKeyInput("");
-			showStatus("API key cleared");
-		});
+		void removeApiKey()
+			.then(() => {
+				setApiKey(null);
+				setAiKeyInput("");
+				showStatus("API key cleared");
+			})
+			.catch((err) => {
+				// The key is still on disk — say so rather than reporting success.
+				showStatus(
+					`Could not clear API key: ${err instanceof Error ? err.message : String(err)}`,
+					true,
+				);
+			});
 	}, [showStatus, setApiKey, setAiKeyInput]);
 
 	const handleAiGenerate = useCallback(() => {
