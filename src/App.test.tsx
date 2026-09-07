@@ -5,6 +5,10 @@ import { join } from "node:path";
 import { testRender } from "@opentui/react/test-utils";
 import { App } from "./App";
 
+// Windows has no POSIX file modes — stat reports 666/777 whatever chmod did —
+// so the tests that assert on them only mean something elsewhere.
+const posixOnly = process.platform === "win32" ? test.skip : test;
+
 let dir: string;
 const saved = {
 	xdg: process.env.XDG_CONFIG_HOME,
@@ -196,30 +200,33 @@ test("an API key typed into the AI setup overlay is saved on Enter", async () =>
 	}
 });
 
-test("a failed key clear is reported instead of claiming success", async () => {
-	const app = await renderApp();
-	try {
-		await app.press("F2");
-		await app.type("sk-ant-typed-key");
-		await app.enter();
-		await app.flush();
-
-		const configDir = join(dir, "pairwise-tui");
-		await Bun.$`chmod 500 ${configDir}`.quiet();
+posixOnly(
+	"a failed key clear is reported instead of claiming success",
+	async () => {
+		const app = await renderApp();
 		try {
 			await app.press("F2");
-			await app.press("d");
+			await app.type("sk-ant-typed-key");
+			await app.enter();
 			await app.flush();
-			await app.flush();
-		} finally {
-			await Bun.$`chmod 700 ${configDir}`.quiet();
-		}
 
-		expect(app.frame()).toContain("Could not clear API key");
-	} finally {
-		app.cleanup();
-	}
-});
+			const configDir = join(dir, "pairwise-tui");
+			await Bun.$`chmod 500 ${configDir}`.quiet();
+			try {
+				await app.press("F2");
+				await app.press("d");
+				await app.flush();
+				await app.flush();
+			} finally {
+				await Bun.$`chmod 700 ${configDir}`.quiet();
+			}
+
+			expect(app.frame()).toContain("Could not clear API key");
+		} finally {
+			app.cleanup();
+		}
+	},
+);
 
 test("the options tab offers a timestamp template for both output and model files", async () => {
 	const app = await renderApp();

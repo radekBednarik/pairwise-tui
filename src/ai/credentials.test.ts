@@ -4,6 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { clearApiKey, loadApiKey, saveApiKey } from "./credentials";
 
+// Windows has no POSIX file modes — stat reports 666/777 whatever chmod did —
+// so the tests that assert on them only mean something elsewhere.
+const posixOnly = process.platform === "win32" ? test.skip : test;
+
 let dir: string;
 const saved = {
 	xdg: process.env.XDG_CONFIG_HOME,
@@ -55,61 +59,73 @@ test("clearing removes the key but keeps other entries in the file", async () =>
 	});
 });
 
-test("the credentials file is not readable by other users", async () => {
+posixOnly("the credentials file is not readable by other users", async () => {
 	await saveApiKey("sk-ant-secret");
 	const mode = (await stat(credentialsPath())).mode & 0o777;
 	expect(mode.toString(8)).toBe("600");
 });
 
-test("overwriting an existing credentials file keeps it private", async () => {
-	const path = credentialsPath();
-	await Bun.write(path, "{}");
-	await Bun.$`chmod 644 ${path}`.quiet();
+posixOnly(
+	"overwriting an existing credentials file keeps it private",
+	async () => {
+		const path = credentialsPath();
+		await Bun.write(path, "{}");
+		await Bun.$`chmod 644 ${path}`.quiet();
 
-	await saveApiKey("sk-ant-secret");
+		await saveApiKey("sk-ant-secret");
 
-	const mode = (await stat(path)).mode & 0o777;
-	expect(mode.toString(8)).toBe("600");
-});
+		const mode = (await stat(path)).mode & 0o777;
+		expect(mode.toString(8)).toBe("600");
+	},
+);
 
-test("clearing the key keeps the file private", async () => {
+posixOnly("clearing the key keeps the file private", async () => {
 	await saveApiKey("sk-ant-secret");
 	await clearApiKey();
 	const mode = (await stat(credentialsPath())).mode & 0o777;
 	expect(mode.toString(8)).toBe("600");
 });
 
-test("the config directory it creates is not listable by other users", async () => {
-	await saveApiKey("sk-ant-secret");
-	const mode = (await stat(join(dir, "pairwise-tui"))).mode & 0o777;
-	expect(mode.toString(8)).toBe("700");
-});
+posixOnly(
+	"the config directory it creates is not listable by other users",
+	async () => {
+		await saveApiKey("sk-ant-secret");
+		const mode = (await stat(join(dir, "pairwise-tui"))).mode & 0o777;
+		expect(mode.toString(8)).toBe("700");
+	},
+);
 
-test("saving does not write the key through a symlink planted at the credentials path", async () => {
-	const outside = join(dir, "outside.json");
-	await Bun.write(outside, "untouched");
-	await Bun.$`mkdir -p ${join(dir, "pairwise-tui")}`.quiet();
-	await Bun.$`ln -s ${outside} ${credentialsPath()}`.quiet();
+posixOnly(
+	"saving does not write the key through a symlink planted at the credentials path",
+	async () => {
+		const outside = join(dir, "outside.json");
+		await Bun.write(outside, "untouched");
+		await Bun.$`mkdir -p ${join(dir, "pairwise-tui")}`.quiet();
+		await Bun.$`ln -s ${outside} ${credentialsPath()}`.quiet();
 
-	await saveApiKey("sk-ant-secret");
+		await saveApiKey("sk-ant-secret");
 
-	expect(await Bun.file(outside).text()).toBe("untouched");
-	expect(await loadApiKey()).toBe("sk-ant-secret");
-	const mode = (await stat(credentialsPath())).mode & 0o777;
-	expect(mode.toString(8)).toBe("600");
-});
+		expect(await Bun.file(outside).text()).toBe("untouched");
+		expect(await loadApiKey()).toBe("sk-ant-secret");
+		const mode = (await stat(credentialsPath())).mode & 0o777;
+		expect(mode.toString(8)).toBe("600");
+	},
+);
 
-test("clearing a key that cannot be written reports the failure", async () => {
-	await saveApiKey("sk-ant-secret");
-	const configDir = join(dir, "pairwise-tui");
-	await Bun.$`chmod 500 ${configDir}`.quiet();
-	try {
-		await expect(clearApiKey()).rejects.toThrow();
-	} finally {
-		await Bun.$`chmod 700 ${configDir}`.quiet();
-	}
-	expect(await loadApiKey()).toBe("sk-ant-secret");
-});
+posixOnly(
+	"clearing a key that cannot be written reports the failure",
+	async () => {
+		await saveApiKey("sk-ant-secret");
+		const configDir = join(dir, "pairwise-tui");
+		await Bun.$`chmod 500 ${configDir}`.quiet();
+		try {
+			await expect(clearApiKey()).rejects.toThrow();
+		} finally {
+			await Bun.$`chmod 700 ${configDir}`.quiet();
+		}
+		expect(await loadApiKey()).toBe("sk-ant-secret");
+	},
+);
 
 test("clearing a key stored in an unparseable file still removes it", async () => {
 	await saveApiKey("sk-ant-secret");
