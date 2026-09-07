@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { chmod, lstat, mkdir, unlink } from "node:fs/promises";
+import { chmod, lstat, mkdir, rename, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 // Embedded at compile time — Bun extracts to a temp path at runtime
@@ -11,6 +11,14 @@ import type { PictModel, PictOptions, TestCase } from "../types";
 import { buildModelFile } from "./model";
 
 const DIR_MODE = 0o700;
+
+/**
+ * Windows holds a freshly written executable open — the OS itself and any
+ * on-access virus scanner — so CreateProcess hits a sharing violation that
+ * libuv reports as EBUSY. The lock clears on its own within a few hundred
+ * milliseconds, so waiting and retrying is the only cure.
+ */
+const SPAWN_RETRY_DELAYS_MS = [50, 100, 200, 400, 800];
 
 let extractedBinaryPath: string | null = null;
 
@@ -66,10 +74,37 @@ export async function getPictBinaryPath(): Promise<string> {
 	if (content.byteLength === 0) {
 		throw new Error(`Failed to read embedded pict binary: ${sourcePath}`);
 	}
-	await Bun.write(tmpPath, content);
 
-	if ((await Bun.file(tmpPath).size) === 0) {
-		throw new Error(`Binary extraction failed — file is empty: ${tmpPath}`);
+	// An extraction left by an earlier run is reused untouched. Rewriting it
+	// would re-arm the Windows launch lock on every start, which is why the
+	// first generate of a session used to fail and the second one succeeded.
+	const existing = Bun.file(tmpPath);
+	if ((await existing.exists()) && existing.size === content.byteLength) {
+		extractedBinaryPath = tmpPath;
+		return tmpPath;
+	}
+
+	// Publish through a rename so a half-written file is never spawnable, and
+	// so a second instance extracting at the same moment cannot truncate the
+	// binary this one is about to launch.
+	const stagingPath = `${tmpPath}.${randomUUID()}.tmp`;
+	await Bun.write(stagingPath, content);
+	const writtenSize = Bun.file(stagingPath).size;
+	if (writtenSize !== content.byteLength) {
+		await unlink(stagingPath).catch(() => {});
+		throw new Error(
+			`Binary extraction failed — wrote ${writtenSize} of ${content.byteLength} bytes to ${tmpPath}`,
+		);
+	}
+
+	try {
+		await rename(stagingPath, tmpPath);
+	} catch (err) {
+		await unlink(stagingPath).catch(() => {});
+		throw new Error(
+			`Failed to install pict binary at "${tmpPath}". ` +
+				`Original error: ${err instanceof Error ? err.message : String(err)}`,
+		);
 	}
 
 	if (process.platform !== "win32") {
@@ -82,6 +117,27 @@ export async function getPictBinaryPath(): Promise<string> {
 
 	extractedBinaryPath = tmpPath;
 	return tmpPath;
+}
+
+/** A launch that failed only because the executable is still held open. */
+function isLockedBinaryError(err: unknown): boolean {
+	const code = (err as { code?: unknown } | null)?.code;
+	if (code === "EBUSY" || code === "ETXTBSY") return true;
+	const message = err instanceof Error ? err.message : String(err);
+	return /\b(EBUSY|ETXTBSY)\b/.test(message);
+}
+
+/** Exported for tests — see SPAWN_RETRY_DELAYS_MS for why this exists. */
+export async function launchWithLockRetry<T>(launch: () => T): Promise<T> {
+	for (let attempt = 0; ; attempt++) {
+		try {
+			return launch();
+		} catch (err) {
+			const delay = SPAWN_RETRY_DELAYS_MS[attempt];
+			if (delay === undefined || !isLockedBinaryError(err)) throw err;
+			await Bun.sleep(delay);
+		}
+	}
 }
 
 export async function runPict(
@@ -102,7 +158,7 @@ export async function runPict(
 
 		let result: ReturnType<typeof Bun.spawnSync>;
 		try {
-			result = Bun.spawnSync(args);
+			result = await launchWithLockRetry(() => Bun.spawnSync(args));
 		} catch (err) {
 			throw new Error(
 				`Failed to launch pict binary at "${binaryPath}". ` +
