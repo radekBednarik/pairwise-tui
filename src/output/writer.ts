@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import type { ExportContext, OutputFormat, TestCase } from "../types";
+import { expandFileTemplate } from "../utils/fileTemplate";
 
 export interface OutputWriter {
 	extension: string;
@@ -118,12 +119,19 @@ const writers: Record<OutputFormat, OutputWriter> = {
 	},
 };
 
-export async function saveTestCases(context: ExportContext): Promise<void> {
+/**
+ * Writes the test cases and returns the path they landed in. The configured
+ * path is a template, so each save can get its own file instead of
+ * overwriting the previous one.
+ */
+export async function saveTestCases(context: ExportContext): Promise<string> {
 	const writer = Object.hasOwn(writers, context.config.format)
 		? writers[context.config.format]
 		: undefined;
 	if (!writer) {
 		throw new Error(`Unsupported output format: ${context.config.format}`);
 	}
-	await writer.write(context);
+	const filePath = expandFileTemplate(context.config.filePath);
+	await writer.write({ ...context, config: { ...context.config, filePath } });
+	return filePath;
 }

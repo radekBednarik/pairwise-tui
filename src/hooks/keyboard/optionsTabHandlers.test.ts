@@ -111,3 +111,41 @@ test("Enter on a text field is not handled here", () => {
 	const h = harness({ activeOptionField: "filepath" });
 	expect(handleOptionsTabKeys(RETURN, h.actions)).toBe(false);
 });
+
+test("cycling the format keeps a templated path that has no extension", () => {
+	const h = harness({
+		activeOptionField: "format",
+		outputConfig: { filePath: "./output_{timestamp}", format: "txt" },
+	});
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().outputConfig.filePath).toBe("./output_{timestamp}.json");
+});
+
+test("cycling the format keeps a directory that contains a dot", () => {
+	const h = harness({
+		activeOptionField: "format",
+		outputConfig: { filePath: "out.d/results_{timestamp}.txt", format: "txt" },
+	});
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().outputConfig.filePath).toBe(
+		"out.d/results_{timestamp}.json",
+	);
+});
+
+test("cycling the format keeps a windows directory that contains a dot", () => {
+	const h = harness({
+		activeOptionField: "format",
+		outputConfig: { filePath: "out.d\\cases", format: "txt" },
+	});
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().outputConfig.filePath).toBe("out.d\\cases.json");
+});
+
+test("cycling the format on an empty path still yields a usable name", () => {
+	const h = harness({
+		activeOptionField: "format",
+		outputConfig: { filePath: "", format: "txt" },
+	});
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().outputConfig.filePath).toBe("output.json");
+});

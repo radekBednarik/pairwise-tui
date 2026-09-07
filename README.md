@@ -53,7 +53,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | Key | Action |
 |-----|--------|
 | `g` | Generate test cases (runs PICT) |
-| `s` | Save results to output file |
+| `s` | Save results to output file (`{timestamp}` in the path keeps each run separate) |
 | `w` | Write model to storage |
 | `o` | Open model from storage (file picker) |
 | `m` | Open message log overlay |

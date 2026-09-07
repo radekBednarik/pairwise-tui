@@ -7,6 +7,9 @@ import {
 	type OutputConfig,
 	type PictOptions,
 } from "../types";
+import { TIMESTAMP_PLACEHOLDER } from "../utils/fileTemplate";
+
+const TEMPLATE_HINT = `${TIMESTAMP_PLACEHOLDER} = UTC ISO date`;
 
 interface OptionsTabProps {
 	options: PictOptions;
@@ -48,10 +51,11 @@ export function OptionsTab({
 					}
 					focused={activeField === "filepath"}
 					width={40}
-					placeholder="./output.txt"
+					placeholder="./output_{timestamp}.txt"
 					backgroundColor={theme.colors.bg.base}
 					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
+				<text fg={theme.colors.text.muted}>{TEMPLATE_HINT}</text>
 			</box>
 
 			<box
@@ -186,7 +190,7 @@ export function OptionsTab({
 					backgroundColor={theme.colors.bg.base}
 					focusedBackgroundColor={theme.colors.bg.elevated}
 				/>
-				<text fg={theme.colors.text.muted}>{"{timestamp} = ISO date"}</text>
+				<text fg={theme.colors.text.muted}>{TEMPLATE_HINT}</text>
 			</box>
 
 			<text fg={theme.colors.accent}>

@@ -11,6 +11,7 @@ import type {
 	PictOptions,
 } from "../types";
 import { getAppConfigPath } from "../utils/configPath";
+import { TIMESTAMP_PLACEHOLDER } from "../utils/fileTemplate";
 
 export interface AppSettings {
 	options: PictOptions;
@@ -20,10 +21,16 @@ export interface AppSettings {
 	aiModel: AiModel;
 }
 
-const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
 	options: { order: 2, randomize: false, caseSensitive: false },
-	outputConfig: { filePath: "./output.txt", format: "txt" },
-	modelStorage: { storagePath: "./", fileTemplate: "model_{timestamp}" },
+	outputConfig: {
+		filePath: `./output_${TIMESTAMP_PLACEHOLDER}.txt`,
+		format: "txt",
+	},
+	modelStorage: {
+		storagePath: "./",
+		fileTemplate: `model_${TIMESTAMP_PLACEHOLDER}`,
+	},
 	themeName: "tokyonight-dark",
 	aiModel: "claude-haiku-4-5",
 };
