@@ -31,7 +31,10 @@ test("missing config file yields the defaults", async () => {
 		randomize: false,
 		caseSensitive: false,
 	});
-	expect(s.outputConfig).toEqual({ filePath: "./output.txt", format: "txt" });
+	expect(s.outputConfig).toEqual({
+		filePath: "./output_{timestamp}.txt",
+		format: "txt",
+	});
 	expect(s.modelStorage).toEqual({
 		storagePath: "./",
 		fileTemplate: "model_{timestamp}",
@@ -95,7 +98,10 @@ test("sections that are not objects fall back to the defaults", async () => {
 		randomize: false,
 		caseSensitive: false,
 	});
-	expect(s.outputConfig).toEqual({ filePath: "./output.txt", format: "txt" });
+	expect(s.outputConfig).toEqual({
+		filePath: "./output_{timestamp}.txt",
+		format: "txt",
+	});
 	expect(s.modelStorage).toEqual({
 		storagePath: "./",
 		fileTemplate: "model_{timestamp}",
@@ -112,7 +118,7 @@ test("non-string paths and theme name fall back to the defaults", async () => {
 	);
 	const s = await loadSettings();
 	expect(s.themeName).toBe("tokyonight-dark");
-	expect(s.outputConfig.filePath).toBe("./output.txt");
+	expect(s.outputConfig.filePath).toBe("./output_{timestamp}.txt");
 	expect(s.modelStorage).toEqual({
 		storagePath: "./",
 		fileTemplate: "model_{timestamp}",

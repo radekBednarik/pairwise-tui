@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type {
 	ExportContext,
 	OutputFormat,
@@ -97,4 +97,33 @@ test("a format name inherited from Object.prototype is rejected", async () => {
 	expect(saveTestCases(ctx)).rejects.toThrow(
 		"Unsupported output format: toString",
 	);
+});
+
+test("saving expands {timestamp} in the configured path", async () => {
+	const ctx = context("csv", ["A"], [{ A: "one" }]);
+	ctx.config.filePath = join(dir, "cases_{timestamp}.csv");
+
+	const written = await saveTestCases(ctx);
+
+	expect(basename(written)).toMatch(
+		/^cases_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.csv$/,
+	);
+	expect(await Bun.file(written).text()).toBe("A\none\n");
+	expect(await Bun.file(ctx.config.filePath).exists()).toBe(false);
+});
+
+test("saving returns the path it wrote so the untemplated path is reported as-is", async () => {
+	const ctx = context("txt", ["A"], [{ A: "one" }]);
+
+	const written = await saveTestCases(ctx);
+
+	expect(written).toBe(ctx.config.filePath);
+});
+
+test("an unsupported format is rejected before any file is written", async () => {
+	const ctx = context("bogus" as OutputFormat, ["A"], [{ A: "one" }]);
+	ctx.config.filePath = join(dir, "never_{timestamp}.txt");
+
+	await expect(saveTestCases(ctx)).rejects.toThrow("Unsupported output format");
+	expect((await readdir(dir)).length).toBe(0);
 });

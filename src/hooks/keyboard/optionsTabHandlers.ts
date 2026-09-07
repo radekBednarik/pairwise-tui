@@ -8,6 +8,17 @@ import type {
 } from "../../types";
 import type { KeyEvent } from "./types";
 
+// Swaps the extension on the file name only: a dot inside a directory
+// ("out.d/cases") or a name with no extension at all ("cases_{timestamp}")
+// must survive untouched.
+function withExtension(filePath: string, extension: string): string {
+	const cut = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+	const dir = filePath.slice(0, cut + 1);
+	const name = filePath.slice(cut + 1);
+	const base = name.replace(/\.[^.]+$/, "") || "output";
+	return `${dir}${base}${extension}`;
+}
+
 interface OptionsTabActions {
 	activeOptionField: ActiveOptionField;
 	outputConfig: OutputConfig;
@@ -36,10 +47,12 @@ export function handleOptionsTabKeys(
 				formats[
 					(formats.indexOf(actions.outputConfig.format) + 1) % formats.length
 				] ?? "txt";
-			const base = actions.outputConfig.filePath.replace(/\.[^.]+$/, "");
 			actions.setOutputConfig({
 				format: next,
-				filePath: `${base}${actions.formatExtensions[next]}`,
+				filePath: withExtension(
+					actions.outputConfig.filePath,
+					actions.formatExtensions[next],
+				),
 			});
 			return true;
 		}

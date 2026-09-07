@@ -29,7 +29,7 @@ import {
 	loadModelFromFile,
 	saveModelToFile,
 } from "./services/modelFileService";
-import { loadSettings, saveSettings } from "./settings/store";
+import { DEFAULT_SETTINGS, loadSettings, saveSettings } from "./settings/store";
 import { ThemeContext } from "./theme/ThemeContext";
 import { DEFAULT_THEME_NAME, THEMES, tokyonightDark } from "./theme/themes";
 import type {
@@ -56,19 +56,17 @@ export function App() {
 		submodels: [],
 		constraints: "",
 	});
-	const [options, setOptions] = useState<PictOptions>({
-		order: 2,
-		randomize: false,
-		caseSensitive: false,
-	});
-	const [outputConfig, setOutputConfig] = useState<OutputConfig>({
-		filePath: "./output.txt",
-		format: "txt",
-	});
-	const [modelStorage, setModelStorage] = useState<ModelStorageConfig>({
-		storagePath: "./",
-		fileTemplate: "model_{timestamp}",
-	});
+	// Same defaults the config file falls back to, so a first run and a reset
+	// config look alike. Copied, so state never aliases the shared defaults.
+	const [options, setOptions] = useState<PictOptions>(() => ({
+		...DEFAULT_SETTINGS.options,
+	}));
+	const [outputConfig, setOutputConfig] = useState<OutputConfig>(() => ({
+		...DEFAULT_SETTINGS.outputConfig,
+	}));
+	const [modelStorage, setModelStorage] = useState<ModelStorageConfig>(() => ({
+		...DEFAULT_SETTINGS.modelStorage,
+	}));
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
@@ -225,10 +223,8 @@ export function App() {
 			options,
 		};
 		try {
-			await saveTestCases(context);
-			showStatus(
-				`Saved ${results.length} test cases to ${outputConfig.filePath}`,
-			);
+			const path = await saveTestCases(context);
+			showStatus(`Saved ${results.length} test cases to ${path}`);
 		} catch (err) {
 			showStatus(err instanceof Error ? err.message : "Save failed", true);
 		}

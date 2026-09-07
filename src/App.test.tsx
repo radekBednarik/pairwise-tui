@@ -220,3 +220,15 @@ test("a failed key clear is reported instead of claiming success", async () => {
 		app.cleanup();
 	}
 });
+
+test("the options tab offers a timestamp template for both output and model files", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("2");
+		const frame = app.frame();
+		expect(frame).toContain("output_{timestamp}.txt");
+		expect(frame.split("{timestamp} = UTC ISO date").length - 1).toBe(2);
+	} finally {
+		app.cleanup();
+	}
+});
