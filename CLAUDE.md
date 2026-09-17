@@ -44,3 +44,11 @@ Pairwise-TUI is a terminal app for generating PICT pairwise test cases. It uses 
 - Tests are colocated with sources as `*.test.ts` / `*.test.tsx` and run with `bun test`
 - UI behaviour is tested end-to-end through `@opentui/react/test-utils` (`testRender`); `renderer.start()` is required before `mockInput` keys are delivered
 - OpenTUI `<input>` emits `change` only on **blur or submit**, not per keystroke — a handler that must see the current text reads it from a ref (see `newParamNameRef`, `getAiKeyInput`), never from the state set by `onChange`
+
+## Claude Memory
+
+All Claude memories for this project are stored **inside this repository** at `.claude/memory/`, so they travel with the repo across machines. Rules:
+
+- At the start of a session (and whenever project context is unclear), read `.claude/memory/MEMORY.md` — it is the index, one line per memory.
+- Save every new project-related memory (project state, feedback/workflow rules, references) as a file in `.claude/memory/` following the existing frontmatter format, and add an index line to `.claude/memory/MEMORY.md`. Do not save them to the machine-local memory directory; keep the machine-local `MEMORY.md` only as a pointer to this directory.
+- Update or delete memory files here when they become outdated; commit memory changes together with the work they describe.
