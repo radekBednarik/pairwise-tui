@@ -11,6 +11,7 @@ export type ActivePanel =
 export type ActiveOptionField =
 	| "filepath"
 	| "format"
+	| "promptOnGenerate"
 	| "order"
 	| "randomize"
 	| "caseSensitive"
@@ -28,6 +29,7 @@ export const TAB_OPTIONS = [
 export const OPTION_FIELDS: ActiveOptionField[] = [
 	"filepath",
 	"format",
+	"promptOnGenerate",
 	"order",
 	"randomize",
 	"caseSensitive",

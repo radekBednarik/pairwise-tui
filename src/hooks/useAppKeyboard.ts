@@ -22,6 +22,7 @@ import {
 	handleAiSetupKeys,
 	handleClearConfirmKeys,
 	handleDocsKeys,
+	handleGenerateSaveKeys,
 	handleLogKeys,
 	handlePickerKeys,
 } from "./keyboard/modalHandlers";
@@ -62,6 +63,10 @@ export interface AppKeyboardParams {
 	handleAiGenerate: () => void;
 	loadModelFromPath: (path: string) => Promise<void>;
 	clearModel: () => void;
+	/** Live text of the save-dialog path input (renderable ref, not state). */
+	getGenerateSavePath: () => string;
+	promptOnGenerate: boolean;
+	setPromptOnGenerate: (v: boolean) => void;
 }
 
 export function useAppKeyboard(params: AppKeyboardParams): void {
@@ -90,6 +95,9 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 		handleAiGenerate,
 		loadModelFromPath,
 		clearModel,
+		getGenerateSavePath,
+		promptOnGenerate,
+		setPromptOnGenerate,
 	} = params;
 
 	useKeyboard((key) => {
@@ -101,8 +109,10 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
-		// F2: open AI setup from anywhere (safe in text inputs — not a character)
-		if (name === "f2" && !modal.aiSetupOpen) {
+		// F2: open AI setup from anywhere (safe in text inputs - not a character).
+		// Not over the save dialog, though: swapping overlays would unmount its
+		// path <input> and silently discard whatever the user has typed.
+		if (name === "f2" && !modal.aiSetupOpen && !modal.generateSaveOpen) {
 			modal.openAiSetup();
 			return;
 		}
@@ -177,6 +187,19 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				aiIsLoading: modal.aiIsLoading,
 				closeAiPrompt: modal.closeAiPrompt,
 				handleAiGenerate,
+			});
+			return;
+		}
+
+		// Save-on-generate dialog intercept
+		if (modal.generateSaveOpen) {
+			handleGenerateSaveKeys(key, {
+				generateSaveFormat: modal.generateSaveFormat,
+				formatExtensions: FORMAT_EXTENSIONS,
+				getGenerateSavePath,
+				setGenerateSavePath: modal.setGenerateSavePath,
+				setGenerateSaveFormat: modal.setGenerateSaveFormat,
+				closeGenerateSave: modal.closeGenerateSave,
 			});
 			return;
 		}
@@ -349,10 +372,12 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				aiModels: AI_MODELS,
 				optionFields: OPTION_FIELDS,
 				formatExtensions: FORMAT_EXTENSIONS,
+				promptOnGenerate,
 				setActiveOptionField,
 				setOutputConfig,
 				setOptions,
 				setAiModel: ai.setAiModel,
+				setPromptOnGenerate,
 			});
 		}
 	});

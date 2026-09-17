@@ -41,6 +41,7 @@ test("missing config file yields the defaults", async () => {
 	});
 	expect(s.themeName).toBe("tokyonight-dark");
 	expect(s.aiModel).toBe("claude-haiku-4-5");
+	expect(s.promptOnGenerate).toBe(false);
 });
 
 test("saved settings are read back unchanged", async () => {
@@ -50,6 +51,7 @@ test("saved settings are read back unchanged", async () => {
 		modelStorage: { storagePath: "/tmp", fileTemplate: "m_{timestamp}" },
 		themeName: "tokyonight-storm",
 		aiModel: "claude-opus-5" as const,
+		promptOnGenerate: true,
 	};
 	await saveSettings(settings);
 	expect(await loadSettings()).toEqual(settings);
@@ -86,6 +88,11 @@ test("non-boolean toggles fall back to false", async () => {
 	const s = await loadSettings();
 	expect(s.options.randomize).toBe(false);
 	expect(s.options.caseSensitive).toBe(false);
+});
+
+test("a non-boolean promptOnGenerate falls back to false", async () => {
+	await writeConfig(JSON.stringify({ promptOnGenerate: "yes" }));
+	expect((await loadSettings()).promptOnGenerate).toBe(false);
 });
 
 test("sections that are not objects fall back to the defaults", async () => {

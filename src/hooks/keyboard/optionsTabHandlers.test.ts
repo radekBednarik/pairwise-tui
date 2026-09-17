@@ -12,6 +12,7 @@ function harness(overrides: {
 	outputConfig?: OutputConfig;
 	options?: PictOptions;
 	aiModel?: AiModel;
+	promptOnGenerate?: boolean;
 }) {
 	let outputConfig: OutputConfig = overrides.outputConfig ?? {
 		filePath: "./output.txt",
@@ -23,6 +24,7 @@ function harness(overrides: {
 		caseSensitive: false,
 	};
 	let aiModel: AiModel = overrides.aiModel ?? "claude-haiku-4-5";
+	let promptOnGenerate = overrides.promptOnGenerate ?? false;
 
 	const actions = {
 		activeOptionField: overrides.activeOptionField,
@@ -48,11 +50,17 @@ function harness(overrides: {
 		setAiModel: (m: AiModel) => {
 			aiModel = m;
 		},
+		get promptOnGenerate() {
+			return promptOnGenerate;
+		},
+		setPromptOnGenerate: (v: boolean) => {
+			promptOnGenerate = v;
+		},
 	};
 
 	return {
 		actions,
-		result: () => ({ outputConfig, options, aiModel }),
+		result: () => ({ outputConfig, options, aiModel, promptOnGenerate }),
 	};
 }
 
@@ -91,6 +99,14 @@ test("Enter toggles case sensitivity", () => {
 	const h = harness({ activeOptionField: "caseSensitive" });
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().options.caseSensitive).toBe(true);
+});
+
+test("Enter toggles the save-on-generate prompt", () => {
+	const h = harness({ activeOptionField: "promptOnGenerate" });
+	expect(handleOptionsTabKeys(RETURN, h.actions)).toBe(true);
+	expect(h.result().promptOnGenerate).toBe(true);
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().promptOnGenerate).toBe(false);
 });
 
 test("Enter on the ai model field cycles to the next model", () => {

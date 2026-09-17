@@ -6,6 +6,7 @@ import { AnimatedLogo } from "./components/AnimatedLogo";
 import { ClearConfirmOverlay } from "./components/ClearConfirmOverlay";
 import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
+import { GenerateSaveOverlay } from "./components/GenerateSaveOverlay";
 import { MessageLogOverlay } from "./components/MessageLogOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
@@ -48,6 +49,8 @@ export function App() {
 	const constraintsRef = useRef<any>(null);
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 	const aiPromptRef = useRef<any>(null);
+	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
+	const generateSaveInputRef = useRef<any>(null);
 
 	// --- Core state ---
 	const [activeTab, setActiveTabState] = useState(0);
@@ -67,6 +70,9 @@ export function App() {
 	const [modelStorage, setModelStorage] = useState<ModelStorageConfig>(() => ({
 		...DEFAULT_SETTINGS.modelStorage,
 	}));
+	const [promptOnGenerate, setPromptOnGenerate] = useState(
+		DEFAULT_SETTINGS.promptOnGenerate,
+	);
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
@@ -112,6 +118,12 @@ export function App() {
 		getAiKeyInput,
 		setAiError,
 		setAiIsLoading,
+		generateSaveOpen,
+		generateSavePath,
+		generateSaveFormat,
+		openGenerateSave,
+		closeGenerateSave,
+		setGenerateSavePath,
 	} = modal;
 
 	const ai = useAiState("claude-haiku-4-5");
@@ -159,6 +171,7 @@ export function App() {
 			setModelStorage(s.modelStorage);
 			setThemeName(s.themeName);
 			setAiModel(s.aiModel);
+			setPromptOnGenerate(s.promptOnGenerate);
 			settingsLoadedRef.current = true;
 		});
 	}, [setAiModel]);
@@ -171,8 +184,16 @@ export function App() {
 			modelStorage,
 			themeName,
 			aiModel,
+			promptOnGenerate,
 		});
-	}, [options, outputConfig, modelStorage, themeName, aiModel]);
+	}, [
+		options,
+		outputConfig,
+		modelStorage,
+		themeName,
+		aiModel,
+		promptOnGenerate,
+	]);
 
 	const setActiveTab = useCallback((tab: number) => {
 		setActiveTabState(tab);
@@ -202,6 +223,9 @@ export function App() {
 			setResults(testCases);
 			setActiveTab(2);
 			showStatus(`Generated ${testCases.length} test cases`);
+			if (promptOnGenerate && testCases.length > 0) {
+				openGenerateSave(outputConfig);
+			}
 		} catch (err) {
 			showStatus(
 				err instanceof Error ? err.message : "Generation failed",
@@ -210,25 +234,69 @@ export function App() {
 		} finally {
 			setIsGenerating(false);
 		}
-	}, [model, options, showStatus, setActiveTab]);
+	}, [
+		model,
+		options,
+		showStatus,
+		setActiveTab,
+		promptOnGenerate,
+		openGenerateSave,
+		outputConfig,
+	]);
+
+	// Shared by the [s] shortcut and the save-on-generate dialog; returns
+	// whether the file was actually written.
+	const saveResultsWith = useCallback(
+		async (cfg: OutputConfig): Promise<boolean> => {
+			if (results.length === 0) return false;
+			const headers = Object.keys(results[0] ?? {});
+			const context: ExportContext = {
+				headers,
+				rows: results,
+				config: cfg,
+				model,
+				options,
+			};
+			try {
+				const path = await saveTestCases(context);
+				showStatus(`Saved ${results.length} test cases to ${path}`);
+				return true;
+			} catch (err) {
+				showStatus(err instanceof Error ? err.message : "Save failed", true);
+				return false;
+			}
+		},
+		[results, model, options, showStatus],
+	);
 
 	const handleSaveResults = useCallback(async () => {
-		if (results.length === 0) return;
-		const headers = Object.keys(results[0] ?? {});
-		const context: ExportContext = {
-			headers,
-			rows: results,
-			config: outputConfig,
-			model,
-			options,
-		};
-		try {
-			const path = await saveTestCases(context);
-			showStatus(`Saved ${results.length} test cases to ${path}`);
-		} catch (err) {
-			showStatus(err instanceof Error ? err.message : "Save failed", true);
+		await saveResultsWith(outputConfig);
+	}, [saveResultsWith, outputConfig]);
+
+	const handleGenerateSaveConfirm = useCallback(async () => {
+		// The <input> emits change only on blur/submit, so read the live text
+		// from the renderable itself (see CLAUDE.md).
+		const filePath = (
+			generateSaveInputRef.current?.value ?? generateSavePath
+		).trim();
+		if (filePath === "") {
+			showStatus("Output path cannot be empty", true);
+			return;
 		}
-	}, [results, outputConfig, model, options, showStatus]);
+		const cfg: OutputConfig = { filePath, format: generateSaveFormat };
+		closeGenerateSave();
+		// Write back only a config that actually produced a file, so a failed
+		// save cannot replace a working default.
+		if (await saveResultsWith(cfg)) {
+			setOutputConfig(cfg);
+		}
+	}, [
+		generateSavePath,
+		generateSaveFormat,
+		closeGenerateSave,
+		saveResultsWith,
+		showStatus,
+	]);
 
 	const handleSaveModel = useCallback(async () => {
 		const currentConstraints =
@@ -405,6 +473,10 @@ export function App() {
 		handleAiGenerate,
 		loadModelFromPath,
 		clearModel,
+		getGenerateSavePath: () =>
+			generateSaveInputRef.current?.value ?? generateSavePath,
+		promptOnGenerate,
+		setPromptOnGenerate,
 	});
 
 	return (
@@ -492,6 +564,14 @@ export function App() {
 						/>
 					) : showClearConfirm ? (
 						<ClearConfirmOverlay selectedIndex={clearConfirmIndex} />
+					) : generateSaveOpen ? (
+						<GenerateSaveOverlay
+							inputRef={generateSaveInputRef}
+							path={generateSavePath}
+							format={generateSaveFormat}
+							onPathChange={setGenerateSavePath}
+							onSubmit={handleGenerateSaveConfirm}
+						/>
 					) : (
 						<>
 							{activeTab === 0 && (
@@ -529,6 +609,7 @@ export function App() {
 									outputConfig={outputConfig}
 									modelStorage={modelStorage}
 									aiModel={aiModel}
+									promptOnGenerate={promptOnGenerate}
 									activeField={activeOptionField}
 									onOutputConfigChange={setOutputConfig}
 									onOptionsChange={setOptions}
@@ -580,7 +661,9 @@ export function App() {
 											? "aiPrompt"
 											: showClearConfirm
 												? "clearConfirm"
-												: activePanel
+												: generateSaveOpen
+													? "generateSave"
+													: activePanel
 					}
 					addingParam={activePanel === "adding"}
 					hasResults={results.length > 0}

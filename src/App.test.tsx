@@ -75,6 +75,19 @@ async function renderApp() {
 		await pressEscape();
 	};
 
+	// Generation and saving run real async work (PICT spawn, file writes), so
+	// poll the frame instead of relying on a single flush.
+	const waitFor = async (pred: (frame: string) => boolean, timeout = 5000) => {
+		const start = Date.now();
+		while (!pred(t.captureCharFrame())) {
+			if (Date.now() - start > timeout) {
+				throw new Error(`waitFor timed out; frame:\n${t.captureCharFrame()}`);
+			}
+			await new Promise((r) => setTimeout(r, 25));
+			await t.flush();
+		}
+	};
+
 	return {
 		frame: () => t.captureCharFrame(),
 		flush: () => t.flush(),
@@ -86,6 +99,7 @@ async function renderApp() {
 		tab,
 		arrow,
 		addParam,
+		waitFor,
 		cleanup: () => realDestroy(),
 	};
 }
@@ -227,6 +241,198 @@ posixOnly(
 		}
 	},
 );
+
+async function writeAppConfig(config: Record<string, unknown>): Promise<void> {
+	await Bun.write(
+		join(dir, "pairwise-tui", "config.json"),
+		JSON.stringify(config),
+	);
+}
+
+// The settings autosave is fire-and-forget, so poll the config file until it
+// matches (or the attempts run out and the caller's assertion reports it).
+async function waitForConfig(
+	flush: () => Promise<unknown>,
+	pred: (config: Record<string, unknown>) => boolean,
+): Promise<Record<string, unknown>> {
+	const file = Bun.file(join(dir, "pairwise-tui", "config.json"));
+	let config: Record<string, unknown> = {};
+	for (let i = 0; i < 40; i++) {
+		config = await file.json().catch(() => ({}));
+		if (pred(config)) break;
+		await new Promise((r) => setTimeout(r, 25));
+		await flush();
+	}
+	return config;
+}
+
+test("the save-on-generate toggle is enabled in the options tab and persists", async () => {
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.press("2");
+		expect(app.frame()).toContain("Ask where to save:");
+
+		// Tab: filepath -> format -> promptOnGenerate, then toggle.
+		await app.tab();
+		await app.tab();
+		await app.tab();
+		await app.enter();
+		expect(app.frame()).toContain("● ON");
+
+		const config = await waitForConfig(
+			app.flush,
+			(c) => c.promptOnGenerate === true,
+		);
+		expect(config.promptOnGenerate).toBe(true);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("with the prompt setting off, generate shows no save dialog and writes no file", async () => {
+	const outPath = join(dir, "cases.txt");
+	await writeAppConfig({ outputConfig: { filePath: outPath, format: "txt" } });
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Generated"));
+
+		expect(app.frame()).not.toContain("Save Test Cases");
+		expect(await Bun.file(outPath).exists()).toBe(false);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("with the prompt setting on, Escape skips saving", async () => {
+	const outPath = join(dir, "cases.txt");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: outPath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+		expect(app.frame()).toContain(outPath);
+
+		await app.escape();
+		expect(app.frame()).not.toContain("Save Test Cases");
+		expect(await Bun.file(outPath).exists()).toBe(false);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("with the prompt setting on, Enter saves to the shown path", async () => {
+	const outPath = join(dir, "cases.txt");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: outPath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+
+		await app.enter();
+		await app.waitFor((f) => f.includes("Saved"));
+
+		const content = await Bun.file(outPath).text();
+		expect(content).toContain("OS");
+		expect(content).toContain("Linux");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("cycling the dialog format saves that format and becomes the new default", async () => {
+	const outPath = join(dir, "cases.txt");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: outPath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+
+		await app.arrow("down");
+		expect(app.frame()).toContain("JSON");
+
+		await app.enter();
+		await app.waitFor((f) => f.includes("Saved"));
+
+		const jsonPath = join(dir, "cases.json");
+		const rows = await Bun.file(jsonPath).json();
+		expect(rows.every((r: Record<string, string>) => "OS" in r)).toBe(true);
+
+		// Write-back: the confirmed path/format become the persisted default.
+		const config = await waitForConfig(
+			app.flush,
+			(c) =>
+				(c.outputConfig as { format?: string } | undefined)?.format === "json",
+		);
+		expect(config.outputConfig).toEqual({ filePath: jsonPath, format: "json" });
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a failed dialog save does not overwrite the working default config", async () => {
+	// The path's parent is a regular file, so the write must fail.
+	const badPath = join(dir, "blocker", "cases.txt");
+	await Bun.write(join(dir, "blocker"), "not a directory");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: badPath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+
+		// Cycle to json so a (wrong) write-back would be observable in config.
+		await app.arrow("down");
+		await app.enter();
+		await app.waitFor((f) => !f.includes("Save Test Cases"));
+		expect(app.frame()).not.toContain("Saved");
+
+		// Give a buggy write-back time to land before asserting it did not.
+		for (let i = 0; i < 10; i++) {
+			await new Promise((r) => setTimeout(r, 25));
+			await app.flush();
+		}
+		const config = await waitForConfig(app.flush, () => true);
+		expect(config.outputConfig).toEqual({ filePath: badPath, format: "txt" });
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a failed generation shows no save dialog even with the prompt setting on", async () => {
+	await writeAppConfig({ promptOnGenerate: true });
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Add at least one parameter"));
+		expect(app.frame()).not.toContain("Save Test Cases");
+	} finally {
+		app.cleanup();
+	}
+});
 
 test("the options tab offers a timestamp template for both output and model files", async () => {
 	const app = await renderApp();

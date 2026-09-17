@@ -16,6 +16,7 @@ interface OptionsTabProps {
 	outputConfig: OutputConfig;
 	modelStorage: ModelStorageConfig;
 	aiModel: AiModel;
+	promptOnGenerate: boolean;
 	activeField: ActiveOptionField;
 	onOutputConfigChange: (config: OutputConfig) => void;
 	onOptionsChange: (opts: PictOptions) => void;
@@ -27,6 +28,7 @@ export function OptionsTab({
 	outputConfig,
 	modelStorage,
 	aiModel,
+	promptOnGenerate,
 	activeField,
 	onOutputConfigChange,
 	onOptionsChange,
@@ -75,6 +77,33 @@ export function OptionsTab({
 				</text>
 				{activeField === "format" && (
 					<text fg={theme.colors.text.muted}> [Enter] cycle</text>
+				)}
+			</box>
+
+			<box
+				flexDirection="row"
+				gap={2}
+				alignItems="center"
+				paddingX={1}
+				backgroundColor={
+					activeField === "promptOnGenerate"
+						? theme.colors.bg.elevated
+						: "transparent"
+				}
+			>
+				<text fg={theme.colors.text.muted} width={20}>
+					Ask where to save:
+				</text>
+				<text
+					fg={promptOnGenerate ? theme.colors.accent : theme.colors.text.muted}
+				>
+					{promptOnGenerate ? "● ON" : "○ OFF"}
+				</text>
+				<text fg={theme.colors.text.muted}>
+					(dialog after each [g] generate)
+				</text>
+				{activeField === "promptOnGenerate" && (
+					<text fg={theme.colors.text.muted}> [Enter] toggle</text>
 				)}
 			</box>
 
