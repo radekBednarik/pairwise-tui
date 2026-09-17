@@ -46,6 +46,11 @@ async function renderApp() {
 		t.mockInput.pressKey(key);
 		await t.flush();
 	};
+	// No flush: for delivering a second key before the previous key's async
+	// work (a PICT run) has a chance to finish.
+	const pressNoFlush = (key: string) => {
+		t.mockInput.pressKey(key);
+	};
 	const type = async (text: string) => {
 		await t.mockInput.typeText(text);
 		await t.flush();
@@ -93,6 +98,7 @@ async function renderApp() {
 		flush: () => t.flush(),
 		hasQuit: () => quit,
 		press,
+		pressNoFlush,
 		type,
 		enter,
 		escape: pressEscape,
@@ -388,7 +394,7 @@ test("cycling the dialog format saves that format and becomes the new default", 
 	}
 });
 
-test("a failed dialog save does not overwrite the working default config", async () => {
+test("a failed dialog save keeps the dialog open and does not overwrite the default config", async () => {
 	// The path's parent is a regular file, so the write must fail.
 	const badPath = join(dir, "blocker", "cases.txt");
 	await Bun.write(join(dir, "blocker"), "not a directory");
@@ -406,16 +412,125 @@ test("a failed dialog save does not overwrite the working default config", async
 		// Cycle to json so a (wrong) write-back would be observable in config.
 		await app.arrow("down");
 		await app.enter();
-		await app.waitFor((f) => !f.includes("Save Test Cases"));
-		expect(app.frame()).not.toContain("Saved");
 
-		// Give a buggy write-back time to land before asserting it did not.
+		// Give the failing save (and a buggy close or write-back) time to land.
 		for (let i = 0; i < 10; i++) {
 			await new Promise((r) => setTimeout(r, 25));
 			await app.flush();
 		}
+		// The dialog stays open so the typed path can be corrected and retried.
+		expect(app.frame()).toContain("Save Test Cases");
+		expect(app.frame()).not.toContain("Saved");
 		const config = await waitForConfig(app.flush, () => true);
 		expect(config.outputConfig).toEqual({ filePath: badPath, format: "txt" });
+
+		// Escape still dismisses it.
+		await app.escape();
+		expect(app.frame()).not.toContain("Save Test Cases");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a typed extension wins over the selected dialog format", async () => {
+	// No extension in the default, so typing ".json" completes the file name.
+	const basePath = join(dir, "cases");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: basePath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+		expect(app.frame()).toContain("TXT");
+
+		await app.type(".json");
+		await app.enter();
+		await app.waitFor((f) => f.includes("Saved"));
+
+		// The content matches the typed extension, not the TXT selector.
+		const rows = await Bun.file(`${basePath}.json`).json();
+		expect(rows.every((r: Record<string, string>) => "OS" in r)).toBe(true);
+
+		// And the reconciled pair is what gets persisted as the new default.
+		const config = await waitForConfig(
+			app.flush,
+			(c) =>
+				(c.outputConfig as { format?: string } | undefined)?.format === "json",
+		);
+		expect(config.outputConfig).toEqual({
+			filePath: `${basePath}.json`,
+			format: "json",
+		});
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("F2 does not replace the AI prompt overlay", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("F2");
+		await app.type("sk-ant-typed-key");
+		await app.enter();
+		await app.flush();
+
+		await app.press("i");
+		expect(app.frame()).toContain("AI Parameter Generator");
+
+		await app.press("F2");
+		const frame = app.frame();
+		expect(frame).toContain("AI Parameter Generator");
+		expect(frame).not.toContain("AI Setup");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("F2 while the docs overlay is open does not open AI setup beneath it", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("?");
+		expect(app.frame()).toContain("Pairwise TUI docs");
+
+		await app.press("F2");
+		expect(app.frame()).toContain("Pairwise TUI docs");
+
+		await app.escape();
+		expect(app.frame()).not.toContain("AI Setup");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a generation that finishes behind an overlay does not queue a hidden save dialog", async () => {
+	const outPath = join(dir, "cases.txt");
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: outPath, format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		// Open the message log before the async PICT run completes: both keys go
+		// in back to back, without a flush that would let the run finish first.
+		app.pressNoFlush("g");
+		app.pressNoFlush("m");
+		await app.flush();
+		expect(app.frame()).toContain("Message Log");
+
+		await app.waitFor((f) => f.includes("Generated"));
+		await app.escape();
+
+		for (let i = 0; i < 10; i++) {
+			await new Promise((r) => setTimeout(r, 25));
+			await app.flush();
+		}
+		expect(app.frame()).not.toContain("Save Test Cases");
 	} finally {
 		app.cleanup();
 	}
@@ -429,6 +544,49 @@ test("a failed generation shows no save dialog even with the prompt setting on",
 		await app.press("g");
 		await app.waitFor((f) => f.includes("Add at least one parameter"));
 		expect(app.frame()).not.toContain("Save Test Cases");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an overlay opened while the model list is loading suppresses the file picker", async () => {
+	// Two .pictm files, so [o] must go through the picker (not auto-load).
+	await Bun.write(join(dir, "alpha.pictm"), "OS: Linux, Windows\n");
+	await Bun.write(join(dir, "beta.pictm"), "OS: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		// Open the docs before the async directory listing resolves.
+		app.pressNoFlush("o");
+		app.pressNoFlush("?");
+		await app.flush();
+		expect(app.frame()).toContain("Pairwise TUI docs");
+
+		// Let the listing finish behind the overlay, then close the docs: the
+		// picker must not have been queued up invisibly beneath them.
+		for (let i = 0; i < 10; i++) {
+			await new Promise((r) => setTimeout(r, 25));
+			await app.flush();
+		}
+		await app.escape();
+		const frame = app.frame();
+		// Escape must close the docs (the visible overlay), and the picker must
+		// not surface behind them.
+		expect(frame).not.toContain("Pairwise TUI docs");
+		expect(frame).not.toContain("alpha.pictm");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("saving with no results reports an error instead of doing nothing", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("s");
+		expect(app.frame()).toContain("No test cases to save");
 	} finally {
 		app.cleanup();
 	}

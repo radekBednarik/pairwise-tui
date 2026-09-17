@@ -2,23 +2,25 @@ import { useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiPromptOverlay } from "./components/AiPromptOverlay";
 import { AiSetupOverlay } from "./components/AiSetupOverlay";
-import { AnimatedLogo } from "./components/AnimatedLogo";
 import { ClearConfirmOverlay } from "./components/ClearConfirmOverlay";
 import { DocOverlay } from "./components/DocOverlay";
 import { FilePickerOverlay } from "./components/FilePickerOverlay";
 import { GenerateSaveOverlay } from "./components/GenerateSaveOverlay";
+import { Header } from "./components/Header";
 import { MessageLogOverlay } from "./components/MessageLogOverlay";
 import { ModelTab } from "./components/ModelTab";
 import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
-import { type ActiveOptionField, TAB_OPTIONS } from "./constants";
+import { StatusMessage } from "./components/StatusMessage";
+import type { ActiveOptionField } from "./constants";
+import { formatFromExtension } from "./hooks/keyboard/optionsTabHandlers";
 import { useAiState } from "./hooks/useAiState";
 import { useAppKeyboard } from "./hooks/useAppKeyboard";
 import { useModalState } from "./hooks/useModalState";
 import { useModelTabState } from "./hooks/useModelTabState";
 import { useStatusLog } from "./hooks/useStatusLog";
-import { saveTestCases } from "./output/writer";
+import { FORMAT_EXTENSIONS, saveTestCases } from "./output/writer";
 import { runPict } from "./pict/runner";
 import {
 	configureApiKey,
@@ -41,6 +43,7 @@ import type {
 	PictOptions,
 	TestCase,
 } from "./types";
+import { resolveActiveOverlay } from "./utils/overlay";
 
 export function App() {
 	const renderer = useRenderer();
@@ -51,6 +54,20 @@ export function App() {
 	const aiPromptRef = useRef<any>(null);
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
 	const generateSaveInputRef = useRef<any>(null);
+	// The save dialog stays mounted while its async save runs, so its Enter
+	// handler needs a re-entrancy guard against double submits.
+	const generateSaveBusyRef = useRef(false);
+
+	// Async flows (a PICT run, a directory listing) must not pop an overlay
+	// beneath one the user opened in the meantime. They request the open here;
+	// an effect below performs or drops it based on rendered overlay state, so
+	// the check cannot race a queued state update.
+	const [deferredOverlayOpen, setDeferredOverlayOpen] = useState<
+		(() => void) | null
+	>(null);
+	const requestOverlayOpen = useCallback((open: () => void) => {
+		setDeferredOverlayOpen(() => open);
+	}, []);
 
 	// --- Core state ---
 	const [activeTab, setActiveTabState] = useState(0);
@@ -223,8 +240,12 @@ export function App() {
 			setResults(testCases);
 			setActiveTab(2);
 			showStatus(`Generated ${testCases.length} test cases`);
+			// Requested, not opened directly: dropped if another overlay is on top
+			// (say, the message log opened during the run) - the dialog would open
+			// invisibly beneath it and spring up when that overlay closes. [s]
+			// still saves on demand.
 			if (promptOnGenerate && testCases.length > 0) {
-				openGenerateSave(outputConfig);
+				requestOverlayOpen(() => openGenerateSave(outputConfig));
 			}
 		} catch (err) {
 			showStatus(
@@ -242,13 +263,17 @@ export function App() {
 		promptOnGenerate,
 		openGenerateSave,
 		outputConfig,
+		requestOverlayOpen,
 	]);
 
 	// Shared by the [s] shortcut and the save-on-generate dialog; returns
 	// whether the file was actually written.
 	const saveResultsWith = useCallback(
 		async (cfg: OutputConfig): Promise<boolean> => {
-			if (results.length === 0) return false;
+			if (results.length === 0) {
+				showStatus("No test cases to save - generate first", true);
+				return false;
+			}
 			const headers = Object.keys(results[0] ?? {});
 			const context: ExportContext = {
 				headers,
@@ -274,6 +299,7 @@ export function App() {
 	}, [saveResultsWith, outputConfig]);
 
 	const handleGenerateSaveConfirm = useCallback(async () => {
+		if (generateSaveBusyRef.current) return;
 		// The <input> emits change only on blur/submit, so read the live text
 		// from the renderable itself (see CLAUDE.md).
 		const filePath = (
@@ -283,12 +309,22 @@ export function App() {
 			showStatus("Output path cannot be empty", true);
 			return;
 		}
-		const cfg: OutputConfig = { filePath, format: generateSaveFormat };
-		closeGenerateSave();
-		// Write back only a config that actually produced a file, so a failed
-		// save cannot replace a working default.
-		if (await saveResultsWith(cfg)) {
-			setOutputConfig(cfg);
+		// A typed extension wins over the format selector, so the written
+		// content always matches the file name.
+		const format =
+			formatFromExtension(filePath, FORMAT_EXTENSIONS) ?? generateSaveFormat;
+		const cfg: OutputConfig = { filePath, format };
+		generateSaveBusyRef.current = true;
+		try {
+			// Close and write back only after a save that actually produced a
+			// file: a failure keeps the dialog (and the typed path) on screen for
+			// correction, and cannot replace a working default.
+			if (await saveResultsWith(cfg)) {
+				setOutputConfig(cfg);
+				closeGenerateSave();
+			}
+		} finally {
+			generateSaveBusyRef.current = false;
 		}
 	}, [
 		generateSavePath,
@@ -356,11 +392,19 @@ export function App() {
 				await loadModelFromPath(files[0].fp);
 				return;
 			}
-			openPicker(files.map((f) => f.fp));
+			// Via the deferred open: the listing is async, so an overlay opened in
+			// the meantime must win over the picker.
+			requestOverlayOpen(() => openPicker(files.map((f) => f.fp)));
 		} catch {
 			showStatus(`Could not read directory ${modelStorage.storagePath}`, true);
 		}
-	}, [modelStorage, showStatus, loadModelFromPath, openPicker]);
+	}, [
+		modelStorage,
+		showStatus,
+		loadModelFromPath,
+		openPicker,
+		requestOverlayOpen,
+	]);
 
 	// --- AI actions ---
 	const handleSaveApiKey = useCallback(() => {
@@ -475,9 +519,137 @@ export function App() {
 		clearModel,
 		getGenerateSavePath: () =>
 			generateSaveInputRef.current?.value ?? generateSavePath,
+		isGenerateSaveBusy: () => generateSaveBusyRef.current,
 		promptOnGenerate,
 		setPromptOnGenerate,
 	});
+
+	// Resolved once so the overlay switch below and the status bar's active
+	// panel can never disagree about which overlay (if any) is on top.
+	const overlayKind = resolveActiveOverlay({
+		logOpen,
+		docsOpen,
+		pickerOpen,
+		aiSetupOpen,
+		aiPromptOpen,
+		showClearConfirm,
+		generateSaveOpen,
+	});
+
+	// Perform or drop a requested overlay open (see requestOverlayOpen above):
+	// by effect time both the request and any competing overlay state have
+	// rendered, so this decides on what is actually on screen.
+	useEffect(() => {
+		if (deferredOverlayOpen === null) return;
+		if (overlayKind === null) deferredOverlayOpen();
+		setDeferredOverlayOpen(null);
+	}, [deferredOverlayOpen, overlayKind]);
+
+	const renderOverlay = () => {
+		switch (overlayKind) {
+			case "log":
+				return (
+					<MessageLogOverlay
+						messages={logMessages}
+						selectedIndex={logSelectedIndex}
+						scrollOffset={logScrollOffset}
+					/>
+				);
+			case "docs":
+				return (
+					<DocOverlay
+						view={docsView}
+						selectedChapterIdx={docsChapterIdx}
+						scrollOffset={docsScrollOffset}
+					/>
+				);
+			case "picker":
+				return (
+					<FilePickerOverlay files={pickerFiles} selectedIndex={pickerIndex} />
+				);
+			case "aiSetup":
+				return (
+					<AiSetupOverlay
+						currentKey={apiKey}
+						inputValue={aiKeyInput}
+						onInputChange={setAiKeyInput}
+						onSubmit={handleSaveApiKey}
+					/>
+				);
+			case "aiPrompt":
+				return (
+					<AiPromptOverlay
+						textareaRef={aiPromptRef}
+						textareaKey={aiPromptKey}
+						isLoading={aiIsLoading}
+						error={aiError}
+						aiModel={aiModel}
+					/>
+				);
+			case "clearConfirm":
+				return <ClearConfirmOverlay selectedIndex={clearConfirmIndex} />;
+			case "generateSave":
+				return (
+					<GenerateSaveOverlay
+						inputRef={generateSaveInputRef}
+						path={generateSavePath}
+						format={generateSaveFormat}
+						onPathChange={setGenerateSavePath}
+						onSubmit={handleGenerateSaveConfirm}
+					/>
+				);
+		}
+	};
+
+	const renderTabs = () => (
+		<>
+			{activeTab === 0 && (
+				<ModelTab
+					model={model}
+					activePanel={activePanel}
+					selectedParamIndex={selectedParamIndex}
+					newParamName={newParamName}
+					valuesInput={valuesInput}
+					constraintsKey={constraintsKey}
+					constraintsRef={constraintsRef}
+					selectedSubmodelIndex={selectedSubmodelIndex}
+					submodelAddingStep={submodelAddingStep}
+					submodelParamsInput={submodelParamsInput}
+					submodelOrderInput={submodelOrderInput}
+					onParamNavigate={handleParamNavigate}
+					onValuesChange={handleValuesChange}
+					onNewParamNameChange={handleNewParamNameChange}
+					onConfirmAddParam={handleConfirmAddParam}
+					onSubmodelNavigate={handleSubmodelNavigate}
+					onSubmodelParamsChange={handleSubmodelParamsInputChange}
+					onSubmodelOrderChange={handleSubmodelOrderInputChange}
+					onConfirmSubmodelParams={handleConfirmSubmodelParams}
+					onConfirmSubmodelOrder={handleConfirmSubmodelOrder}
+					submodelDropdownFocused={submodelDropdownFocused}
+					submodelDropdownOptions={submodelDropdownOptions}
+					submodelValidationError={submodelValidationError}
+					onConstraintsChange={handleConstraintsChange}
+					onSubmodelDropdownSelect={handleSubmodelDropdownSelect}
+				/>
+			)}
+			{activeTab === 1 && (
+				<OptionsTab
+					options={options}
+					outputConfig={outputConfig}
+					modelStorage={modelStorage}
+					aiModel={aiModel}
+					promptOnGenerate={promptOnGenerate}
+					activeField={activeOptionField}
+					onOutputConfigChange={setOutputConfig}
+					onOptionsChange={setOptions}
+					onModelStorageChange={setModelStorage}
+				/>
+			)}
+			{activeTab === 2 && (
+				<ResultsTab results={results} focused={activeTab === 2} />
+			)}
+		</>
+	);
 
 	return (
 		<ThemeContext.Provider value={{ theme, themeName, setThemeName }}>
@@ -488,183 +660,19 @@ export function App() {
 				paddingX={3}
 				backgroundColor={theme.colors.bg.canvas}
 			>
-				{/* Header */}
-				<box
-					flexDirection="column"
-					backgroundColor={theme.colors.bg.header}
-					paddingX={2}
-					flexShrink={0}
-				>
-					<box flexDirection="row" alignItems="center" gap={1} paddingY={1}>
-						<AnimatedLogo />
-						<ascii-font
-							text="Pairwise TUI"
-							font="tiny"
-							color={theme.colors.accent}
-						/>
-					</box>
-					<box flexDirection="row" gap={1}>
-						{TAB_OPTIONS.map((tab, i) => (
-							<box
-								key={tab.name}
-								backgroundColor={
-									activeTab === i
-										? theme.colors.bg.selected
-										: theme.colors.bg.header
-								}
-								paddingX={1}
-							>
-								<text
-									fg={
-										activeTab === i
-											? theme.colors.text.primary
-											: theme.colors.text.disabled
-									}
-								>
-									{`${i + 1}:${tab.name}`}
-								</text>
-							</box>
-						))}
-					</box>
-				</box>
+				<Header activeTab={activeTab} />
 
 				{/* Content */}
 				<box flexGrow={1} flexDirection="column">
-					{logOpen ? (
-						<MessageLogOverlay
-							messages={logMessages}
-							selectedIndex={logSelectedIndex}
-							scrollOffset={logScrollOffset}
-						/>
-					) : docsOpen ? (
-						<DocOverlay
-							view={docsView}
-							selectedChapterIdx={docsChapterIdx}
-							scrollOffset={docsScrollOffset}
-						/>
-					) : pickerOpen ? (
-						<FilePickerOverlay
-							files={pickerFiles}
-							selectedIndex={pickerIndex}
-						/>
-					) : aiSetupOpen ? (
-						<AiSetupOverlay
-							currentKey={apiKey}
-							inputValue={aiKeyInput}
-							onInputChange={setAiKeyInput}
-							onSubmit={handleSaveApiKey}
-						/>
-					) : aiPromptOpen ? (
-						<AiPromptOverlay
-							textareaRef={aiPromptRef}
-							textareaKey={aiPromptKey}
-							isLoading={aiIsLoading}
-							error={aiError}
-							aiModel={aiModel}
-						/>
-					) : showClearConfirm ? (
-						<ClearConfirmOverlay selectedIndex={clearConfirmIndex} />
-					) : generateSaveOpen ? (
-						<GenerateSaveOverlay
-							inputRef={generateSaveInputRef}
-							path={generateSavePath}
-							format={generateSaveFormat}
-							onPathChange={setGenerateSavePath}
-							onSubmit={handleGenerateSaveConfirm}
-						/>
-					) : (
-						<>
-							{activeTab === 0 && (
-								<ModelTab
-									model={model}
-									activePanel={activePanel}
-									selectedParamIndex={selectedParamIndex}
-									newParamName={newParamName}
-									valuesInput={valuesInput}
-									constraintsKey={constraintsKey}
-									constraintsRef={constraintsRef}
-									selectedSubmodelIndex={selectedSubmodelIndex}
-									submodelAddingStep={submodelAddingStep}
-									submodelParamsInput={submodelParamsInput}
-									submodelOrderInput={submodelOrderInput}
-									onParamNavigate={handleParamNavigate}
-									onValuesChange={handleValuesChange}
-									onNewParamNameChange={handleNewParamNameChange}
-									onConfirmAddParam={handleConfirmAddParam}
-									onSubmodelNavigate={handleSubmodelNavigate}
-									onSubmodelParamsChange={handleSubmodelParamsInputChange}
-									onSubmodelOrderChange={handleSubmodelOrderInputChange}
-									onConfirmSubmodelParams={handleConfirmSubmodelParams}
-									onConfirmSubmodelOrder={handleConfirmSubmodelOrder}
-									submodelDropdownFocused={submodelDropdownFocused}
-									submodelDropdownOptions={submodelDropdownOptions}
-									submodelValidationError={submodelValidationError}
-									onConstraintsChange={handleConstraintsChange}
-									onSubmodelDropdownSelect={handleSubmodelDropdownSelect}
-								/>
-							)}
-							{activeTab === 1 && (
-								<OptionsTab
-									options={options}
-									outputConfig={outputConfig}
-									modelStorage={modelStorage}
-									aiModel={aiModel}
-									promptOnGenerate={promptOnGenerate}
-									activeField={activeOptionField}
-									onOutputConfigChange={setOutputConfig}
-									onOptionsChange={setOptions}
-									onModelStorageChange={setModelStorage}
-								/>
-							)}
-							{activeTab === 2 && (
-								<ResultsTab results={results} focused={activeTab === 2} />
-							)}
-						</>
-					)}
+					{overlayKind ? renderOverlay() : renderTabs()}
 				</box>
 
-				{/* Status message */}
-				{status !== "" && (
-					<box
-						paddingX={2}
-						backgroundColor={
-							statusIsError
-								? theme.colors.status.errorBg
-								: theme.colors.status.successBg
-						}
-					>
-						<text
-							fg={
-								statusIsError
-									? theme.colors.status.error
-									: theme.colors.status.success
-							}
-						>
-							{status}
-						</text>
-					</box>
-				)}
+				<StatusMessage status={status} statusIsError={statusIsError} />
 
 				{/* Status bar */}
 				<StatusBar
 					activeTab={activeTab}
-					activePanel={
-						logOpen
-							? "log"
-							: docsOpen
-								? "docs"
-								: pickerOpen
-									? "picker"
-									: aiSetupOpen
-										? "aiSetup"
-										: aiPromptOpen
-											? "aiPrompt"
-											: showClearConfirm
-												? "clearConfirm"
-												: generateSaveOpen
-													? "generateSave"
-													: activePanel
-					}
+					activePanel={overlayKind ?? activePanel}
 					addingParam={activePanel === "adding"}
 					hasResults={results.length > 0}
 					activeOptionField={activeOptionField}

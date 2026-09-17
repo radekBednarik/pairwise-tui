@@ -3,7 +3,10 @@ import type { SetStateAction } from "react";
 import { AI_MODELS, OPTION_FIELDS } from "../../constants";
 import { FORMAT_EXTENSIONS } from "../../output/writer";
 import type { AiModel, OutputConfig, PictOptions } from "../../types";
-import { handleOptionsTabKeys } from "./optionsTabHandlers";
+import {
+	formatFromExtension,
+	handleOptionsTabKeys,
+} from "./optionsTabHandlers";
 
 const RETURN = { name: "return", ctrl: false };
 
@@ -164,4 +167,33 @@ test("cycling the format on an empty path still yields a usable name", () => {
 	});
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().outputConfig.filePath).toBe("output.json");
+});
+
+test("a known typed extension maps back to its format", () => {
+	expect(formatFromExtension("out/cases.json", FORMAT_EXTENSIONS)).toBe("json");
+	expect(formatFromExtension("cases.csv", FORMAT_EXTENSIONS)).toBe("csv");
+	expect(formatFromExtension("cases.md", FORMAT_EXTENSIONS)).toBe("md");
+});
+
+test("extension matching ignores case", () => {
+	expect(formatFromExtension("CASES.JSON", FORMAT_EXTENSIONS)).toBe("json");
+});
+
+test("an unknown extension resolves to null", () => {
+	expect(formatFromExtension("cases.foo", FORMAT_EXTENSIONS)).toBeNull();
+});
+
+test("a path without an extension resolves to null", () => {
+	expect(
+		formatFromExtension("cases_{timestamp}", FORMAT_EXTENSIONS),
+	).toBeNull();
+});
+
+test("a dot inside a directory is not an extension", () => {
+	expect(formatFromExtension("out.d/cases", FORMAT_EXTENSIONS)).toBeNull();
+	expect(formatFromExtension("out.d\\cases", FORMAT_EXTENSIONS)).toBeNull();
+});
+
+test("a dotfile name is not an extension", () => {
+	expect(formatFromExtension(".json", FORMAT_EXTENSIONS)).toBeNull();
 });

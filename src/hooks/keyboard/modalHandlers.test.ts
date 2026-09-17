@@ -6,7 +6,12 @@ import { handleGenerateSaveKeys } from "./modalHandlers";
 const key = (name: string) => ({ name, ctrl: false });
 
 function harness(
-	overrides: { path?: string; format?: OutputFormat; liveText?: string } = {},
+	overrides: {
+		path?: string;
+		format?: OutputFormat;
+		liveText?: string;
+		busy?: boolean;
+	} = {},
 ) {
 	let path = overrides.path ?? "./output_{timestamp}.txt";
 	let format: OutputFormat = overrides.format ?? "txt";
@@ -17,6 +22,7 @@ function harness(
 			return format;
 		},
 		formatExtensions: FORMAT_EXTENSIONS,
+		isBusy: () => overrides.busy ?? false,
 		// Stands in for the live <input> text - may differ from the state path.
 		getGenerateSavePath: () => overrides.liveText ?? path,
 		setGenerateSavePath: (v: string) => {
@@ -86,4 +92,17 @@ test("other keys are swallowed so global shortcuts stay inert", () => {
 	}
 	expect(h.result().closed).toBe(false);
 	expect(h.result().format).toBe("txt");
+});
+
+test("Escape is ignored while a save is in flight", () => {
+	const h = harness({ busy: true });
+	expect(handleGenerateSaveKeys(key("escape"), h.actions)).toBe(true);
+	expect(h.result().closed).toBe(false);
+});
+
+test("format cycling is ignored while a save is in flight", () => {
+	const h = harness({ busy: true });
+	handleGenerateSaveKeys(key("down"), h.actions);
+	expect(h.result().format).toBe("txt");
+	expect(h.result().path).toBe("./output_{timestamp}.txt");
 });

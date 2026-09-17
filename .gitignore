@@ -36,3 +36,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # output
 model_*
 output.txt
+
+# junk dir from the un-expanded-tilde bug (docs/plans/code-review-followups.md, finding 1)
+/~/
+
+# local subagent memory
+.claude/agent-memory/

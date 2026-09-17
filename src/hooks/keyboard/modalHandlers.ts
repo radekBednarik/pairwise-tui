@@ -203,6 +203,8 @@ export function handleAiSetupKeys(
 interface GenerateSaveActions {
 	generateSaveFormat: OutputFormat;
 	formatExtensions: Record<OutputFormat, string>;
+	/** True while the dialog's async save is running. */
+	isBusy: () => boolean;
 	/** Reads the live <input> text (renderable ref), not onChange state. */
 	getGenerateSavePath: () => string;
 	setGenerateSavePath: (v: string) => void;
@@ -215,6 +217,13 @@ export function handleGenerateSaveKeys(
 	actions: GenerateSaveActions,
 ): boolean {
 	const { name } = key;
+	// While the save runs, Esc must not close the dialog (the write and its
+	// config write-back would still land, defeating both the skip and the
+	// keep-open-on-failure contracts) and cycling must not change a format the
+	// in-flight save ignores.
+	if (actions.isBusy()) {
+		return true;
+	}
 	if (name === "escape") {
 		actions.closeGenerateSave();
 		return true;
