@@ -1,7 +1,7 @@
 import { useKeyboard } from "@opentui/react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ActiveOptionField } from "../constants";
-import { AI_MODELS, OPTION_FIELDS } from "../constants";
+import { AI_MODELS, nextOptionField } from "../constants";
 import { DOC_CHAPTERS } from "../docs/pict-docs";
 import { FORMAT_EXTENSIONS } from "../output/writer";
 import { DEFAULT_THEME_NAME, THEME_NAMES } from "../theme/themes";
@@ -12,7 +12,8 @@ import type {
 	TestCase,
 } from "../types";
 import { copyToClipboard } from "../utils/clipboard";
-import { resolveActiveOverlay } from "../utils/overlay";
+import type { OverlayKind } from "../utils/overlay";
+import { isTextInputActive } from "../utils/textInput";
 import {
 	handleEscapeKey,
 	handleGlobalKeys,
@@ -39,6 +40,8 @@ import type { StatusLogState } from "./useStatusLog";
 
 export interface AppKeyboardParams {
 	renderer: { destroy: () => void };
+	/** The overlay on top, as App resolved it for rendering. */
+	overlayKind: OverlayKind | null;
 	activeTab: number;
 	setActiveTab: (tab: number) => void;
 	activeOptionField: ActiveOptionField;
@@ -75,6 +78,7 @@ export interface AppKeyboardParams {
 export function useAppKeyboard(params: AppKeyboardParams): void {
 	const {
 		renderer,
+		overlayKind,
 		activeTab,
 		setActiveTab,
 		activeOptionField,
@@ -113,23 +117,15 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
-		// The overlay on top, resolved exactly as the render switch resolves it,
-		// so the overlay receiving keys is always the one on screen.
-		const overlayKind = resolveActiveOverlay({
-			logOpen: log.logOpen,
-			docsOpen: modal.docsOpen,
-			pickerOpen: modal.pickerOpen,
-			aiSetupOpen: modal.aiSetupOpen,
-			aiPromptOpen: modal.aiPromptOpen,
-			showClearConfirm: modal.showClearConfirm,
-			generateSaveOpen: modal.generateSaveOpen,
-		});
-
-		// F2: open AI setup from any tab (safe in text inputs - not a character),
-		// but never over an overlay: swapping overlays would unmount an input and
-		// silently discard typed text (save dialog path, AI prompt), and under a
-		// higher-precedence overlay AI setup would open invisibly beneath it.
-		if (name === "f2" && overlayKind === null) {
+		// F2: open AI setup from any tab, but never over an overlay or a focused
+		// text input: replacing either would unmount an input and silently
+		// discard typed text (save dialog path, AI prompt, a parameter name), and
+		// under a higher-precedence overlay AI setup would open invisibly.
+		if (
+			name === "f2" &&
+			overlayKind === null &&
+			!isTextInputActive(activeTab, modelTab.activePanel, activeOptionField)
+		) {
 			modal.openAiSetup();
 			return;
 		}
@@ -242,14 +238,13 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
-		// Adding param: all keys handled by <input> (Enter via onSubmit)
-		if (modelTab.activePanel === "adding") {
-			return;
-		}
-
-		// Adding submodel (two-step): all keys handled by <input> (Enter via onSubmit)
-		if (modelTab.activePanel === "submodel-adding") {
+		// Text editing (add param, add sub-model, values, constraints, options
+		// text fields): Escape handled above, Enter via the input's onSubmit, and
+		// every other key goes to the <input> or <textarea> - except the two
+		// navigation keys below.
+		if (isTextInputActive(activeTab, modelTab.activePanel, activeOptionField)) {
 			if (
+				modelTab.activePanel === "submodel-adding" &&
 				name === "down" &&
 				modelTab.submodelAddingStep === "params" &&
 				!modelTab.submodelDropdownFocused &&
@@ -257,32 +252,8 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			) {
 				modelTab.handleSubmodelDropdownFocus();
 			}
-			return;
-		}
-
-		// Values panel: Escape handled above; all other keys go to <input>
-		if (activeTab === 0 && modelTab.activePanel === "values") {
-			return;
-		}
-
-		// Constraints panel: Escape handled above; all other keys go to <textarea>
-		if (activeTab === 0 && modelTab.activePanel === "constraints") {
-			return;
-		}
-
-		// Options text fields: keys go to <input>
-		if (
-			activeTab === 1 &&
-			(activeOptionField === "filepath" ||
-				activeOptionField === "order" ||
-				activeOptionField === "storagePath" ||
-				activeOptionField === "fileTemplate")
-		) {
-			if (name === "tab") {
-				const idx = OPTION_FIELDS.indexOf(activeOptionField);
-				setActiveOptionField(
-					OPTION_FIELDS[(idx + 1) % OPTION_FIELDS.length] ?? "none",
-				);
+			if (activeTab === 1 && name === "tab") {
+				setActiveOptionField(nextOptionField(activeOptionField));
 			}
 			return;
 		}
@@ -303,10 +274,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				return;
 			}
 			if (activeTab === 1) {
-				const idx = OPTION_FIELDS.indexOf(activeOptionField);
-				setActiveOptionField(
-					OPTION_FIELDS[(idx + 1) % OPTION_FIELDS.length] ?? "none",
-				);
+				setActiveOptionField(nextOptionField(activeOptionField));
 				return;
 			}
 			return;
@@ -371,7 +339,6 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				options,
 				aiModel: ai.aiModel,
 				aiModels: AI_MODELS,
-				optionFields: OPTION_FIELDS,
 				formatExtensions: FORMAT_EXTENSIONS,
 				promptOnGenerate,
 				setActiveOptionField,

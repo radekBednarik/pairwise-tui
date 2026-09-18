@@ -4,34 +4,38 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { testRender } from "@opentui/react/test-utils";
 import { App } from "./App";
+import { runPict } from "./pict/runner";
+import { overrideEnv } from "./testing/env";
 
 // Windows has no POSIX file modes — stat reports 666/777 whatever chmod did —
 // so the tests that assert on them only mean something elsewhere.
 const posixOnly = process.platform === "win32" ? test.skip : test;
 
 let dir: string;
-const saved = {
-	xdg: process.env.XDG_CONFIG_HOME,
-	appData: process.env.APPDATA,
-	key: process.env.ANTHROPIC_API_KEY,
-};
+let restoreEnv: () => void = () => {};
+const savedKey = process.env.ANTHROPIC_API_KEY;
 
 beforeEach(async () => {
 	dir = await mkdtemp(join(tmpdir(), "pairwise-app-test-"));
-	process.env.XDG_CONFIG_HOME = dir;
-	process.env.APPDATA = dir;
+	// Config dir and home dir both point at the temp dir, in the Linux and the
+	// Windows spelling, so the settings file and `~` resolve there on both.
+	restoreEnv = overrideEnv({
+		XDG_CONFIG_HOME: dir,
+		APPDATA: dir,
+		HOME: dir,
+		USERPROFILE: dir,
+	});
 	delete process.env.ANTHROPIC_API_KEY;
 });
 
 afterEach(async () => {
-	process.env.XDG_CONFIG_HOME = saved.xdg;
-	process.env.APPDATA = saved.appData;
-	if (saved.key !== undefined) process.env.ANTHROPIC_API_KEY = saved.key;
+	restoreEnv();
+	if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
 	await rm(dir, { recursive: true, force: true });
 });
 
-async function renderApp() {
-	const t = await testRender(<App />, { width: 100, height: 34 });
+async function renderApp(element = <App />) {
+	const t = await testRender(element, { width: 100, height: 34 });
 	await t.flush();
 	t.renderer.start();
 	await t.flush();
@@ -71,6 +75,14 @@ async function renderApp() {
 		t.mockInput.pressArrow(dir);
 		await t.flush();
 	};
+	// Lets async work that finished behind the scenes (a dropped overlay
+	// request, a settings write) reach the frame.
+	const settle = async () => {
+		for (let i = 0; i < 10; i++) {
+			await new Promise((r) => setTimeout(r, 25));
+			await t.flush();
+		}
+	};
 	const addParam = async (name: string, values: string) => {
 		await press("a");
 		await type(name);
@@ -105,6 +117,7 @@ async function renderApp() {
 		tab,
 		arrow,
 		addParam,
+		settle,
 		waitFor,
 		cleanup: () => realDestroy(),
 	};
@@ -325,7 +338,9 @@ test("with the prompt setting on, Escape skips saving", async () => {
 		await app.addParam("OS", "Linux, Windows");
 		await app.press("g");
 		await app.waitFor((f) => f.includes("Save Test Cases"));
-		expect(app.frame()).toContain(outPath);
+		// The input scrolls a long temp path, so only its tail is guaranteed
+		// visible.
+		expect(app.frame()).toContain("cases.txt");
 
 		await app.escape();
 		expect(app.frame()).not.toContain("Save Test Cases");
@@ -354,6 +369,35 @@ test("with the prompt setting on, Enter saves to the shown path", async () => {
 		const content = await Bun.file(outPath).text();
 		expect(content).toContain("OS");
 		expect(content).toContain("Linux");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a ~-prefixed dialog path saves into the home directory and stays ~ in the config", async () => {
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: "~/cases.txt", format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+
+		await app.enter();
+		await app.waitFor((f) => f.includes("Saved"));
+
+		expect(await Bun.file(join(dir, "cases.txt")).exists()).toBe(true);
+		expect(await Bun.file(join("~", "cases.txt")).exists()).toBe(false);
+		const config = await waitForConfig(
+			app.flush,
+			(c) => (c.outputConfig as { filePath?: string })?.filePath !== undefined,
+		);
+		expect((config.outputConfig as { filePath: string }).filePath).toBe(
+			"~/cases.txt",
+		);
 	} finally {
 		app.cleanup();
 	}
@@ -414,10 +458,7 @@ test("a failed dialog save keeps the dialog open and does not overwrite the defa
 		await app.enter();
 
 		// Give the failing save (and a buggy close or write-back) time to land.
-		for (let i = 0; i < 10; i++) {
-			await new Promise((r) => setTimeout(r, 25));
-			await app.flush();
-		}
+		await app.settle();
 		// The dialog stays open so the typed path can be corrected and retried.
 		expect(app.frame()).toContain("Save Test Cases");
 		expect(app.frame()).not.toContain("Saved");
@@ -523,14 +564,44 @@ test("a generation that finishes behind an overlay does not queue a hidden save 
 		await app.flush();
 		expect(app.frame()).toContain("Message Log");
 
-		await app.waitFor((f) => f.includes("Generated"));
+		// The drop is reported in the status line beneath the log, with the
+		// generation result kept in the same message.
+		await app.waitFor((f) => f.includes("see the Results tab"));
+		expect(app.frame()).toContain("Generated 2 test cases");
 		await app.escape();
 
-		for (let i = 0; i < 10; i++) {
-			await new Promise((r) => setTimeout(r, 25));
-			await app.flush();
-		}
+		await app.settle();
 		expect(app.frame()).not.toContain("Save Test Cases");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a generation that finishes while a text field is being edited does not pop the save dialog", async () => {
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: join(dir, "cases.txt"), format: "txt" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		// Start adding a parameter before the async PICT run completes: the
+		// dialog would replace the tab and discard whatever is being typed.
+		app.pressNoFlush("g");
+		app.pressNoFlush("a");
+		await app.flush();
+
+		await app.waitFor((f) => f.includes("press Esc, then"));
+		const frame = app.frame();
+		expect(frame).not.toContain("Save Test Cases");
+		// The edit survives: still on the model tab with the add-param field.
+		expect(frame).toContain("New:");
+		// Once the edit ends, the promised fallback works.
+		await app.escape();
+		await app.press("s");
+		await app.waitFor((f) => f.includes("Saved"));
+		expect(await Bun.file(join(dir, "cases.txt")).exists()).toBe(true);
 	} finally {
 		app.cleanup();
 	}
@@ -567,16 +638,136 @@ test("an overlay opened while the model list is loading suppresses the file pick
 
 		// Let the listing finish behind the overlay, then close the docs: the
 		// picker must not have been queued up invisibly beneath them.
-		for (let i = 0; i < 10; i++) {
-			await new Promise((r) => setTimeout(r, 25));
-			await app.flush();
-		}
+		await app.settle();
+		expect(app.frame()).toContain("Model picker skipped");
 		await app.escape();
 		const frame = app.frame();
 		// Escape must close the docs (the visible overlay), and the picker must
 		// not surface behind them.
 		expect(frame).not.toContain("Pairwise TUI docs");
 		expect(frame).not.toContain("alpha.pictm");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("F2 while a parameter name is being typed does not open AI setup over the input", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("a");
+		await app.type("Br");
+		await app.press("F2");
+		const frame = app.frame();
+		expect(frame).not.toContain("AI Setup");
+		expect(frame).toContain("New:");
+		expect(frame).toContain("Br");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an overlay opened while a single model file is loading defers the load too", async () => {
+	await Bun.write(join(dir, "only.pictm"), "Zeta: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const app = await renderApp();
+	try {
+		await app.flush();
+		app.pressNoFlush("o");
+		app.pressNoFlush("?");
+		await app.flush();
+		expect(app.frame()).toContain("Pairwise TUI docs");
+
+		await app.settle();
+		expect(app.frame()).toContain("Model load skipped");
+		await app.escape();
+		expect(app.frame()).not.toContain("Zeta");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the save dialog uses the output path as it is when the run finishes, not when [g] was pressed", async () => {
+	await writeAppConfig({
+		promptOnGenerate: true,
+		outputConfig: { filePath: join(dir, "old.txt"), format: "txt" },
+	});
+	// The run is held open until the test releases it, so the edits below
+	// deterministically land while PICT is "still running".
+	let release = () => {};
+	const gate = new Promise<void>((r) => {
+		release = r;
+	});
+	const heldRunPict: typeof runPict = async (model, options) => {
+		await gate;
+		return runPict(model, options);
+	};
+	const app = await renderApp(<App runPict={heldRunPict} />);
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		await app.press("2");
+		await app.tab();
+		await app.type(join(dir, "new.txt"));
+		await app.enter();
+		await app.escape();
+		expect(app.frame()).not.toContain("Save Test Cases");
+
+		release();
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+		expect(app.frame()).toContain("new.txt");
+		expect(app.frame()).not.toContain("old.txt");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the save prompt setting is read when the run finishes, not when [g] was pressed", async () => {
+	await writeAppConfig({
+		promptOnGenerate: false,
+		outputConfig: { filePath: join(dir, "cases.txt"), format: "txt" },
+	});
+	let release = () => {};
+	const gate = new Promise<void>((r) => {
+		release = r;
+	});
+	const heldRunPict: typeof runPict = async (model, options) => {
+		await gate;
+		return runPict(model, options);
+	};
+	const app = await renderApp(<App runPict={heldRunPict} />);
+	try {
+		await app.flush();
+		await app.addParam("OS", "Linux, Windows");
+		await app.press("g");
+		// Turn 'Ask where to save' on while PICT is still running.
+		await app.press("2");
+		await app.tab();
+		await app.tab();
+		await app.tab();
+		await app.enter();
+		expect(app.frame()).toContain("● ON");
+		await app.press("3");
+
+		release();
+		await app.waitFor((f) => f.includes("Save Test Cases"));
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a highlighted non-text options field survives a tab round trip", async () => {
+	const app = await renderApp();
+	try {
+		await app.press("2");
+		await app.tab(); // filepath
+		await app.tab(); // format
+		await app.press("3");
+		await app.press("2");
+		await app.enter(); // still on format: cycles to json
+		expect(app.frame()).toContain("output_{timestamp}.json");
 	} finally {
 		app.cleanup();
 	}

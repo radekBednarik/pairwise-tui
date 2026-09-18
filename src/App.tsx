@@ -14,9 +14,9 @@ import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
 import { StatusMessage } from "./components/StatusMessage";
 import type { ActiveOptionField } from "./constants";
-import { formatFromExtension } from "./hooks/keyboard/optionsTabHandlers";
 import { useAiState } from "./hooks/useAiState";
 import { useAppKeyboard } from "./hooks/useAppKeyboard";
+import { useDeferredScreenChange } from "./hooks/useDeferredScreenChange";
 import { useModalState } from "./hooks/useModalState";
 import { useModelTabState } from "./hooks/useModelTabState";
 import { useStatusLog } from "./hooks/useStatusLog";
@@ -43,9 +43,16 @@ import type {
 	PictOptions,
 	TestCase,
 } from "./types";
+import { formatFromExtension } from "./utils/outputPath";
 import { resolveActiveOverlay } from "./utils/overlay";
+import { isTextInputActive, TEXT_INPUT_OPTION_FIELDS } from "./utils/textInput";
 
-export function App() {
+// `runPict` is injectable so tests can hold a run open deterministically.
+export function App({
+	runPict: run = runPict,
+}: {
+	runPict?: typeof runPict;
+} = {}) {
 	const renderer = useRenderer();
 
 	// biome-ignore lint/suspicious/noExplicitAny: OpenTUI renderable types are not exported
@@ -57,17 +64,6 @@ export function App() {
 	// The save dialog stays mounted while its async save runs, so its Enter
 	// handler needs a re-entrancy guard against double submits.
 	const generateSaveBusyRef = useRef(false);
-
-	// Async flows (a PICT run, a directory listing) must not pop an overlay
-	// beneath one the user opened in the meantime. They request the open here;
-	// an effect below performs or drops it based on rendered overlay state, so
-	// the check cannot race a queued state update.
-	const [deferredOverlayOpen, setDeferredOverlayOpen] = useState<
-		(() => void) | null
-	>(null);
-	const requestOverlayOpen = useCallback((open: () => void) => {
-		setDeferredOverlayOpen(() => open);
-	}, []);
 
 	// --- Core state ---
 	const [activeTab, setActiveTabState] = useState(0);
@@ -166,6 +162,7 @@ export function App() {
 		handleValuesChange,
 		handleNewParamNameChange,
 		handleConfirmAddParam,
+		stopEditing,
 		handleSubmodelNavigate,
 		handleSubmodelParamsInputChange,
 		handleSubmodelOrderInputChange,
@@ -177,6 +174,40 @@ export function App() {
 		handleConstraintsChange,
 		handleSubmodelDropdownSelect,
 	} = modelTab;
+
+	// Resolved once so the overlay switch, the status bar's active panel and
+	// the deferred opens below can never disagree about which overlay (if any)
+	// is on top.
+	const overlayKind = resolveActiveOverlay({
+		logOpen,
+		docsOpen,
+		pickerOpen,
+		aiSetupOpen,
+		aiPromptOpen,
+		showClearConfirm,
+		generateSaveOpen,
+	});
+
+	// Async flows (a PICT run, a directory listing) must not change the screen
+	// beneath an overlay the user opened in the meantime, nor while a text
+	// field is being typed into: a tab switch or overlay would unmount the
+	// input and discard the text. They request the change; the hook applies or
+	// drops it once the competing state has rendered, so the check cannot race
+	// a queued state update.
+	const textInputActive = isTextInputActive(
+		activeTab,
+		activePanel,
+		activeOptionField,
+	);
+	const requestScreenChange = useDeferredScreenChange(
+		overlayKind === null && !textInputActive,
+	);
+
+	// Latest values for the deferred generation completion: its closures are
+	// made when [g] is pressed, but must act on the settings and editing state
+	// as they are when the run finishes.
+	const latestRef = useRef({ outputConfig, promptOnGenerate, textInputActive });
+	latestRef.current = { outputConfig, promptOnGenerate, textInputActive };
 
 	// --- Persistent settings ---
 	const settingsLoadedRef = useRef(false);
@@ -212,9 +243,23 @@ export function App() {
 		promptOnGenerate,
 	]);
 
-	const setActiveTab = useCallback((tab: number) => {
-		setActiveTabState(tab);
-	}, []);
+	// Leaving a tab ends any text edit on it: a programmatic switch (a finished
+	// generation jumping to Results) must not strand the keyboard router in an
+	// editing mode whose input is no longer on screen.
+	const setActiveTab = useCallback(
+		(tab: number) => {
+			if (tab !== 0) stopEditing();
+			if (tab !== 1) {
+				// Only a text field can strand the router; a highlighted toggle or
+				// selector keeps its place for the round trip.
+				setActiveOptionField((field) =>
+					TEXT_INPUT_OPTION_FIELDS.has(field) ? "none" : field,
+				);
+			}
+			setActiveTabState(tab);
+		},
+		[stopEditing],
+	);
 
 	// --- Actions ---
 	const handleGenerate = useCallback(async () => {
@@ -236,17 +281,36 @@ export function App() {
 		setIsGenerating(true);
 		showStatus("Generating...");
 		try {
-			const testCases = await runPict(modelToRun, options);
+			const testCases = await run(modelToRun, options);
 			setResults(testCases);
-			setActiveTab(2);
-			showStatus(`Generated ${testCases.length} test cases`);
-			// Requested, not opened directly: dropped if another overlay is on top
-			// (say, the message log opened during the run) - the dialog would open
-			// invisibly beneath it and spring up when that overlay closes. [s]
-			// still saves on demand.
-			if (promptOnGenerate && testCases.length > 0) {
-				requestOverlayOpen(() => openGenerateSave(outputConfig));
-			}
+			const count = testCases.length;
+			// Deferred, not applied directly: a run that finishes behind an overlay
+			// (say, the message log opened meanwhile) or while a text field is being
+			// edited must neither yank the user to the Results tab nor pop the save
+			// dialog over their input. The drop is reported instead; the results
+			// wait on the Results tab and [s] saves on demand.
+			requestScreenChange(
+				() => {
+					const latest = latestRef.current;
+					setActiveTab(2);
+					showStatus(`Generated ${count} test cases`);
+					if (latest.promptOnGenerate && count > 0) {
+						openGenerateSave(latest.outputConfig);
+					}
+				},
+				() => {
+					// While a text field is focused its input swallows the shortcuts,
+					// so the hint must start with leaving it.
+					const latest = latestRef.current;
+					const save =
+						latest.promptOnGenerate && count > 0 ? " or [s] to save" : "";
+					showStatus(
+						latest.textInputActive
+							? `Generated ${count} test cases - press Esc, then [3] for results${save}`
+							: `Generated ${count} test cases - see the Results tab [3]${save}`,
+					);
+				},
+			);
 		} catch (err) {
 			showStatus(
 				err instanceof Error ? err.message : "Generation failed",
@@ -260,10 +324,9 @@ export function App() {
 		options,
 		showStatus,
 		setActiveTab,
-		promptOnGenerate,
 		openGenerateSave,
-		outputConfig,
-		requestOverlayOpen,
+		run,
+		requestScreenChange,
 	]);
 
 	// Shared by the [s] shortcut and the save-on-generate dialog; returns
@@ -388,13 +451,21 @@ export function App() {
 				);
 				return;
 			}
-			if (files.length === 1 && files[0]) {
-				await loadModelFromPath(files[0].fp);
+			// Both branches go through the deferred screen change: the listing is
+			// async, so an overlay opened or a text field focused in the meantime
+			// must win over the load or the picker.
+			const only = files.length === 1 ? files[0] : undefined;
+			if (only) {
+				requestScreenChange(
+					() => void loadModelFromPath(only.fp),
+					() => showStatus("Model load skipped - press [o] again"),
+				);
 				return;
 			}
-			// Via the deferred open: the listing is async, so an overlay opened in
-			// the meantime must win over the picker.
-			requestOverlayOpen(() => openPicker(files.map((f) => f.fp)));
+			requestScreenChange(
+				() => openPicker(files.map((f) => f.fp)),
+				() => showStatus("Model picker skipped - press [o] again"),
+			);
 		} catch {
 			showStatus(`Could not read directory ${modelStorage.storagePath}`, true);
 		}
@@ -403,7 +474,7 @@ export function App() {
 		showStatus,
 		loadModelFromPath,
 		openPicker,
-		requestOverlayOpen,
+		requestScreenChange,
 	]);
 
 	// --- AI actions ---
@@ -492,6 +563,7 @@ export function App() {
 	// --- Keyboard handler ---
 	useAppKeyboard({
 		renderer,
+		overlayKind,
 		activeTab,
 		setActiveTab,
 		activeOptionField,
@@ -523,27 +595,6 @@ export function App() {
 		promptOnGenerate,
 		setPromptOnGenerate,
 	});
-
-	// Resolved once so the overlay switch below and the status bar's active
-	// panel can never disagree about which overlay (if any) is on top.
-	const overlayKind = resolveActiveOverlay({
-		logOpen,
-		docsOpen,
-		pickerOpen,
-		aiSetupOpen,
-		aiPromptOpen,
-		showClearConfirm,
-		generateSaveOpen,
-	});
-
-	// Perform or drop a requested overlay open (see requestOverlayOpen above):
-	// by effect time both the request and any competing overlay state have
-	// rendered, so this decides on what is actually on screen.
-	useEffect(() => {
-		if (deferredOverlayOpen === null) return;
-		if (overlayKind === null) deferredOverlayOpen();
-		setDeferredOverlayOpen(null);
-	}, [deferredOverlayOpen, overlayKind]);
 
 	const renderOverlay = () => {
 		switch (overlayKind) {

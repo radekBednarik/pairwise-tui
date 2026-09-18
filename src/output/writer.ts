@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
 import type { ExportContext, OutputFormat, TestCase } from "../types";
 import { expandFileTemplate } from "../utils/fileTemplate";
+import { expandHomePath } from "../utils/homePath";
+import { formatFromExtension } from "../utils/outputPath";
 
 export interface OutputWriter {
 	extension: string;
@@ -122,16 +124,19 @@ const writers: Record<OutputFormat, OutputWriter> = {
 /**
  * Writes the test cases and returns the path they landed in. The configured
  * path is a template, so each save can get its own file instead of
- * overwriting the previous one.
+ * overwriting the previous one. A known extension in the path wins over the
+ * selected format, so the content always matches the file name whichever
+ * route led here (the [s] shortcut, the save dialog).
  */
 export async function saveTestCases(context: ExportContext): Promise<string> {
-	const writer = Object.hasOwn(writers, context.config.format)
-		? writers[context.config.format]
-		: undefined;
+	const format =
+		formatFromExtension(context.config.filePath, FORMAT_EXTENSIONS) ??
+		context.config.format;
+	const writer = Object.hasOwn(writers, format) ? writers[format] : undefined;
 	if (!writer) {
-		throw new Error(`Unsupported output format: ${context.config.format}`);
+		throw new Error(`Unsupported output format: ${format}`);
 	}
-	const filePath = expandFileTemplate(context.config.filePath);
-	await writer.write({ ...context, config: { ...context.config, filePath } });
+	const filePath = expandHomePath(expandFileTemplate(context.config.filePath));
+	await writer.write({ ...context, config: { filePath, format } });
 	return filePath;
 }

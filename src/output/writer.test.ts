@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { overrideEnv } from "../testing/env";
 import type {
 	ExportContext,
 	OutputFormat,
@@ -122,8 +123,37 @@ test("saving returns the path it wrote so the untemplated path is reported as-is
 
 test("an unsupported format is rejected before any file is written", async () => {
 	const ctx = context("bogus" as OutputFormat, ["A"], [{ A: "one" }]);
-	ctx.config.filePath = join(dir, "never_{timestamp}.txt");
+	// No known extension, so nothing can rescue the bogus format.
+	ctx.config.filePath = join(dir, "never_{timestamp}.dat");
 
 	await expect(saveTestCases(ctx)).rejects.toThrow("Unsupported output format");
 	expect((await readdir(dir)).length).toBe(0);
+});
+
+test("a ~-prefixed output path is written into the home directory", async () => {
+	const restoreEnv = overrideEnv({ HOME: dir, USERPROFILE: dir });
+	try {
+		const ctx = context("txt", ["A"], [{ A: "one" }]);
+		ctx.config.filePath = "~/from-home.txt";
+		const written = await saveTestCases(ctx);
+		expect(written).toBe(join(dir, "from-home.txt"));
+		expect(await Bun.file(join(dir, "from-home.txt")).text()).toBe("A\none\n");
+		expect(await Bun.file(join("~", "from-home.txt")).exists()).toBe(false);
+	} finally {
+		restoreEnv();
+	}
+});
+
+test("a known extension in the path wins over the selected format", async () => {
+	const ctx = context("txt", ["A"], [{ A: "one" }]);
+	ctx.config.filePath = join(dir, "cases.json");
+	await saveTestCases(ctx);
+	expect(await Bun.file(ctx.config.filePath).json()).toEqual([{ A: "one" }]);
+});
+
+test("an unknown extension leaves the selected format in charge", async () => {
+	const ctx = context("csv", ["A"], [{ A: "one" }]);
+	ctx.config.filePath = join(dir, "cases.dat");
+	await saveTestCases(ctx);
+	expect(await Bun.file(ctx.config.filePath).text()).toBe("A\none\n");
 });

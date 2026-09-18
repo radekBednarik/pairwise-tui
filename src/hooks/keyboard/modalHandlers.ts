@@ -1,7 +1,7 @@
 import type { OutputFormat } from "../../types";
+import { cycleFormat, withExtension } from "../../utils/outputPath";
 import type { ModalState } from "../useModalState";
 import type { StatusLogState } from "../useStatusLog";
-import { cycleFormat, withExtension } from "./optionsTabHandlers";
 import type { KeyEvent } from "./types";
 
 interface PickerActions {

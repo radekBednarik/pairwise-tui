@@ -7,4 +7,4 @@ All Claude memories for this project live in this directory so they travel with 
 - [TDD + review-pass workflow](./feedback_tdd_review_workflow.md) - refactors/fixes TDD-first, then code-review (and security-review) passes; report findings, let user pick the next round
 
 ## Project
-- [Open review follow-ups](./project_review_followups.md) - six unfixed findings on feat/save-on-generate-dialog; plan lives at docs/plans/code-review-followups.md; beware the literal ./~ junk dir
+- [Review follow-ups (fixed 2026-09-18)](./project_review_followups.md) - two review rounds fixed; record in docs/plans/code-review-followups.md; app must work on Linux AND Windows; deferred screen change design
