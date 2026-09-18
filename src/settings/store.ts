@@ -19,6 +19,7 @@ export interface AppSettings {
 	modelStorage: ModelStorageConfig;
 	themeName: string;
 	aiModel: AiModel;
+	promptOnGenerate: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -33,6 +34,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	themeName: "tokyonight-dark",
 	aiModel: "claude-haiku-4-5",
+	promptOnGenerate: false,
 };
 
 const MIN_ORDER = 1;
@@ -123,6 +125,10 @@ export async function loadSettings(): Promise<AppSettings> {
 		},
 		themeName: asThemeName(parsed.themeName, defaults.themeName),
 		aiModel: asAiModel(parsed.aiModel, defaults.aiModel),
+		promptOnGenerate: asBoolean(
+			parsed.promptOnGenerate,
+			defaults.promptOnGenerate,
+		),
 	};
 }
 

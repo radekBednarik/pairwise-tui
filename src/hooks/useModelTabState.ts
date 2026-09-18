@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActivePanel } from "../constants";
 import type { PictModel } from "../types";
+import { TEXT_INPUT_PANELS } from "../utils/textInput";
 
 export interface ModelTabState {
 	activePanel: ActivePanel;
@@ -29,6 +30,7 @@ export interface ModelTabState {
 	cancelAddParam: () => void;
 	startAddSubmodel: () => void;
 	cancelAddSubmodel: () => void;
+	stopEditing: () => void;
 	handleSubmodelNavigate: (index: number) => void;
 	handleSubmodelParamsInputChange: (value: string) => void;
 	handleSubmodelOrderInputChange: (value: string) => void;
@@ -129,35 +131,50 @@ export function useModelTabState(
 		setValuesInput(remaining[nextIndex]?.values.join(", ") ?? "");
 	}, [model.parameters, selectedParamIndex, setModel]);
 
-	const cancelAddParam = useCallback(() => {
+	const resetParamDraft = useCallback(() => {
 		newParamNameRef.current = "";
 		setNewParamName("");
-		setActivePanel("params");
 	}, []);
+
+	const resetSubmodelDraft = useCallback(() => {
+		submodelPartsRef.current = [];
+		submodelParamsInputRef.current = "";
+		submodelOrderInputRef.current = "2";
+		setSubmodelParamsInput("");
+		setSubmodelOrderInput("2");
+		setSubmodelAddingStep("params");
+		setSubmodelDropdownFocused(false);
+		setSubmodelValidationError(null);
+	}, []);
+
+	const cancelAddParam = useCallback(() => {
+		resetParamDraft();
+		setActivePanel("params");
+	}, [resetParamDraft]);
 
 	const startAddSubmodel = useCallback(() => {
-		submodelPartsRef.current = [];
-		submodelParamsInputRef.current = "";
-		submodelOrderInputRef.current = "2";
-		setSubmodelParamsInput("");
-		setSubmodelOrderInput("2");
-		setSubmodelAddingStep("params");
-		setSubmodelDropdownFocused(false);
-		setSubmodelValidationError(null);
+		resetSubmodelDraft();
 		setActivePanel("submodel-adding");
-	}, []);
+	}, [resetSubmodelDraft]);
 
 	const cancelAddSubmodel = useCallback(() => {
-		submodelPartsRef.current = [];
-		submodelParamsInputRef.current = "";
-		submodelOrderInputRef.current = "2";
-		setSubmodelParamsInput("");
-		setSubmodelOrderInput("2");
-		setSubmodelAddingStep("params");
-		setSubmodelDropdownFocused(false);
-		setSubmodelValidationError(null);
+		resetSubmodelDraft();
 		setActivePanel("submodels");
-	}, []);
+	}, [resetSubmodelDraft]);
+
+	// Ends whatever text edit is in progress, landing where Escape would: a
+	// sub-model edit back in the sub-model list, everything else in params.
+	// Reads no closed-over state, so an async flow (a finished generation)
+	// calling it through a stale callback still ends the edit; a non-editing
+	// panel such as "submodels" is kept.
+	const stopEditing = useCallback(() => {
+		resetParamDraft();
+		resetSubmodelDraft();
+		setActivePanel((panel) => {
+			if (panel === "submodel-adding") return "submodels";
+			return TEXT_INPUT_PANELS.has(panel) ? "params" : panel;
+		});
+	}, [resetParamDraft, resetSubmodelDraft]);
 
 	const handleSubmodelNavigate = useCallback((index: number) => {
 		setSelectedSubmodelIndex(index);
@@ -326,6 +343,7 @@ export function useModelTabState(
 		cancelAddParam,
 		startAddSubmodel,
 		cancelAddSubmodel,
+		stopEditing,
 		handleSubmodelNavigate,
 		handleSubmodelParamsInputChange,
 		handleSubmodelOrderInputChange,

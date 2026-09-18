@@ -2,8 +2,13 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { overrideEnv } from "../testing/env";
 import type { PictModel } from "../types";
-import { loadModelFromFile, saveModelToFile } from "./modelFileService";
+import {
+	listModelFiles,
+	loadModelFromFile,
+	saveModelToFile,
+} from "./modelFileService";
 
 let dir: string;
 
@@ -52,4 +57,21 @@ test("a saved model round-trips through the written file", async () => {
 	const loaded = await loadModelFromFile(path);
 	expect(loaded.parameters).toEqual(model.parameters);
 	expect(loaded.constraints).toContain("IF [OS]");
+});
+
+test("a ~-prefixed storage path saves into and lists from the home directory", async () => {
+	const restoreEnv = overrideEnv({ HOME: dir, USERPROFILE: dir });
+	try {
+		const path = await saveModelToFile(model, "", {
+			storagePath: "~/models",
+			fileTemplate: "home_{timestamp}",
+		});
+		expect(path.startsWith(join(dir, "models"))).toBe(true);
+		expect(await Bun.file(path).exists()).toBe(true);
+
+		const listed = await listModelFiles("~/models");
+		expect(listed.map((f) => f.fp)).toEqual([path]);
+	} finally {
+		restoreEnv();
+	}
 });

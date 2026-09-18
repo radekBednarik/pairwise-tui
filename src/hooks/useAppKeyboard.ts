@@ -1,7 +1,7 @@
 import { useKeyboard } from "@opentui/react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ActiveOptionField } from "../constants";
-import { AI_MODELS, OPTION_FIELDS } from "../constants";
+import { AI_MODELS, nextOptionField } from "../constants";
 import { DOC_CHAPTERS } from "../docs/pict-docs";
 import { FORMAT_EXTENSIONS } from "../output/writer";
 import { DEFAULT_THEME_NAME, THEME_NAMES } from "../theme/themes";
@@ -12,6 +12,8 @@ import type {
 	TestCase,
 } from "../types";
 import { copyToClipboard } from "../utils/clipboard";
+import type { OverlayKind } from "../utils/overlay";
+import { isTextInputActive } from "../utils/textInput";
 import {
 	handleEscapeKey,
 	handleGlobalKeys,
@@ -22,6 +24,7 @@ import {
 	handleAiSetupKeys,
 	handleClearConfirmKeys,
 	handleDocsKeys,
+	handleGenerateSaveKeys,
 	handleLogKeys,
 	handlePickerKeys,
 } from "./keyboard/modalHandlers";
@@ -37,6 +40,8 @@ import type { StatusLogState } from "./useStatusLog";
 
 export interface AppKeyboardParams {
 	renderer: { destroy: () => void };
+	/** The overlay on top, as App resolved it for rendering. */
+	overlayKind: OverlayKind | null;
 	activeTab: number;
 	setActiveTab: (tab: number) => void;
 	activeOptionField: ActiveOptionField;
@@ -62,11 +67,18 @@ export interface AppKeyboardParams {
 	handleAiGenerate: () => void;
 	loadModelFromPath: (path: string) => Promise<void>;
 	clearModel: () => void;
+	/** Live text of the save-dialog path input (renderable ref, not state). */
+	getGenerateSavePath: () => string;
+	/** True while the save dialog's async save is running. */
+	isGenerateSaveBusy: () => boolean;
+	promptOnGenerate: boolean;
+	setPromptOnGenerate: (v: boolean) => void;
 }
 
 export function useAppKeyboard(params: AppKeyboardParams): void {
 	const {
 		renderer,
+		overlayKind,
 		activeTab,
 		setActiveTab,
 		activeOptionField,
@@ -90,6 +102,10 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 		handleAiGenerate,
 		loadModelFromPath,
 		clearModel,
+		getGenerateSavePath,
+		isGenerateSaveBusy,
+		promptOnGenerate,
+		setPromptOnGenerate,
 	} = params;
 
 	useKeyboard((key) => {
@@ -101,84 +117,88 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
-		// F2: open AI setup from anywhere (safe in text inputs — not a character)
-		if (name === "f2" && !modal.aiSetupOpen) {
+		// F2: open AI setup from any tab, but never over an overlay or a focused
+		// text input: replacing either would unmount an input and silently
+		// discard typed text (save dialog path, AI prompt, a parameter name), and
+		// under a higher-precedence overlay AI setup would open invisibly.
+		if (
+			name === "f2" &&
+			overlayKind === null &&
+			!isTextInputActive(activeTab, modelTab.activePanel, activeOptionField)
+		) {
 			modal.openAiSetup();
 			return;
 		}
 
-		// File picker intercept
-		if (modal.pickerOpen) {
-			handlePickerKeys(key, {
-				pickerFiles: modal.pickerFiles,
-				pickerIndex: modal.pickerIndex,
-				closePicker: modal.closePicker,
-				setPickerIndex: modal.setPickerIndex,
-				loadModelFromPath,
-			});
-			return;
-		}
-
-		// Docs overlay intercept
-		if (modal.docsOpen) {
-			handleDocsKeys(key, {
-				docsView: modal.docsView,
-				setDocsOpen: modal.setDocsOpen,
-				setDocsView: modal.setDocsView,
-				setDocsChapterIdx: modal.setDocsChapterIdx,
-				setDocsScrollOffset: modal.setDocsScrollOffset,
-				docChapterCount: DOC_CHAPTERS.length,
-			});
-			return;
-		}
-
-		// Message log overlay intercept
-		if (log.logOpen) {
-			handleLogKeys(key, {
-				logMessages: log.logMessages,
-				logSelectedIndex: log.logSelectedIndex,
-				setLogOpen: log.setLogOpen,
-				setLogSelectedIndex: log.setLogSelectedIndex,
-				setLogScrollOffset: log.setLogScrollOffset,
-				showStatus: log.showStatus,
-				formatLogEntry: log.formatLogEntry,
-				copyToClipboard: (text) =>
-					copyToClipboard(
-						text,
-						renderer as Parameters<typeof copyToClipboard>[1],
-					),
-			});
-			return;
-		}
-
-		// Clear confirm overlay intercept
-		if (modal.showClearConfirm) {
-			handleClearConfirmKeys(key, {
-				clearConfirmIndex: modal.clearConfirmIndex,
-				setClearConfirmIndex: modal.setClearConfirmIndex,
-				closeClearConfirm: modal.closeClearConfirm,
-				clearModel,
-			});
-			return;
-		}
-
-		// AI setup overlay intercept
-		if (modal.aiSetupOpen) {
-			handleAiSetupKeys(key, {
-				closeAiSetup: modal.closeAiSetup,
-				handleClearApiKey,
-			});
-			return;
-		}
-
-		// AI prompt overlay intercept
-		if (modal.aiPromptOpen) {
-			handleAiPromptKeys(key, {
-				aiIsLoading: modal.aiIsLoading,
-				closeAiPrompt: modal.closeAiPrompt,
-				handleAiGenerate,
-			});
-			return;
+		// Overlay intercepts: the visible overlay gets the keys.
+		switch (overlayKind) {
+			case "log":
+				handleLogKeys(key, {
+					logMessages: log.logMessages,
+					logSelectedIndex: log.logSelectedIndex,
+					setLogOpen: log.setLogOpen,
+					setLogSelectedIndex: log.setLogSelectedIndex,
+					setLogScrollOffset: log.setLogScrollOffset,
+					showStatus: log.showStatus,
+					formatLogEntry: log.formatLogEntry,
+					copyToClipboard: (text) =>
+						copyToClipboard(
+							text,
+							renderer as Parameters<typeof copyToClipboard>[1],
+						),
+				});
+				return;
+			case "docs":
+				handleDocsKeys(key, {
+					docsView: modal.docsView,
+					setDocsOpen: modal.setDocsOpen,
+					setDocsView: modal.setDocsView,
+					setDocsChapterIdx: modal.setDocsChapterIdx,
+					setDocsScrollOffset: modal.setDocsScrollOffset,
+					docChapterCount: DOC_CHAPTERS.length,
+				});
+				return;
+			case "picker":
+				handlePickerKeys(key, {
+					pickerFiles: modal.pickerFiles,
+					pickerIndex: modal.pickerIndex,
+					closePicker: modal.closePicker,
+					setPickerIndex: modal.setPickerIndex,
+					loadModelFromPath,
+				});
+				return;
+			case "aiSetup":
+				handleAiSetupKeys(key, {
+					closeAiSetup: modal.closeAiSetup,
+					handleClearApiKey,
+				});
+				return;
+			case "aiPrompt":
+				handleAiPromptKeys(key, {
+					aiIsLoading: modal.aiIsLoading,
+					closeAiPrompt: modal.closeAiPrompt,
+					handleAiGenerate,
+				});
+				return;
+			case "clearConfirm":
+				handleClearConfirmKeys(key, {
+					clearConfirmIndex: modal.clearConfirmIndex,
+					setClearConfirmIndex: modal.setClearConfirmIndex,
+					closeClearConfirm: modal.closeClearConfirm,
+					clearModel,
+				});
+				return;
+			case "generateSave":
+				handleGenerateSaveKeys(key, {
+					generateSaveFormat: modal.generateSaveFormat,
+					formatExtensions: FORMAT_EXTENSIONS,
+					isBusy: isGenerateSaveBusy,
+					getGenerateSavePath,
+					setGenerateSavePath: modal.setGenerateSavePath,
+					setGenerateSaveFormat: modal.setGenerateSaveFormat,
+					closeGenerateSave: modal.closeGenerateSave,
+				});
+				return;
 		}
 
 		// Escape: exit current input mode
@@ -218,14 +238,13 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			return;
 		}
 
-		// Adding param: all keys handled by <input> (Enter via onSubmit)
-		if (modelTab.activePanel === "adding") {
-			return;
-		}
-
-		// Adding submodel (two-step): all keys handled by <input> (Enter via onSubmit)
-		if (modelTab.activePanel === "submodel-adding") {
+		// Text editing (add param, add sub-model, values, constraints, options
+		// text fields): Escape handled above, Enter via the input's onSubmit, and
+		// every other key goes to the <input> or <textarea> - except the two
+		// navigation keys below.
+		if (isTextInputActive(activeTab, modelTab.activePanel, activeOptionField)) {
 			if (
+				modelTab.activePanel === "submodel-adding" &&
 				name === "down" &&
 				modelTab.submodelAddingStep === "params" &&
 				!modelTab.submodelDropdownFocused &&
@@ -233,32 +252,8 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 			) {
 				modelTab.handleSubmodelDropdownFocus();
 			}
-			return;
-		}
-
-		// Values panel: Escape handled above; all other keys go to <input>
-		if (activeTab === 0 && modelTab.activePanel === "values") {
-			return;
-		}
-
-		// Constraints panel: Escape handled above; all other keys go to <textarea>
-		if (activeTab === 0 && modelTab.activePanel === "constraints") {
-			return;
-		}
-
-		// Options text fields: keys go to <input>
-		if (
-			activeTab === 1 &&
-			(activeOptionField === "filepath" ||
-				activeOptionField === "order" ||
-				activeOptionField === "storagePath" ||
-				activeOptionField === "fileTemplate")
-		) {
-			if (name === "tab") {
-				const idx = OPTION_FIELDS.indexOf(activeOptionField);
-				setActiveOptionField(
-					OPTION_FIELDS[(idx + 1) % OPTION_FIELDS.length] ?? "none",
-				);
+			if (activeTab === 1 && name === "tab") {
+				setActiveOptionField(nextOptionField(activeOptionField));
 			}
 			return;
 		}
@@ -279,10 +274,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				return;
 			}
 			if (activeTab === 1) {
-				const idx = OPTION_FIELDS.indexOf(activeOptionField);
-				setActiveOptionField(
-					OPTION_FIELDS[(idx + 1) % OPTION_FIELDS.length] ?? "none",
-				);
+				setActiveOptionField(nextOptionField(activeOptionField));
 				return;
 			}
 			return;
@@ -347,12 +339,13 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				options,
 				aiModel: ai.aiModel,
 				aiModels: AI_MODELS,
-				optionFields: OPTION_FIELDS,
 				formatExtensions: FORMAT_EXTENSIONS,
+				promptOnGenerate,
 				setActiveOptionField,
 				setOutputConfig,
 				setOptions,
 				setAiModel: ai.setAiModel,
+				setPromptOnGenerate,
 			});
 		}
 	});

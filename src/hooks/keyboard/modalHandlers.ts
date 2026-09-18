@@ -1,3 +1,5 @@
+import type { OutputFormat } from "../../types";
+import { cycleFormat, withExtension } from "../../utils/outputPath";
 import type { ModalState } from "../useModalState";
 import type { StatusLogState } from "../useStatusLog";
 import type { KeyEvent } from "./types";
@@ -196,6 +198,54 @@ export function handleAiSetupKeys(
 		return true;
 	}
 	return true; // <input> handles typing; Enter via onSubmit
+}
+
+interface GenerateSaveActions {
+	generateSaveFormat: OutputFormat;
+	formatExtensions: Record<OutputFormat, string>;
+	/** True while the dialog's async save is running. */
+	isBusy: () => boolean;
+	/** Reads the live <input> text (renderable ref), not onChange state. */
+	getGenerateSavePath: () => string;
+	setGenerateSavePath: (v: string) => void;
+	setGenerateSaveFormat: (f: OutputFormat) => void;
+	closeGenerateSave: ModalState["closeGenerateSave"];
+}
+
+export function handleGenerateSaveKeys(
+	key: KeyEvent,
+	actions: GenerateSaveActions,
+): boolean {
+	const { name } = key;
+	// While the save runs, Esc must not close the dialog (the write and its
+	// config write-back would still land, defeating both the skip and the
+	// keep-open-on-failure contracts) and cycling must not change a format the
+	// in-flight save ignores.
+	if (actions.isBusy()) {
+		return true;
+	}
+	if (name === "escape") {
+		actions.closeGenerateSave();
+		return true;
+	}
+	if (name === "up" || name === "down") {
+		const next = cycleFormat(
+			actions.generateSaveFormat,
+			name === "down" ? 1 : -1,
+			actions.formatExtensions,
+		);
+		actions.setGenerateSaveFormat(next);
+		actions.setGenerateSavePath(
+			withExtension(
+				actions.getGenerateSavePath(),
+				actions.formatExtensions[next],
+			),
+		);
+		return true;
+	}
+	// Enter must NOT act here: the <input>'s onSubmit performs the save, and
+	// this handler also sees the key - acting on both would save twice.
+	return true; // <input> handles typing
 }
 
 interface AiPromptActions {

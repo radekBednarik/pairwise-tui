@@ -107,6 +107,14 @@ function getHints(
 		];
 	}
 
+	if (activePanel === "generateSave") {
+		return [
+			{ key: "Enter", label: "Save" },
+			{ key: "↑↓", label: "Format" },
+			{ key: "Esc", label: "Skip" },
+		];
+	}
+
 	if (activePanel === "clearConfirm") {
 		return [
 			{ key: "↑↓", label: "Navigate" },

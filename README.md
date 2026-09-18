@@ -43,7 +43,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | Tab | Purpose |
 |-----|---------|
 | **Model** | Define parameters (name + comma-separated values), PICT constraints, and sub-models with their own combination order |
-| **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, storage path, file template, AI model |
+| **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, the ask-where-to-save prompt, storage path, file template, AI model |
 | **Results** | View generated test cases in a scrollable table |
 
 ### Keyboard shortcuts
@@ -52,8 +52,8 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 
 | Key | Action |
 |-----|--------|
-| `g` | Generate test cases (runs PICT) |
-| `s` | Save results to output file (`{timestamp}` in the path keeps each run separate) |
+| `g` | Generate test cases (runs PICT); with **Ask where to save** on, opens the save dialog afterwards |
+| `s` | Save results to output file (see [Saving results](#saving-results): `{timestamp}`, `~` and typed extensions are honoured) |
 | `w` | Write model to storage |
 | `o` | Open model from storage (file picker) |
 | `m` | Open message log overlay |
@@ -117,6 +117,35 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | `↑` / `↓` | Navigate chapters / scroll content |
 | `Enter` | Open selected chapter |
 | `Escape` | Back / close |
+
+**Save dialog** (after `g`, with **Ask where to save** on):
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Save to the shown path and format (becomes the new default) |
+| `↑` / `↓` | Cycle output format |
+| `Escape` | Skip saving |
+
+## Saving results
+
+Results are written to the **Output file path** in the Options tab, in the format shown next to it (TXT, JSON, CSV, XLSX or Markdown). A few rules make the path do more work for you:
+
+- `{timestamp}` in the path expands to the UTC time of the save (`2026-09-18T08-40-27`), so each run gets its own file instead of overwriting the last one. The default is `output_{timestamp}.txt`.
+- A leading `~` is your home directory on both Linux and Windows: `~/tests/cases.csv` or `~\tests\cases.csv` both work. The same applies to the model **Storage path**.
+- A known extension in the path wins over the format selector, so the file content always matches its name. Typing `cases.json` while the selector says TXT writes JSON.
+
+### Ask where to save
+
+Turn on **Ask where to save** in the Options tab (`Tab` to the field, `Enter` to toggle; the setting persists) and every successful `g` run opens a small dialog before anything is written:
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Save to the shown path and format, and make them the new default |
+| `↑` / `↓` | Cycle the format (the path's extension follows) |
+| type | Edit the path; a typed extension picks the format |
+| `Escape` | Skip saving (`s` still saves later) |
+
+A failed save keeps the dialog open with your path so you can correct it, and does not touch the saved default. If an overlay such as the message log is open, or you are typing in a text field, when the run finishes, nothing changes on screen: the status line reports the result and tells you which keys to press (`3` for the Results tab, `s` to save).
 
 ## AI Parameter Generation
 

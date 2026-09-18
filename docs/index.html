@@ -185,6 +185,9 @@
         <p class="feature-desc">
           Export finished test cases as TXT, JSON, CSV, XLSX, or Markdown so they
           are ready for spreadsheets, test management tools, reports, and automation workflows.
+          Turn on <em>Ask where to save</em> and every run ends in a small dialog where you
+          confirm the path and format before anything is written; paths may use
+          <code>{timestamp}</code> and a leading <code>~</code>.
         </p>
       </article>
 
@@ -287,6 +290,7 @@
   <span class="term-accent">Output Configuration</span>
   <span class="term-secondary">Output file path:  </span> <span class="term-value">./results.csv</span>
   <span class="term-secondary">Format:            </span> <span class="term-accent">CSV</span>              <span class="term-muted">[Enter] cycle: txt / json / csv / xlsx / md</span>
+  <span class="term-secondary">Ask where to save: </span> <span class="term-accent">●</span> ON             <span class="term-muted">[Enter] toggle</span>
 
   <span class="term-accent">PICT Options</span>
   <span class="term-secondary">Combination order: </span> <span class="term-accent">2</span>               <span class="term-muted">(1–6, default: 2 = pairwise)</span>
@@ -445,7 +449,8 @@
           <h3>Export results</h3>
           <p>
             Choose your format in Options (<kbd>2</kbd> → Format field → <kbd>Enter</kbd> to cycle),
-            then press <kbd>s</kbd> to save. Done.
+            then press <kbd>s</kbd> to save. Or switch on <em>Ask where to save</em> and confirm
+            path and format in the dialog that opens after every <kbd>g</kbd>. Done.
           </p>
         </div>
       </li>
@@ -465,7 +470,7 @@
         <summary>Global — available in all tabs</summary>
         <table class="shortcuts-table">
           <tbody>
-            <tr><td><kbd>g</kbd></td><td>Generate test cases (run PICT)</td></tr>
+            <tr><td><kbd>g</kbd></td><td>Generate test cases (run PICT); opens the save dialog when <em>Ask where to save</em> is on</td></tr>
             <tr><td><kbd>s</kbd></td><td>Save results to output file</td></tr>
             <tr><td><kbd>w</kbd></td><td>Save current model to storage</td></tr>
             <tr><td><kbd>o</kbd></td><td>Open a saved model (file picker)</td></tr>
@@ -526,7 +531,7 @@
         <table class="shortcuts-table">
           <tbody>
             <tr><td><kbd>Tab</kbd></td><td>Focus next field</td></tr>
-            <tr><td><kbd>Enter</kbd></td><td>Toggle or cycle current field (format, randomize, AI model…)</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Toggle or cycle current field (format, ask where to save, randomize, AI model…)</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Unfocus current field</td></tr>
           </tbody>
         </table>
@@ -543,7 +548,7 @@
       </details>
 
       <details class="shortcuts-group">
-        <summary>Overlays — Message log, AI, Documentation, File picker</summary>
+        <summary>Overlays — Message log, AI, Documentation, File picker, Save dialog</summary>
         <table class="shortcuts-table">
           <tbody>
             <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate entries / chapters</td></tr>
@@ -555,6 +560,9 @@
             <tr><td><kbd>↑</kbd> / <kbd>↓</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Toggle between Cancel and Confirm</td></tr>
             <tr><td><kbd>Enter</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Confirm selection</td></tr>
             <tr><td><kbd>Esc</kbd> <span style="color:var(--text-muted);font-size:0.8em">(clear dialog)</span></td><td>Cancel clear operation</td></tr>
+            <tr><td><kbd>Enter</kbd> <span style="color:var(--text-muted);font-size:0.8em">(save dialog)</span></td><td>Save to the shown path and format, which become the new default</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd> <span style="color:var(--text-muted);font-size:0.8em">(save dialog)</span></td><td>Cycle output format</td></tr>
+            <tr><td><kbd>Esc</kbd> <span style="color:var(--text-muted);font-size:0.8em">(save dialog)</span></td><td>Skip saving</td></tr>
           </tbody>
         </table>
       </details>

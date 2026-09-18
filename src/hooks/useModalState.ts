@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef, useState } from "react";
+import type { OutputConfig, OutputFormat } from "../types";
 
 export interface ModalState {
 	// File picker
@@ -44,6 +45,14 @@ export interface ModalState {
 	getAiKeyInput: () => string;
 	setAiError: (v: string) => void;
 	setAiIsLoading: (v: boolean) => void;
+	// Save-on-generate dialog
+	generateSaveOpen: boolean;
+	generateSavePath: string;
+	generateSaveFormat: OutputFormat;
+	openGenerateSave: (cfg: OutputConfig) => void;
+	closeGenerateSave: () => void;
+	setGenerateSavePath: (v: string) => void;
+	setGenerateSaveFormat: (f: OutputFormat) => void;
 }
 
 export function useModalState(): ModalState {
@@ -73,6 +82,21 @@ export function useModalState(): ModalState {
 	}, []);
 
 	const getAiKeyInput = useCallback(() => aiKeyInputRef.current, []);
+
+	const [generateSaveOpen, setGenerateSaveOpen] = useState(false);
+	const [generateSavePath, setGenerateSavePath] = useState("");
+	const [generateSaveFormat, setGenerateSaveFormat] =
+		useState<OutputFormat>("txt");
+
+	const openGenerateSave = useCallback((cfg: OutputConfig) => {
+		setGenerateSavePath(cfg.filePath);
+		setGenerateSaveFormat(cfg.format);
+		setGenerateSaveOpen(true);
+	}, []);
+
+	const closeGenerateSave = useCallback(() => {
+		setGenerateSaveOpen(false);
+	}, []);
 
 	const openPicker = useCallback((files: string[]) => {
 		setPickerFiles(files);
@@ -152,5 +176,12 @@ export function useModalState(): ModalState {
 		getAiKeyInput,
 		setAiError,
 		setAiIsLoading,
+		generateSaveOpen,
+		generateSavePath,
+		generateSaveFormat,
+		openGenerateSave,
+		closeGenerateSave,
+		setGenerateSavePath,
+		setGenerateSaveFormat,
 	};
 }

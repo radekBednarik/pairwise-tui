@@ -11,6 +11,7 @@ export type ActivePanel =
 export type ActiveOptionField =
 	| "filepath"
 	| "format"
+	| "promptOnGenerate"
 	| "order"
 	| "randomize"
 	| "caseSensitive"
@@ -28,6 +29,7 @@ export const TAB_OPTIONS = [
 export const OPTION_FIELDS: ActiveOptionField[] = [
 	"filepath",
 	"format",
+	"promptOnGenerate",
 	"order",
 	"randomize",
 	"caseSensitive",
@@ -42,3 +44,9 @@ export const AI_MODELS: AiModel[] = [
 	"claude-sonnet-5",
 	"claude-opus-5",
 ];
+
+/** The field Tab moves to from `field`, wrapping after the last one. */
+export function nextOptionField(field: ActiveOptionField): ActiveOptionField {
+	const idx = OPTION_FIELDS.indexOf(field);
+	return OPTION_FIELDS[(idx + 1) % OPTION_FIELDS.length] ?? "none";
+}

@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { buildModelFile, parseModelFile } from "../pict/model";
 import type { ModelStorageConfig, PictModel } from "../types";
 import { expandFileTemplate } from "../utils/fileTemplate";
+import { expandHomePath } from "../utils/homePath";
 
 export async function saveModelToFile(
 	model: PictModel,
@@ -11,7 +12,7 @@ export async function saveModelToFile(
 ): Promise<string> {
 	const modelToSave = { ...model, constraints: constraintsText };
 	const filename = `${expandFileTemplate(storage.fileTemplate)}.pictm`;
-	const path = join(resolve(storage.storagePath), filename);
+	const path = join(resolve(expandHomePath(storage.storagePath)), filename);
 	await Bun.write(path, buildModelFile(modelToSave));
 	return path;
 }
@@ -19,7 +20,7 @@ export async function saveModelToFile(
 export async function listModelFiles(
 	storagePath: string,
 ): Promise<{ fp: string; mtime: number }[]> {
-	const dir = resolve(storagePath);
+	const dir = resolve(expandHomePath(storagePath));
 	const entries = await readdir(dir);
 	const pictmFiles = entries.filter((e) => e.endsWith(".pictm"));
 	const withMtime = await Promise.all(
