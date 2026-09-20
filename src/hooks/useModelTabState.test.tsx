@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { testRender } from "@opentui/react/test-utils";
 import { useState } from "react";
+import { renderTest } from "../testing/render";
 import type { PictModel } from "../types";
 import { type ModelTabState, useModelTabState } from "./useModelTabState";
 
@@ -16,7 +16,7 @@ function Probe({ expose }: { expose: (s: ModelTabState) => void }) {
 
 async function renderProbe() {
 	let state: ModelTabState | null = null;
-	const t = await testRender(
+	const t = await renderTest(
 		<Probe
 			expose={(s) => {
 				state = s;
@@ -24,9 +24,6 @@ async function renderProbe() {
 		/>,
 		{ width: 20, height: 3 },
 	);
-	await t.flush();
-	t.renderer.start();
-	await t.flush();
 	return {
 		state: () => {
 			if (!state) throw new Error("hook not rendered");
