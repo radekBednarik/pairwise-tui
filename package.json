@@ -41,19 +41,19 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.8",
+		"@biomejs/biome": "^2.5.14",
 		"@types/bun": "latest",
-		"@types/react": "^19.2.14",
-		"skills": "^1.4.5"
+		"@types/react": "^19.3.0",
+		"skills": "^1.7.0"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "^5.9.3"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.114.0",
-		"@opentui/core": "^0.4.1",
-		"@opentui/react": "^0.4.1",
-		"react": "^19.2.4",
+		"@opentui/core": "^0.4.5",
+		"@opentui/react": "^0.4.5",
+		"react": "^19.3.0",
 		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
 	}
 }
