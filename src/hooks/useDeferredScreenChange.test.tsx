@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { testRender } from "@opentui/react/test-utils";
+import { renderTest } from "../testing/render";
 import { useDeferredScreenChange } from "./useDeferredScreenChange";
 
 type Request = ReturnType<typeof useDeferredScreenChange>;
@@ -17,7 +17,7 @@ function Probe({
 
 async function renderProbe(canOpen: boolean) {
 	let request: Request = () => {};
-	const t = await testRender(
+	const t = await renderTest(
 		<Probe
 			canOpen={canOpen}
 			expose={(r) => {
@@ -26,10 +26,6 @@ async function renderProbe(canOpen: boolean) {
 		/>,
 		{ width: 20, height: 3 },
 	);
-	await t.flush();
-	// Flushed state updates only take effect once the renderer runs.
-	t.renderer.start();
-	await t.flush();
 	const events: string[] = [];
 	return {
 		events,

@@ -42,7 +42,7 @@ Pairwise-TUI is a terminal app for generating PICT pairwise test cases. It uses 
 - Linting: Biome (tabs, strict rules) – run `bun run check` before committing
 - Keyboard-driven UI: global shortcuts (`q` quit – not while a text field is focused, `g` generate, `s` save, `o` open, `w` write model), tab navigation via `1/2/3` or `[/]`
 - Tests are colocated with sources as `*.test.ts` / `*.test.tsx` and run with `bun test`
-- UI behaviour is tested end-to-end through `@opentui/react/test-utils` (`testRender`); `renderer.start()` is required before `mockInput` keys are delivered
+- UI behaviour is tested end-to-end through `renderTest` (`src/testing/render.tsx`), which renders via `createRoot` into a headless `createTestRenderer` and starts the render loop; do not use `testRender` from `@opentui/react/test-utils` – it turns on React's act environment and every `mockInput`-driven update then logs an act() warning
 - OpenTUI `<input>` emits `change` only on **blur or submit**, not per keystroke – a handler that must see the current text reads it from a ref (see `newParamNameRef`, `getAiKeyInput`), never from the state set by `onChange`
 
 ## Claude Memory

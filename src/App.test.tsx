@@ -2,10 +2,10 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { testRender } from "@opentui/react/test-utils";
 import { App } from "./App";
 import { runPict } from "./pict/runner";
 import { overrideEnv } from "./testing/env";
+import { renderTest } from "./testing/render";
 
 // Windows has no POSIX file modes — stat reports 666/777 whatever chmod did —
 // so the tests that assert on them only mean something elsewhere.
@@ -35,10 +35,7 @@ afterEach(async () => {
 });
 
 async function renderApp(element = <App />) {
-	const t = await testRender(element, { width: 100, height: 34 });
-	await t.flush();
-	t.renderer.start();
-	await t.flush();
+	const t = await renderTest(element, { width: 100, height: 34 });
 
 	const realDestroy = t.renderer.destroy.bind(t.renderer);
 	let quit = false;
