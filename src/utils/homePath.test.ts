@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { overrideEnv } from "../testing/env";
 import { expandHomePath } from "./homePath";
 
-const HOME =
-	process.platform === "win32" ? "C:\\Users\\tester" : "/home/tester";
+const isWindows = process.platform === "win32";
+const HOME = isWindows ? "C:\\Users\\tester" : "/home/tester";
 
 test("a bare ~ becomes the home directory", () => {
 	expect(expandHomePath("~", HOME)).toBe(HOME);
@@ -16,9 +17,11 @@ test("a leading ~/ is resolved against the home directory", () => {
 	);
 });
 
-test("a leading ~\\ (windows style) is resolved the same way", () => {
+test("a leading ~\\ (windows style) is resolved on Windows only", () => {
+	// A backslash is an ordinary file-name character on Linux, so `~\\x` is a
+	// literal relative path there and must reach the file system as typed.
 	expect(expandHomePath("~\\out\\cases.txt", HOME)).toBe(
-		join(HOME, "out", "cases.txt"),
+		isWindows ? join(HOME, "out", "cases.txt") : "~\\out\\cases.txt",
 	);
 });
 
@@ -39,4 +42,16 @@ test("paths without ~ pass through untouched", () => {
 
 test("the home directory defaults to the current user's", () => {
 	expect(expandHomePath("~/cases.txt")).toBe(join(homedir(), "cases.txt"));
+});
+
+test("the default home follows HOME (Linux) / USERPROFILE (Windows) at call time", () => {
+	// Bun's os.homedir() on Linux does not see a HOME set after start-up, so
+	// the env var has to be read directly for `~` to honour the environment.
+	const override = isWindows ? "C:\\Users\\other" : "/home/other";
+	const restoreEnv = overrideEnv({ HOME: override, USERPROFILE: override });
+	try {
+		expect(expandHomePath("~/cases.txt")).toBe(join(override, "cases.txt"));
+	} finally {
+		restoreEnv();
+	}
 });

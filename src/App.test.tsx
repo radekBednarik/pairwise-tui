@@ -71,6 +71,12 @@ async function renderApp(element = <App />) {
 		t.mockInput.pressTab();
 		await t.flush();
 	};
+	// Ctrl+U is OpenTUI's default "delete-to-line-start"; with the cursor at
+	// the end of a freshly focused input it empties the whole field.
+	const clearInput = async () => {
+		t.mockInput.pressKey("u", { ctrl: true });
+		await t.flush();
+	};
 	const arrow = async (dir: "up" | "down") => {
 		t.mockInput.pressArrow(dir);
 		await t.flush();
@@ -115,6 +121,7 @@ async function renderApp(element = <App />) {
 		enter,
 		escape: pressEscape,
 		tab,
+		clearInput,
 		arrow,
 		addParam,
 		settle,
@@ -710,6 +717,11 @@ test("the save dialog uses the output path as it is when the run finishes, not w
 		await app.press("g");
 		await app.press("2");
 		await app.tab();
+		// Ctrl+U clears the field (delete-to-line-start) so the new path
+		// replaces the old one instead of being appended to it. Without this
+		// the assertion below only held when the temp path was long enough to
+		// scroll "old.txt" out of the input's visible window.
+		await app.clearInput();
 		await app.type(join(dir, "new.txt"));
 		await app.enter();
 		await app.escape();

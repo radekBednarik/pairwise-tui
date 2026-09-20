@@ -131,7 +131,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 Results are written to the **Output file path** in the Options tab, in the format shown next to it (TXT, JSON, CSV, XLSX or Markdown). A few rules make the path do more work for you:
 
 - `{timestamp}` in the path expands to the UTC time of the save (`2026-09-18T08-40-27`), so each run gets its own file instead of overwriting the last one. The default is `output_{timestamp}.txt`.
-- A leading `~` is your home directory on both Linux and Windows: `~/tests/cases.csv` or `~\tests\cases.csv` both work. The same applies to the model **Storage path**.
+- A leading `~` is your home directory on both Linux and Windows: `~/tests/cases.csv` works everywhere, and `~\tests\cases.csv` also works on Windows (on Linux a backslash is an ordinary file-name character, so it is left as typed). The same applies to the model **Storage path**.
 - A known extension in the path wins over the format selector, so the file content always matches its name. Typing `cases.json` while the selector says TXT writes JSON.
 
 ### Ask where to save
