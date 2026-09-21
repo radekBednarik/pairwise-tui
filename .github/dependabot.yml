@@ -9,3 +9,9 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    groups:
+      # @opentui/react pins an exact @opentui/core version and both share a
+      # globalThis registry, so bumping them separately breaks the build.
+      opentui:
+        patterns:
+          - "@opentui/*"
