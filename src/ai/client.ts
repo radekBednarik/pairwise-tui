@@ -54,39 +54,88 @@ Sub-models (use sparingly, only when a parameter group clearly needs deeper cove
   Example: { Platform, Browser } @ 3 means all 3-way combinations of Platform and Browser
   Only generate sub-models when there is a strong reason for N-way coverage of a specific group.
 
-Respond ONLY with valid JSON in this exact format, no additional text:
-{"parameters": [{"name": "ParameterName", "values": ["value1", "value2", "value3"]}], "submodels": [{"paramNames": ["Param1", "Param2"], "order": 3}], "constraints": ["IF [P] = \\"v1\\" THEN [Q] <> \\"v2\\";"]}
-The "submodels" and "constraints" fields are optional — omit them or use empty arrays if not needed.`;
+Respond with JSON matching the provided schema. Each constraint is one PICT constraint string ending with a semicolon.
+Use empty arrays for "submodels" and "constraints" when none are needed.`;
+
+// The API enforces this shape (structured outputs), so the response text is
+// always parseable JSON. Numeric and string limits (order >= 1, non-empty
+// names) are not expressible here and are still checked after parsing.
+const MODEL_SCHEMA = {
+	type: "object",
+	properties: {
+		parameters: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					values: { type: "array", items: { type: "string" } },
+				},
+				required: ["name", "values"],
+				additionalProperties: false,
+			},
+		},
+		submodels: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					paramNames: { type: "array", items: { type: "string" } },
+					order: { type: "integer" },
+				},
+				required: ["paramNames", "order"],
+				additionalProperties: false,
+			},
+		},
+		constraints: { type: "array", items: { type: "string" } },
+	},
+	required: ["parameters", "submodels", "constraints"],
+	additionalProperties: false,
+};
+
+// Every supported model runs adaptive thinking (always on for Opus 5.5 and
+// Fable 5.1, which reject disabling it, so no `thinking` field is sent), and
+// thinking tokens count toward max_tokens. The request is streamed because
+// the SDK refuses non-streaming requests above ~21k max_tokens; 64k leaves
+// ample room for thinking plus the JSON while staying well below the 128k
+// every supported model allows. Only tokens actually generated are billed.
+const MAX_TOKENS = 64000;
+
+/** The slice of the Anthropic client used here, injectable for tests. */
+export interface AiClient {
+	messages: {
+		stream(params: Anthropic.MessageStreamParams): {
+			finalMessage(): Promise<Anthropic.Message>;
+		};
+	};
+}
 
 export async function generateModel(
 	prompt: string,
 	apiKey: string,
 	model: AiModel = DEFAULT_AI_MODEL,
+	client: AiClient = new Anthropic({ apiKey }),
 ): Promise<{
 	parameters: Parameter[];
 	submodels: Submodel[];
 	constraints: string;
 }> {
-	const client = new Anthropic({ apiKey });
-
-	const message = await client.messages.create({
-		model,
-		// High enough to leave room for both thinking and the JSON output:
-		// every supported model runs adaptive thinking (always on for Opus 5.5
-		// and Fable 5.1, which reject disabling it, so no `thinking` field is
-		// sent), and thinking tokens count toward max_tokens. Also keeps this non-streaming
-		// call under the SDK's HTTP timeout.
-		max_tokens: 16000,
-		system: SYSTEM_PROMPT,
-		messages: [{ role: "user", content: prompt }],
-	});
+	const message = await client.messages
+		.stream({
+			model,
+			max_tokens: MAX_TOKENS,
+			system: SYSTEM_PROMPT,
+			messages: [{ role: "user", content: prompt }],
+			output_config: { format: { type: "json_schema", schema: MODEL_SCHEMA } },
+		})
+		.finalMessage();
 
 	if (message.stop_reason === "refusal") {
 		throw new Error("Claude declined to respond to this request");
 	}
 	if (message.stop_reason === "max_tokens") {
 		throw new Error(
-			"Claude response was cut off (max_tokens reached) before completing the model",
+			"Claude ran out of output space before finishing the model. Try a shorter, more focused description.",
 		);
 	}
 
@@ -110,11 +159,7 @@ export async function generateModel(
 		constraints?: string[];
 	};
 	try {
-		const text = textContent.trim();
-		// Claude may wrap JSON in markdown code blocks
-		const jsonMatch = text.match(/\{[\s\S]*\}/);
-		if (!jsonMatch) throw new Error("No JSON found in response");
-		parsed = JSON.parse(jsonMatch[0]);
+		parsed = JSON.parse(textContent);
 	} catch (err) {
 		throw new Error(
 			`Failed to parse Claude response: ${err instanceof Error ? err.message : String(err)}`,
