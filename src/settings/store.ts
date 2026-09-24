@@ -81,7 +81,16 @@ function asThemeName(value: unknown, fallback: string): string {
 		: fallback;
 }
 
+// Models the app used to offer, mapped to the model that replaced them, so a
+// saved choice survives the upgrade instead of silently resetting to default.
+const RETIRED_AI_MODELS: Record<string, AiModel> = {
+	"claude-opus-5": "claude-opus-5-5",
+};
+
 function asAiModel(value: unknown, fallback: AiModel): AiModel {
+	if (typeof value === "string" && Object.hasOwn(RETIRED_AI_MODELS, value)) {
+		return RETIRED_AI_MODELS[value] as AiModel;
+	}
 	return AI_MODELS.includes(value as AiModel) ? (value as AiModel) : fallback;
 }
 

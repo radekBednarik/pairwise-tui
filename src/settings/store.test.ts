@@ -50,7 +50,7 @@ test("saved settings are read back unchanged", async () => {
 		outputConfig: { filePath: "./cases.md", format: "md" as const },
 		modelStorage: { storagePath: "/tmp", fileTemplate: "m_{timestamp}" },
 		themeName: "tokyonight-storm",
-		aiModel: "claude-opus-5" as const,
+		aiModel: "claude-opus-5-5" as const,
 		promptOnGenerate: true,
 	};
 	await saveSettings(settings);
@@ -64,6 +64,11 @@ test("an unknown output format falls back to txt", async () => {
 	const s = await loadSettings();
 	expect(s.outputConfig.format).toBe("txt");
 	expect(s.outputConfig.filePath).toBe("./x.zip");
+});
+
+test("a saved retired opus model is upgraded to its successor", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-opus-5" }));
+	expect((await loadSettings()).aiModel).toBe("claude-opus-5-5");
 });
 
 test("an unknown ai model falls back to the default model", async () => {

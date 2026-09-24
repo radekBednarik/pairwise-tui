@@ -42,7 +42,7 @@ export const OPTION_FIELDS: ActiveOptionField[] = [
 export const AI_MODELS: AiModel[] = [
 	"claude-haiku-4-5",
 	"claude-sonnet-5",
-	"claude-opus-5",
+	"claude-opus-5-5",
 ];
 
 /** The field Tab moves to from `field`, wrapping after the last one. */

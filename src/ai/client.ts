@@ -71,9 +71,10 @@ export async function generateModel(
 	const message = await client.messages.create({
 		model,
 		// High enough to leave room for both thinking and the JSON output:
-		// Sonnet 5 enables adaptive thinking by default, and thinking tokens
-		// count toward max_tokens. Also keeps this non-streaming call under the
-		// SDK's HTTP timeout.
+		// Sonnet 5 and Opus 5.5 run adaptive thinking (always on for Opus 5.5,
+		// which rejects disabling it, so no `thinking` field is sent), and
+		// thinking tokens count toward max_tokens. Also keeps this non-streaming
+		// call under the SDK's HTTP timeout.
 		max_tokens: 16000,
 		system: SYSTEM_PROMPT,
 		messages: [{ role: "user", content: prompt }],
@@ -89,7 +90,7 @@ export async function generateModel(
 	}
 
 	// Find the first text block rather than assuming it is at index 0. Models
-	// with thinking enabled (e.g. Sonnet 5) return a leading `thinking` block,
+	// with thinking enabled (Sonnet 5, Opus 5.5) return leading `thinking` blocks,
 	// so content[0] is not guaranteed to be the text response.
 	let textContent: string | undefined;
 	for (const block of message.content) {

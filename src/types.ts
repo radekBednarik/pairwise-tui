@@ -40,12 +40,15 @@ export interface ModelStorageConfig {
 	fileTemplate: string;
 }
 
-export type AiModel = "claude-haiku-4-5" | "claude-sonnet-5" | "claude-opus-5";
+export type AiModel =
+	| "claude-haiku-4-5"
+	| "claude-sonnet-5"
+	| "claude-opus-5-5";
 
 export const AI_MODEL_LABELS: Record<AiModel, string> = {
 	"claude-haiku-4-5": "Haiku 4.5",
 	"claude-sonnet-5": "Sonnet 5",
-	"claude-opus-5": "Opus 5",
+	"claude-opus-5-5": "Opus 5.5",
 };
 
 export type TestCase = Record<string, string>;
