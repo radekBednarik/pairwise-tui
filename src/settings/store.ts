@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { AI_MODELS } from "../constants";
+import { AI_MODELS, DEFAULT_AI_MODEL } from "../constants";
 import { FORMAT_EXTENSIONS } from "../output/writer";
 import { THEME_NAMES } from "../theme/themes";
 import type {
@@ -33,7 +33,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		fileTemplate: `model_${TIMESTAMP_PLACEHOLDER}`,
 	},
 	themeName: "tokyonight-dark",
-	aiModel: "claude-haiku-4-5",
+	aiModel: DEFAULT_AI_MODEL,
 	promptOnGenerate: false,
 };
 

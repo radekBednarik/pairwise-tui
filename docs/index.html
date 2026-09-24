@@ -302,7 +302,7 @@
   <span class="term-secondary">File template:     </span> <span class="term-value">model_{timestamp}</span>
 
   <span class="term-accent">AI Settings</span>
-  <span class="term-secondary">AI Model:          </span> <span class="term-accent">claude-haiku-4-5</span>  <span class="term-muted">[Enter] cycle model</span>
+  <span class="term-secondary">AI Model:          </span> <span class="term-accent">claude-sonnet-5</span>   <span class="term-muted">[Enter] cycle model</span>
 
 <span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
 <span class="term-muted"> [Tab] Next field  [Esc] Unfocus  [g] Generate  [w] Save model  [q] Quit</span></pre>
@@ -358,7 +358,7 @@
  [1] Model  [2] Options  [3] Results
 
        <span class="term-muted">┌───────────────────────────────────────────────────────────┐</span>
-       <span class="term-muted">│</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">claude-haiku-4-5</span>           <span class="term-muted">│</span>
+       <span class="term-muted">│</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">claude-sonnet-5</span>            <span class="term-muted">│</span>
        <span class="term-muted">│</span>                                                           <span class="term-muted">│</span>
        <span class="term-muted">│</span>  Describe your test scenario:                            <span class="term-muted">│</span>
        <span class="term-muted">│  ┌─────────────────────────────────────────────────────┐  │</span>
@@ -608,22 +608,25 @@
           </thead>
           <tbody>
             <tr>
-              <td>claude-haiku-4-5</td>
-              <td>Fastest ⚡</td>
-              <td>Quick parameter sketches (default)</td>
-            </tr>
-            <tr>
               <td>claude-sonnet-5</td>
-              <td>Balanced</td>
-              <td>Most scenarios</td>
+              <td>Fastest ⚡</td>
+              <td>Most scenarios (default)</td>
             </tr>
             <tr>
               <td>claude-opus-5-5</td>
               <td>Thorough</td>
               <td>Complex domain models</td>
             </tr>
+            <tr>
+              <td>claude-fable-5-1</td>
+              <td>Slowest</td>
+              <td>Most demanding models, highest cost</td>
+            </tr>
           </tbody>
         </table>
+        <p style="font-size:0.82rem; color: var(--text-muted); margin-top: 0.75rem;">
+          Fable 5.1 requires 30-day data retention and is not available to organizations on zero data retention.
+        </p>
       </div>
 
       <div aria-hidden="true">
@@ -635,7 +638,7 @@
             <span class="term-title">AI Parameter Generator</span>
           </div>
           <pre class="term-body"><span class="term-muted">  ┌───────────────────────────────────────────┐</span>
-<span class="term-muted">  │</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">haiku-4-5</span>   <span class="term-muted">│</span>
+<span class="term-muted">  │</span>  <span class="term-accent">AI Parameter Generator</span>  <span class="term-muted">—</span> <span class="term-value">sonnet-5</span>    <span class="term-muted">│</span>
 <span class="term-muted">  │</span>                                           <span class="term-muted">│</span>
 <span class="term-muted">  │</span>  <span class="term-secondary">Describe your test scenario:</span>            <span class="term-muted">│</span>
 <span class="term-muted">  │  ┌─────────────────────────────────────┐  │</span>

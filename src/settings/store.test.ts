@@ -40,7 +40,7 @@ test("missing config file yields the defaults", async () => {
 		fileTemplate: "model_{timestamp}",
 	});
 	expect(s.themeName).toBe("tokyonight-dark");
-	expect(s.aiModel).toBe("claude-haiku-4-5");
+	expect(s.aiModel).toBe("claude-sonnet-5");
 	expect(s.promptOnGenerate).toBe(false);
 });
 
@@ -71,9 +71,14 @@ test("a saved retired opus model is upgraded to its successor", async () => {
 	expect((await loadSettings()).aiModel).toBe("claude-opus-5-5");
 });
 
+test("a saved haiku model, no longer offered, falls back to the default model", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-haiku-4-5" }));
+	expect((await loadSettings()).aiModel).toBe("claude-sonnet-5");
+});
+
 test("an unknown ai model falls back to the default model", async () => {
 	await writeConfig(JSON.stringify({ aiModel: "gpt-9" }));
-	expect((await loadSettings()).aiModel).toBe("claude-haiku-4-5");
+	expect((await loadSettings()).aiModel).toBe("claude-sonnet-5");
 });
 
 test("a combination order outside 1-6 falls back to 2", async () => {

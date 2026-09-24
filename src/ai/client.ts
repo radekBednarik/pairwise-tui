@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { DEFAULT_AI_MODEL } from "../constants";
 import type { AiModel, Parameter, Submodel } from "../types";
 
 const SYSTEM_PROMPT = `You are a PICT (Pairwise Independent Combinatorial Testing) model generator.
@@ -60,7 +61,7 @@ The "submodels" and "constraints" fields are optional — omit them or use empty
 export async function generateModel(
 	prompt: string,
 	apiKey: string,
-	model: AiModel = "claude-haiku-4-5",
+	model: AiModel = DEFAULT_AI_MODEL,
 ): Promise<{
 	parameters: Parameter[];
 	submodels: Submodel[];
@@ -71,9 +72,9 @@ export async function generateModel(
 	const message = await client.messages.create({
 		model,
 		// High enough to leave room for both thinking and the JSON output:
-		// Sonnet 5 and Opus 5.5 run adaptive thinking (always on for Opus 5.5,
-		// which rejects disabling it, so no `thinking` field is sent), and
-		// thinking tokens count toward max_tokens. Also keeps this non-streaming
+		// every supported model runs adaptive thinking (always on for Opus 5.5
+		// and Fable 5.1, which reject disabling it, so no `thinking` field is
+		// sent), and thinking tokens count toward max_tokens. Also keeps this non-streaming
 		// call under the SDK's HTTP timeout.
 		max_tokens: 16000,
 		system: SYSTEM_PROMPT,
@@ -89,9 +90,9 @@ export async function generateModel(
 		);
 	}
 
-	// Find the first text block rather than assuming it is at index 0. Models
-	// with thinking enabled (Sonnet 5, Opus 5.5) return leading `thinking` blocks,
-	// so content[0] is not guaranteed to be the text response.
+	// Find the first text block rather than assuming it is at index 0. All
+	// supported models think, so a response can start with `thinking` blocks
+	// and content[0] is not guaranteed to be the text response.
 	let textContent: string | undefined;
 	for (const block of message.content) {
 		if (block.type === "text") {

@@ -23,7 +23,7 @@ function harness(overrides: {
 		randomize: false,
 		caseSensitive: false,
 	};
-	let aiModel: AiModel = overrides.aiModel ?? "claude-haiku-4-5";
+	let aiModel: AiModel = overrides.aiModel ?? "claude-sonnet-5";
 	let promptOnGenerate = overrides.promptOnGenerate ?? false;
 
 	const actions = {
@@ -108,8 +108,12 @@ test("Enter toggles the save-on-generate prompt", () => {
 	expect(h.result().promptOnGenerate).toBe(false);
 });
 
-test("Enter on the ai model field cycles to the next model", () => {
+test("Enter on the ai model field cycles through the models and wraps", () => {
 	const h = harness({ activeOptionField: "aiModel" });
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().aiModel).toBe("claude-opus-5-5");
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().aiModel).toBe("claude-fable-5-1");
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().aiModel).toBe("claude-sonnet-5");
 });

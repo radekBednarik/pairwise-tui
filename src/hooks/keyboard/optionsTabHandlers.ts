@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { ActiveOptionField } from "../../constants";
+import { type ActiveOptionField, DEFAULT_AI_MODEL } from "../../constants";
 import type {
 	AiModel,
 	OutputConfig,
@@ -64,7 +64,7 @@ export function handleOptionsTabKeys(
 				actions.aiModels[
 					(actions.aiModels.indexOf(actions.aiModel) + 1) %
 						actions.aiModels.length
-				] ?? "claude-haiku-4-5";
+				] ?? DEFAULT_AI_MODEL;
 			actions.setAiModel(next);
 			return true;
 		}

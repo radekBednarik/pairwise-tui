@@ -177,9 +177,11 @@ In the **Options** tab, tab to the **AI Model** field and press `Enter` to cycle
 
 | Model | Characteristics |
 |-------|----------------|
-| `claude-haiku-4-5` | Fastest, lowest cost (default) |
-| `claude-sonnet-5` | Balanced speed and capability |
-| `claude-opus-5-5` | Most capable, highest cost |
+| `claude-sonnet-5` | Fastest, lowest cost (default) |
+| `claude-opus-5-5` | More capable, for complex domain models |
+| `claude-fable-5-1` | Most capable, slowest and highest cost |
+
+Fable 5.1 requires 30-day data retention and is not available to organizations on zero data retention (ZDR).
 
 ## Model file format
 

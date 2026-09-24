@@ -13,7 +13,7 @@ import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
 import { StatusMessage } from "./components/StatusMessage";
-import type { ActiveOptionField } from "./constants";
+import { type ActiveOptionField, DEFAULT_AI_MODEL } from "./constants";
 import { useAiState } from "./hooks/useAiState";
 import { useAppKeyboard } from "./hooks/useAppKeyboard";
 import { useDeferredScreenChange } from "./hooks/useDeferredScreenChange";
@@ -139,7 +139,7 @@ export function App({
 		setGenerateSavePath,
 	} = modal;
 
-	const ai = useAiState("claude-haiku-4-5");
+	const ai = useAiState(DEFAULT_AI_MODEL);
 	const { apiKey, aiModel, setApiKey, setAiModel } = ai;
 
 	const modelTab = useModelTabState(model, setModel);
