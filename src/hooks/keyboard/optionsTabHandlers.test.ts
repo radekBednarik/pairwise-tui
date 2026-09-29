@@ -23,7 +23,7 @@ function harness(overrides: {
 		randomize: false,
 		caseSensitive: false,
 	};
-	let aiModel: AiModel = overrides.aiModel ?? "claude-sonnet-5";
+	let aiModel: AiModel = overrides.aiModel ?? "claude-sonnet-5-5";
 	let promptOnGenerate = overrides.promptOnGenerate ?? false;
 
 	const actions = {
@@ -115,7 +115,7 @@ test("Enter on the ai model field cycles through the models and wraps", () => {
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().aiModel).toBe("claude-fable-5-1");
 	handleOptionsTabKeys(RETURN, h.actions);
-	expect(h.result().aiModel).toBe("claude-sonnet-5");
+	expect(h.result().aiModel).toBe("claude-sonnet-5-5");
 });
 
 test("keys other than Enter are not handled", () => {

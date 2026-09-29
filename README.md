@@ -177,7 +177,7 @@ In the **Options** tab, tab to the **AI Model** field and press `Enter` to cycle
 
 | Model | Characteristics |
 |-------|----------------|
-| `claude-sonnet-5` | Fastest, lowest cost (default) |
+| `claude-sonnet-5-5` | Fastest, lowest cost (default) |
 | `claude-opus-5-5` | More capable, for complex domain models |
 | `claude-fable-5-1` | Most capable, slowest and highest cost |
 

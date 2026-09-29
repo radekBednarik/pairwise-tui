@@ -55,7 +55,7 @@ test("reads the text block that follows leading thinking blocks", async () => {
 	const client = fakeClient({
 		content: [thinking, thinking, text(MODEL_JSON)] as Anthropic.ContentBlock[],
 	});
-	const result = await generateModel("x", "key", "claude-sonnet-5", client);
+	const result = await generateModel("x", "key", "claude-sonnet-5-5", client);
 
 	expect(result.parameters).toEqual([
 		{ name: "Browser", values: ["Chrome", "Firefox"] },
@@ -69,7 +69,7 @@ test("reads the text block that follows leading thinking blocks", async () => {
 test("a refusal is reported as an error", async () => {
 	const client = fakeClient({ stop_reason: "refusal" });
 	await expect(
-		generateModel("x", "key", "claude-sonnet-5", client),
+		generateModel("x", "key", "claude-sonnet-5-5", client),
 	).rejects.toThrow("declined");
 });
 
@@ -79,7 +79,7 @@ test("hitting max_tokens tells the user how to recover", async () => {
 		content: [thinking] as Anthropic.ContentBlock[],
 	});
 	await expect(
-		generateModel("x", "key", "claude-sonnet-5", client),
+		generateModel("x", "key", "claude-sonnet-5-5", client),
 	).rejects.toThrow("shorter, more focused description");
 });
 
@@ -88,7 +88,7 @@ test("a response without a text block is rejected", async () => {
 		content: [thinking] as Anthropic.ContentBlock[],
 	});
 	await expect(
-		generateModel("x", "key", "claude-sonnet-5", client),
+		generateModel("x", "key", "claude-sonnet-5-5", client),
 	).rejects.toThrow("Unexpected response format");
 });
 
@@ -97,6 +97,6 @@ test("text that is not valid JSON is rejected", async () => {
 		content: [text("not json")] as Anthropic.ContentBlock[],
 	});
 	await expect(
-		generateModel("x", "key", "claude-sonnet-5", client),
+		generateModel("x", "key", "claude-sonnet-5-5", client),
 	).rejects.toThrow("Failed to parse Claude response");
 });
