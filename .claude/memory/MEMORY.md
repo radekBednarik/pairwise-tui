@@ -8,4 +8,4 @@ All Claude memories for this project live in this directory so they travel with 
 
 ## Project
 - [Review follow-ups (fixed 2026-09-18)](./project_review_followups.md) - two review rounds fixed; record in docs/plans/code-review-followups.md; app must work on Linux AND Windows; deferred screen change design
-- [Release process](./project_release_process.md) - bump version in scripts/build-windows.ts, commit, then push tag; tag alone is not a release
+- [Release process](./project_release_process.md) - bump version in scripts/build-windows.ts, commit, then push tag (tag push triggers release.yml)

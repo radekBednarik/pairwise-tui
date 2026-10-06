@@ -1,6 +1,6 @@
 ---
 name: project-release-process
-description: How to cut a pairwise-tui release - version bump in scripts/build-windows.ts, then tag; a bare tag push is not enough
+description: How to cut a pairwise-tui release - bump version in scripts/build-windows.ts, commit to main, then push a vX.Y.Z tag (the tag push starts the release workflow)
 metadata:
   type: project
 ---
@@ -12,5 +12,5 @@ A release is not just a tag push. Steps:
 
 Branch CI: the only PR check is GitHub's CodeQL default setup, so open a PR to get checks before merging.
 
-**Why:** the user pointed out that pushing a tag alone does not make a proper release; previous releases (v1.5.0, v1.5.1) all used a bump commit followed by the tag.
+**Why:** previous releases (v1.5.0-v1.5.2) all used a bump commit followed by the tag. The tag push starts the workflow (confirmed by the user on 2026-10-06); release.yml has no `workflow_dispatch`, so it cannot be started manually. Verify with `gh run list -w Release` and `gh release view vX.Y.Z`.
 **How to apply:** whenever asked to "do the release", bump version first, then tag. Patch bump for small tweaks, minor for features, unless the user says otherwise.
