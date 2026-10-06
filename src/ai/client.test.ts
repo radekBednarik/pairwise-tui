@@ -47,6 +47,7 @@ test("streams the request with room for thinking and a JSON schema format", asyn
 	expect(params?.model).toBe("claude-fable-5-1");
 	expect(params?.max_tokens).toBe(64000);
 	expect(params?.output_config?.format?.type).toBe("json_schema");
+	expect(params?.output_config?.effort).toBe("high");
 	expect(params?.thinking).toBeUndefined();
 	expect(params?.messages).toEqual([{ role: "user", content: "login form" }]);
 });

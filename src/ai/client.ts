@@ -101,6 +101,10 @@ const MODEL_SCHEMA = {
 // every supported model allows. Only tokens actually generated are billed.
 const MAX_TOKENS = 64000;
 
+// Pinned so every model thinks equally hard: Sonnet 5.5 and Fable 5.1 default
+// to "high", but Opus 5.5 defaults to "medium".
+const EFFORT = "high";
+
 /** The slice of the Anthropic client used here, injectable for tests. */
 export interface AiClient {
 	messages: {
@@ -126,7 +130,10 @@ export async function generateModel(
 			max_tokens: MAX_TOKENS,
 			system: SYSTEM_PROMPT,
 			messages: [{ role: "user", content: prompt }],
-			output_config: { format: { type: "json_schema", schema: MODEL_SCHEMA } },
+			output_config: {
+				effort: EFFORT,
+				format: { type: "json_schema", schema: MODEL_SCHEMA },
+			},
 		})
 		.finalMessage();
 
