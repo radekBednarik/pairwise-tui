@@ -86,6 +86,7 @@ function asThemeName(value: unknown, fallback: string): string {
 const RETIRED_AI_MODELS: Record<string, AiModel> = {
 	"claude-opus-5": "claude-opus-5-5",
 	"claude-sonnet-5": "claude-sonnet-5-5",
+	"claude-haiku-4-5": "claude-haiku-5-5",
 };
 
 function asAiModel(value: unknown, fallback: AiModel): AiModel {
