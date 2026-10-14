@@ -32,7 +32,7 @@ jobs:
           Copy-Item $exe.FullName pict.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pict-win
           path: pict.exe
@@ -57,7 +57,7 @@ jobs:
           cp "$exe" pict
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pict-linux
           path: pict
@@ -68,10 +68,10 @@ jobs:
     needs: [build-pict-win]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download static pict.exe
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pict-win
           path: binaries
@@ -86,7 +86,7 @@ jobs:
         run: bun run build:dist:windows
 
       - name: Upload Windows app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-win
           path: dist/pairwise-tui.exe
@@ -97,10 +97,10 @@ jobs:
     needs: [build-pict-linux]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download pict (Linux)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pict-linux
           path: binaries
@@ -118,7 +118,7 @@ jobs:
         run: bun run build:dist:linux
 
       - name: Upload Linux app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-linux
           path: dist/pairwise-tui
@@ -129,10 +129,10 @@ jobs:
     needs: [build-app-linux]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download Linux app artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: app-linux
           path: dist
@@ -152,7 +152,7 @@ jobs:
           APPIMAGE_RUNTIME_FILE: dist/runtime-x86_64
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: appimage-linux
           path: dist/Pairwise-TUI-x86_64.AppImage
@@ -164,25 +164,25 @@ jobs:
 
     steps:
       - name: Download Windows app artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: app-win
           path: dist
 
       - name: Download Linux app artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: app-linux
           path: dist
 
       - name: Download Linux AppImage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: appimage-linux
           path: dist
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body: |
             > **Windows users:** If SmartScreen blocks the `.exe` on first launch, click **More info → Run anyway**. This is a reputation warning for unsigned binaries, not a malware detection.
