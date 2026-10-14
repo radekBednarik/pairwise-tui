@@ -76,9 +76,14 @@ test("a saved retired sonnet model is upgraded to its successor", async () => {
 	expect((await loadSettings()).aiModel).toBe("claude-sonnet-5-5");
 });
 
-test("a saved haiku model, no longer offered, falls back to the default model", async () => {
+test("a saved retired haiku model is upgraded to its successor", async () => {
 	await writeConfig(JSON.stringify({ aiModel: "claude-haiku-4-5" }));
-	expect((await loadSettings()).aiModel).toBe("claude-sonnet-5-5");
+	expect((await loadSettings()).aiModel).toBe("claude-haiku-5-5");
+});
+
+test("a saved haiku 5.5 model is read back unchanged", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-haiku-5-5" }));
+	expect((await loadSettings()).aiModel).toBe("claude-haiku-5-5");
 });
 
 test("an unknown ai model falls back to the default model", async () => {

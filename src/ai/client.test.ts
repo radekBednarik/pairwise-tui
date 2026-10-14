@@ -52,6 +52,20 @@ test("streams the request with room for thinking and a JSON schema format", asyn
 	expect(params?.messages).toEqual([{ role: "user", content: "login form" }]);
 });
 
+test("haiku gets the same pinned effort and no thinking field", async () => {
+	const captured: Anthropic.MessageStreamParams[] = [];
+	const client = fakeClient(
+		{ content: [text(MODEL_JSON)] as Anthropic.ContentBlock[] },
+		captured,
+	);
+	await generateModel("login form", "key", "claude-haiku-5-5", client);
+
+	const params = captured[0];
+	expect(params?.model).toBe("claude-haiku-5-5");
+	expect(params?.output_config?.effort).toBe("high");
+	expect(params?.thinking).toBeUndefined();
+});
+
 test("reads the text block that follows leading thinking blocks", async () => {
 	const client = fakeClient({
 		content: [thinking, thinking, text(MODEL_JSON)] as Anthropic.ContentBlock[],

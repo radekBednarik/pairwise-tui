@@ -94,7 +94,8 @@ const MODEL_SCHEMA = {
 };
 
 // Every supported model runs adaptive thinking (always on for Opus 5.5 and
-// Fable 5.1, which reject disabling it, so no `thinking` field is sent), and
+// Fable 5.1, which reject disabling it, and on by default for Haiku 5.5 and
+// Sonnet 5.5, so no `thinking` field is sent), and
 // thinking tokens count toward max_tokens. The request is streamed because
 // the SDK refuses non-streaming requests above ~21k max_tokens; 64k leaves
 // ample room for thinking plus the JSON while staying well below the 128k
@@ -102,7 +103,7 @@ const MODEL_SCHEMA = {
 const MAX_TOKENS = 64000;
 
 // Pinned so every model thinks equally hard: Sonnet 5.5 and Fable 5.1 default
-// to "high", but Opus 5.5 defaults to "medium".
+// to "high", but Opus 5.5 and Haiku 5.5 default to "medium".
 const EFFORT = "high";
 
 /** The slice of the Anthropic client used here, injectable for tests. */
