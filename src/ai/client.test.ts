@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, test } from "bun:test";
 import type Anthropic from "@anthropic-ai/sdk";
 import { type AiClient, generateModel } from "./client";
 
@@ -114,4 +114,51 @@ test("text that is not valid JSON is rejected", async () => {
 	await expect(
 		generateModel("x", "key", "claude-sonnet-5-5", client),
 	).rejects.toThrow("Failed to parse Claude response");
+});
+
+// The tests above inject a fake client, so they never exercise the real SDK.
+// This one swaps out the global fetch instead, so the default
+// `new Anthropic({ apiKey })` path runs for real and we can check what it puts
+// on the wire, with no network access and no real key. The stub answers 401,
+// which the SDK does not retry, so exactly one request is made.
+const realFetch = globalThis.fetch;
+afterEach(() => {
+	globalThis.fetch = realFetch;
+});
+
+test("the default client sends the 2026-10-21 API version and a bearer key", async () => {
+	const requests: { url: string; headers: Headers; body: string }[] = [];
+	globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+		const request = new Request(input, init);
+		requests.push({
+			url: request.url,
+			headers: request.headers,
+			body: await request.text(),
+		});
+		return new Response(
+			JSON.stringify({
+				type: "error",
+				error: { type: "authentication_error", message: "stub" },
+			}),
+			{ status: 401, headers: { "content-type": "application/json" } },
+		);
+	}) as typeof fetch;
+
+	await expect(generateModel("login form", "test-key")).rejects.toThrow();
+
+	expect(requests).toHaveLength(1);
+	const [request] = requests;
+	expect(request?.url).toEndWith("/v1/messages");
+	expect(request?.headers.get("anthropic-version")).toBe("2026-10-21");
+	expect(request?.headers.get("authorization")).toBe("Bearer test-key");
+	expect(request?.headers.get("x-api-key")).toBeNull();
+
+	const body = JSON.parse(request?.body ?? "{}");
+	expect(body.model).toBe("claude-sonnet-5-5");
+	expect(body.max_tokens).toBe(64000);
+	expect(body.stream).toBe(true);
+	expect(body.output_config.effort).toBe("high");
+	for (const removed of ["thinking", "temperature", "top_p", "top_k"]) {
+		expect(body).not.toHaveProperty(removed);
+	}
 });
