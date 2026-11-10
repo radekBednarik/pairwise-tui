@@ -113,7 +113,7 @@ test("Enter on the ai model field cycles through the models and wraps", () => {
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().aiModel).toBe("claude-opus-5-5");
 	handleOptionsTabKeys(RETURN, h.actions);
-	expect(h.result().aiModel).toBe("claude-fable-5-1");
+	expect(h.result().aiModel).toBe("claude-fable-5-2");
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().aiModel).toBe("claude-haiku-5-5");
 	handleOptionsTabKeys(RETURN, h.actions);

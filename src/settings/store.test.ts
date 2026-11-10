@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadSettings, saveSettings } from "./store";
+import { loadSettings, resolveAiModel, saveSettings } from "./store";
 
 let dir: string;
 const savedXdg = process.env.XDG_CONFIG_HOME;
@@ -79,6 +79,52 @@ test("a saved retired sonnet model is upgraded to its successor", async () => {
 test("a saved retired haiku model is upgraded to its successor", async () => {
 	await writeConfig(JSON.stringify({ aiModel: "claude-haiku-4-5" }));
 	expect((await loadSettings()).aiModel).toBe("claude-haiku-5-5");
+});
+
+test("a saved retired fable model is upgraded to its successor", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-fable-5-1" }));
+	expect((await loadSettings()).aiModel).toBe("claude-fable-5-2");
+});
+
+test("a saved fable 5.2 model is read back unchanged", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-fable-5-2" }));
+	expect((await loadSettings()).aiModel).toBe("claude-fable-5-2");
+});
+
+test("a carried-over fable model is written back as its successor", async () => {
+	await writeConfig(JSON.stringify({ aiModel: "claude-fable-5-1" }));
+	await saveSettings(await loadSettings());
+
+	const raw = await Bun.file(join(dir, "pairwise-tui", "config.json")).json();
+	expect(raw.aiModel).toBe("claude-fable-5-2");
+	expect((await loadSettings()).aiModel).toBe("claude-fable-5-2");
+});
+
+// A retired model can map to a model that was later retired too. The lookup
+// must follow the chain to a model the app still offers, never stop on one
+// it has dropped.
+test("a retired model whose successor was also retired follows the chain", () => {
+	const retired = {
+		"model-a": "model-b",
+		"model-b": "claude-opus-5-5",
+	};
+	expect(resolveAiModel("model-a", "claude-sonnet-5-5", retired)).toBe(
+		"claude-opus-5-5",
+	);
+});
+
+test("a retired model that maps to a model no longer offered falls back to the default", () => {
+	const retired = { "model-a": "model-gone" };
+	expect(resolveAiModel("model-a", "claude-sonnet-5-5", retired)).toBe(
+		"claude-sonnet-5-5",
+	);
+});
+
+test("a cycle in the retired-model map falls back to the default", () => {
+	const retired = { "model-a": "model-b", "model-b": "model-a" };
+	expect(resolveAiModel("model-a", "claude-sonnet-5-5", retired)).toBe(
+		"claude-sonnet-5-5",
+	);
 });
 
 test("a saved haiku 5.5 model is read back unchanged", async () => {

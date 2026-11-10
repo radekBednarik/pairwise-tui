@@ -83,17 +83,36 @@ function asThemeName(value: unknown, fallback: string): string {
 
 // Models the app used to offer, mapped to the model that replaced them, so a
 // saved choice survives the upgrade instead of silently resetting to default.
-const RETIRED_AI_MODELS: Record<string, AiModel> = {
+// A successor may later be retired too: add its own entry and leave the older
+// ones alone, because resolveAiModel follows the chain.
+const RETIRED_AI_MODELS: Record<string, string> = {
 	"claude-opus-5": "claude-opus-5-5",
 	"claude-sonnet-5": "claude-sonnet-5-5",
 	"claude-haiku-4-5": "claude-haiku-5-5",
+	"claude-fable-5-1": "claude-fable-5-2",
 };
 
-function asAiModel(value: unknown, fallback: AiModel): AiModel {
-	if (typeof value === "string" && Object.hasOwn(RETIRED_AI_MODELS, value)) {
-		return RETIRED_AI_MODELS[value] as AiModel;
+/**
+ * Turns a saved model ID into one the app offers. Retired IDs are followed
+ * to their current successor. Anything that doesn't end on an offered model,
+ * including a cycle in the map, gives the fallback.
+ */
+export function resolveAiModel(
+	value: unknown,
+	fallback: AiModel,
+	retired: Record<string, string> = RETIRED_AI_MODELS,
+): AiModel {
+	if (typeof value !== "string") return fallback;
+	let model = value;
+	// Each step follows one entry, so more steps than entries means a cycle.
+	for (
+		let steps = 0;
+		Object.hasOwn(retired, model) && steps <= Object.keys(retired).length;
+		steps++
+	) {
+		model = retired[model] as string;
 	}
-	return AI_MODELS.includes(value as AiModel) ? (value as AiModel) : fallback;
+	return AI_MODELS.includes(model as AiModel) ? (model as AiModel) : fallback;
 }
 
 // The config file is user-editable, so every field is re-validated on the way
@@ -135,7 +154,7 @@ export async function loadSettings(): Promise<AppSettings> {
 			),
 		},
 		themeName: asThemeName(parsed.themeName, defaults.themeName),
-		aiModel: asAiModel(parsed.aiModel, defaults.aiModel),
+		aiModel: resolveAiModel(parsed.aiModel, defaults.aiModel),
 		promptOnGenerate: asBoolean(
 			parsed.promptOnGenerate,
 			defaults.promptOnGenerate,

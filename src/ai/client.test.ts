@@ -41,10 +41,10 @@ test("streams the request with room for thinking and a JSON schema format", asyn
 		{ content: [text(MODEL_JSON)] as Anthropic.ContentBlock[] },
 		captured,
 	);
-	await generateModel("login form", "key", "claude-fable-5-1", client);
+	await generateModel("login form", "key", "claude-fable-5-2", client);
 
 	const params = captured[0];
-	expect(params?.model).toBe("claude-fable-5-1");
+	expect(params?.model).toBe("claude-fable-5-2");
 	expect(params?.max_tokens).toBe(64000);
 	expect(params?.output_config?.format?.type).toBe("json_schema");
 	expect(params?.output_config?.effort).toBe("high");
@@ -119,8 +119,9 @@ test("text that is not valid JSON is rejected", async () => {
 // The tests above inject a fake client, so they never exercise the real SDK.
 // This one swaps out the global fetch instead, so the default
 // `new Anthropic({ apiKey })` path runs for real and we can check what it puts
-// on the wire, with no network access and no real key. The stub answers 401,
-// which the SDK does not retry, so exactly one request is made.
+// on the wire, with no network access and no real key. The stub answers 401.
+// Only the first request is checked, so the test doesn't depend on whether
+// the SDK retries that status.
 const realFetch = globalThis.fetch;
 afterEach(() => {
 	globalThis.fetch = realFetch;
@@ -146,7 +147,7 @@ test("the default client sends the 2026-10-21 API version and a bearer key", asy
 
 	await expect(generateModel("login form", "test-key")).rejects.toThrow();
 
-	expect(requests).toHaveLength(1);
+	expect(requests.length).toBeGreaterThanOrEqual(1);
 	const [request] = requests;
 	expect(request?.url).toEndWith("/v1/messages");
 	expect(request?.headers.get("anthropic-version")).toBe("2026-10-21");
