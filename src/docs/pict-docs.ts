@@ -1,3 +1,26 @@
+import { AI_MODELS, DEFAULT_AI_MODEL } from "../constants";
+import { AI_MODEL_LABELS, type AiModel } from "../types";
+
+// Typed by AiModel, so adding or swapping a model fails to compile until it
+// has a description here. The model list in the help then needs no edit.
+const AI_MODEL_DESCRIPTIONS: Record<AiModel, string> = {
+	"claude-haiku-5-5": "fastest and lowest cost, for simple scenarios",
+	"claude-sonnet-5-5": "balanced speed and capability",
+	"claude-opus-5-5": "more capable, for complex scenarios",
+	"claude-fable-5-2": "most capable, slowest and highest cost",
+};
+
+const AI_MODEL_LIST = AI_MODELS.map((model) => AI_MODEL_LABELS[model]).join(
+	" / ",
+);
+
+const AI_MODEL_LINES = AI_MODELS.map(
+	(model) =>
+		`  ${AI_MODEL_LABELS[model].padEnd(12)}– ${AI_MODEL_DESCRIPTIONS[model]}${
+			model === DEFAULT_AI_MODEL ? " (default)" : ""
+		}`,
+);
+
 export interface DocChapter {
 	title: string;
 	content: string[]; // lines to render, empty string = blank line
@@ -7,17 +30,17 @@ export const DOC_CHAPTERS: DocChapter[] = [
 	{
 		title: "Overview",
 		content: [
-			"PICT — Pairwise Independent Combinatorial Testing",
+			"PICT – Pairwise Independent Combinatorial Testing",
 			"",
 			"PICT generates test cases that efficiently cover all pairs of",
 			"parameter values (pairwise coverage), dramatically reducing the",
 			"number of test cases vs. exhaustive combination.",
 			"",
 			"Workflow in this app:",
-			"  1. Model tab  — define parameters and optional constraints",
-			"  2. Options tab — set combination order, randomize, case sensitivity",
-			"  3. Press [g]  — generate test cases",
-			"  4. Results tab — view, then press [s] to save to file",
+			"  1. Model tab  – define parameters and optional constraints",
+			"  2. Options tab – set combination order, randomize, case sensitivity",
+			"  3. Press [g]  – generate test cases",
+			"  4. Results tab – view, then press [s] to save to file",
 			"",
 			"Why pairwise?",
 			"  Studies show most defects are triggered by interactions",
@@ -56,21 +79,21 @@ export const DOC_CHAPTERS: DocChapter[] = [
 	{
 		title: "Advanced Parameters",
 		content: [
-			"Aliases — multiple names for the same value:",
+			"Aliases – multiple names for the same value:",
 			"  Platform: Windows | Win, Linux | Lin, macOS | Mac",
 			"  The alias appears in constraints but primary name in output.",
 			"",
-			"Negative values — mark invalid/error-path values:",
+			"Negative values – mark invalid/error-path values:",
 			"  Size: 1GB, 2GB, ~0, ~-1",
 			"  Negative values (prefixed ~) appear in only one test case",
 			"  each, keeping the test suite focused on valid combos.",
 			"",
-			"Weighting — bias selection probability:",
+			"Weighting – bias selection probability:",
 			"  Browser: Chrome (10), Firefox (5), IE (1)",
 			"  Higher weight = appears in more test cases.",
 			"  Useful to emphasize common configurations.",
 			"",
-			"Value re-use — reference another parameter's values:",
+			"Value re-use – reference another parameter's values:",
 			"  StartPort: 1, 2, 3, 4, 5",
 			"  EndPort:   <StartPort>",
 			"  EndPort takes the same value set as StartPort.",
@@ -181,7 +204,7 @@ export const DOC_CHAPTERS: DocChapter[] = [
 			"",
 			"── AI Settings ──────────────────────────────────────",
 			"",
-			"AI Model           Haiku 5.5 / Sonnet 5.5 / Opus 5.5 / Fable 5.1",
+			`AI Model           ${AI_MODEL_LIST}`,
 			"  The Claude model used for AI parameter generation.",
 			"  Press Enter to cycle. Persisted across sessions.",
 			"",
@@ -260,7 +283,7 @@ export const DOC_CHAPTERS: DocChapter[] = [
 	{
 		title: "AI Parameter Fill",
 		content: [
-			"AI Parameter Fill — generate parameters from a description",
+			"AI Parameter Fill – generate parameters from a description",
 			"",
 			"── Setup ────────────────────────────────────────────────",
 			"",
@@ -274,7 +297,7 @@ export const DOC_CHAPTERS: DocChapter[] = [
 			"  The key is never logged or transmitted elsewhere.",
 			"",
 			"  Alternatively, set the ANTHROPIC_API_KEY environment variable",
-			"  before launching the app — no setup step needed.",
+			"  before launching the app – no setup step needed.",
 			"",
 			"── Usage ────────────────────────────────────────────────",
 			"",
@@ -282,7 +305,7 @@ export const DOC_CHAPTERS: DocChapter[] = [
 			"  2. Type or paste a description of the feature to test.",
 			"     Example: 'Login form with email, password, remember me",
 			"     checkbox, and SSO. Browsers: Chrome, Firefox, Safari.'",
-			"  3. Press Ctrl+G — Claude extracts parameter names and values.",
+			"  3. Press Ctrl+G – Claude extracts parameter names and values.",
 			"  4. The Model tab is populated with the generated parameters.",
 			"  5. Verify and edit as needed, then press [g] to generate.",
 			"",
@@ -292,17 +315,14 @@ export const DOC_CHAPTERS: DocChapter[] = [
 			"  Options tab under 'AI Settings'. Tab to the AI Model field",
 			"  and press [Enter] to cycle through available models:",
 			"",
-			"  Haiku 5.5   — fastest and lowest cost, for simple scenarios",
-			"  Sonnet 5.5  — balanced speed and capability (default)",
-			"  Opus 5.5    — more capable, for complex scenarios",
-			"  Fable 5.1   — most capable, slowest and highest cost",
+			...AI_MODEL_LINES,
 			"",
 			"  The selected model is persisted across sessions.",
 			"",
 			"── Notes ────────────────────────────────────────────────",
 			"",
 			"  - AI fill generates parameters, values, sub-models, and PICT constraints.",
-			"  - Fable 5.1 requires 30-day data retention; organizations on",
+			"  - Fable 5.2 requires 30-day data retention; organizations on",
 			"    zero data retention (ZDR) cannot use it.",
 			"  - Existing parameters, sub-models, and constraints are replaced when AI fill runs.",
 		],

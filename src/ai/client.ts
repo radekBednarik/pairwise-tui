@@ -94,7 +94,7 @@ const MODEL_SCHEMA = {
 };
 
 // Every supported model runs adaptive thinking (always on for Opus 5.5 and
-// Fable 5.1, which reject disabling it, and on by default for Haiku 5.5 and
+// Fable 5.2, which reject disabling it, and on by default for Haiku 5.5 and
 // Sonnet 5.5, so no `thinking` field is sent), and
 // thinking tokens count toward max_tokens. The request is streamed because
 // the SDK refuses non-streaming requests above ~21k max_tokens; 64k leaves
@@ -102,7 +102,7 @@ const MODEL_SCHEMA = {
 // every supported model allows. Only tokens actually generated are billed.
 const MAX_TOKENS = 64000;
 
-// Pinned so every model thinks equally hard: Sonnet 5.5 and Fable 5.1 default
+// Pinned so every model thinks equally hard: Sonnet 5.5 and Fable 5.2 default
 // to "high", but Opus 5.5 and Haiku 5.5 default to "medium".
 const EFFORT = "high";
 
