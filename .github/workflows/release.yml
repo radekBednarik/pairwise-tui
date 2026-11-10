@@ -123,6 +123,32 @@ jobs:
           name: app-linux
           path: dist/pairwise-tui
 
+      # The executables bundle @anthropic-ai/sdk, which is Apache 2.0 licensed,
+      # so each release must ship its license text. Read it from the installed
+      # package so the version always matches what was built.
+      - name: Collect third-party notices
+        run: |
+          sdk=node_modules/@anthropic-ai/sdk
+          test -f "$sdk/LICENSE" || { echo "$sdk/LICENSE not found"; exit 1; }
+          version=$(bun -p "require('./$sdk/package.json').version")
+          {
+            echo "Pairwise-TUI bundles the following third-party software."
+            echo
+            echo "================================================================"
+            echo "@anthropic-ai/sdk $version"
+            echo "https://github.com/anthropics/anthropic-sdk-typescript"
+            echo "License: Apache License 2.0"
+            echo "================================================================"
+            echo
+            cat "$sdk/LICENSE"
+          } > dist/THIRD-PARTY-NOTICES.txt
+
+      - name: Upload third-party notices artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: third-party-notices
+          path: dist/THIRD-PARTY-NOTICES.txt
+
   package-appimage-linux:
     name: Package AppImage (Linux)
     runs-on: ubuntu-latest
@@ -181,6 +207,12 @@ jobs:
           name: appimage-linux
           path: dist
 
+      - name: Download third-party notices artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: third-party-notices
+          path: dist
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
@@ -190,4 +222,5 @@ jobs:
             dist/pairwise-tui
             dist/pairwise-tui.exe
             dist/Pairwise-TUI-x86_64.AppImage
+            dist/THIRD-PARTY-NOTICES.txt
           generate_release_notes: true
