@@ -14,7 +14,7 @@ await Bun.build({
 			description: "Terminal UI for generating PICT pairwise test cases",
 			publisher: "Radek Bednarik",
 			copyright: "MIT",
-			version: "1.6.0",
+			version: "1.7.0",
 		},
 	},
 });
