@@ -303,3 +303,8 @@ Do **not** release the MVP alone: without Phase 4 the failure paths are unproven
 ## Phase 12: Convergence
 
 - [X] T077 Make the manual check queue its offer instead of opening it: in src/update/controller.ts `checkNow()` must only set `available` and `wantsOffer` and leave opening to the idle check in src/App.tsx (no other overlay open, no text field active), exactly as the automatic check does; first add a failing test in src/App.test.tsx (press Enter on "Check for updates now" with a held check, Tab into the output file path field and type, release the check: no overlay until the field is left, typed text kept) and adjust the tests in src/update/controller.test.ts that rely on `checkNow()` opening the overlay by itself per FR-014 (partial)
+
+## Validation log
+
+- 2026-11-11 T070, Windows part: "Update now" from the published 1.8.0 to 1.8.1 passed on a real Windows terminal (run by the user), including keyboard input after the in-place restart. T070 stays open for: "Update on exit" and its recovery after an abnormal end on Windows, and the AppImage (V9).
+- 2026-11-11 T071, first half: the release runs for v1.8.0 and v1.8.1 passed the tag guard with a matching tag, and all three lines of `SHA256SUMS.txt` matched the digests GitHub computed for the uploaded files. T071 stays open for: a tag that differs from the package.json version must fail before anything is built (not exercised yet).

@@ -64,7 +64,7 @@ Run with two real compiled builds (9.9.8 and 9.9.9) against `scripts/dev-fake-re
 | V5 | PASS | Only the app file remains beside the app |
 | V6 | PASS | The artifact is never requested |
 | V7 | PASS | No download request made |
-| V8 | NOT RUN | Needs a real Windows terminal. File swap and waited child were verified by the T002 spike; keyboard input after restart is still unverified |
+| V8 | PARTLY PASS | 2026-11-11, by the user on a real Windows terminal with the published releases 1.8.0 and 1.8.1: manual check found 1.8.1, "Update now" downloaded, verified, replaced the running exe and restarted in the same window, and the keyboard worked normally afterwards. Not yet run on Windows: "Update on exit" (V2), its recovery after an abnormal end (V3), and the automatic startup check |
 | V9 | NOT RUN | Needs an AppImage build and FUSE |
 | V10 | PASS | Decoy "terminal emulator" AppImage untouched; the plain executable was updated |
 | V11 | UI test | |
