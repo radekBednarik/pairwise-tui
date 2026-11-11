@@ -42,7 +42,8 @@
         "combinatorial testing",
         "PICT",
         "test case generator",
-        "terminal UI"
+        "terminal UI",
+        "automatic updates"
       ]
     }
   </script>
@@ -77,6 +78,7 @@
       <li><a class="nav-link" href="/pairwise-tui/#getting-started">Get Started</a></li>
       <li><a class="nav-link" href="/pairwise-tui/#shortcuts">Shortcuts</a></li>
       <li><a class="nav-link" href="/pairwise-tui/#ai">AI</a></li>
+      <li><a class="nav-link" href="/pairwise-tui/#updates">Updates</a></li>
       <li>
         <a class="nav-link nav-cta" href="https://github.com/radekBednarik/pairwise-tui" target="_blank" rel="noopener noreferrer">
           GitHub ↗
@@ -201,6 +203,16 @@
       </article>
 
       <article class="feature-card">
+        <span class="feature-icon" aria-hidden="true">🔄</span>
+        <h3 class="feature-title">Stay current without reinstalling</h3>
+        <p class="feature-desc">
+          The app checks for a new release at startup and offers it with its release
+          notes. You choose when: update now and restart in place, or on exit. Each
+          download is verified before it replaces anything, and you can switch it off.
+        </p>
+      </article>
+
+      <article class="feature-card">
         <span class="feature-icon" aria-hidden="true">🎨</span>
         <h3 class="feature-title">Keep your setup between sessions</h3>
         <p class="feature-desc">
@@ -304,6 +316,10 @@
   <span class="term-accent">AI Settings</span>
   <span class="term-secondary">AI Model:          </span> <span class="term-accent">claude-sonnet-5-5</span> <span class="term-muted">[Enter] cycle model</span>
 
+  <span class="term-accent">Updates</span>  <span class="term-muted">Version: 1.8.1</span>
+  <span class="term-secondary">Automatic updates: </span> <span class="term-accent">●</span> ON             <span class="term-muted">[Enter] toggle</span>
+  <span class="term-secondary">Check for updates now</span>               <span class="term-muted">[Enter] check</span>
+
 <span class="term-muted"> ──────────────────────────────────────────────────────────────────── </span>
 <span class="term-muted"> [Tab] Next field  [Esc] Unfocus  [g] Generate  [w] Save model  [q] Quit</span></pre>
       </div>
@@ -391,6 +407,8 @@
             Head to the <a href="https://github.com/radekBednarik/pairwise-tui/releases/latest"
               target="_blank" rel="noopener noreferrer">Releases page</a> and grab
             the executable for your OS. No installer needed, no extra runtime, and no setup wizard.
+            You only do this once: from then on the app
+            <a href="/pairwise-tui/#updates">keeps itself up to date</a>.
           </p>
         </div>
       </li>
@@ -659,6 +677,102 @@
   <span class="term-success">✓ Generated 4 parameters, 1 constraint</span>
   <span class="term-muted">  → Review in Model tab, then press [g]</span></pre>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== UPDATES SECTION ===================== -->
+<section class="updates-section" id="updates" aria-labelledby="updates-heading">
+  <div class="container">
+    <h2 class="section-title" id="updates-heading">Automatic Updates</h2>
+    <p class="section-subtitle">New releases come to you. Nothing is downloaded until you say so.</p>
+
+    <div class="two-col">
+      <div>
+        <p class="ai-desc">
+          At startup, at most once every 24 hours, pairwise-tui asks GitHub whether a newer
+          release exists. The check runs in the background, so the app is ready to use
+          immediately. When there is a newer version, an overlay shows your version, the new
+          one, the download size and the release notes, and waits for your choice.
+        </p>
+
+        <h3 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 0.75rem;">Your choices</h3>
+        <table class="model-table" style="margin-bottom: 1.5rem;">
+          <thead>
+            <tr>
+              <th>Choice</th>
+              <th>What happens</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Update now</td>
+              <td>Downloads with a progress display, verifies, replaces the app and restarts it in the same terminal. If you have unsaved work, you are asked first.</td>
+            </tr>
+            <tr>
+              <td>Update on exit</td>
+              <td>Downloads in the background while you keep working and replaces the app when you quit.</td>
+            </tr>
+            <tr>
+              <td>Not now</td>
+              <td>Nothing is downloaded. You are asked again at the next start.</td>
+            </tr>
+            <tr>
+              <td>Skip this version</td>
+              <td>That version is not offered again. A later one is.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 0.75rem;">Turn it off, or check by hand</h3>
+        <ol class="ai-setup-steps">
+          <li>Press <kbd>2</kbd> to open the Options tab</li>
+          <li>Press <kbd>Tab</kbd> until <em>Automatic updates</em> is highlighted, then <kbd>Enter</kbd> to toggle</li>
+          <li><em>Check for updates now</em>, one field further, checks at once and works with the setting off</li>
+        </ol>
+        <p style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          Automatic updates are on by default. With the setting off, the app contacts nothing unless you run the manual check.
+        </p>
+      </div>
+
+      <div>
+        <div class="term-window" style="margin-bottom: 1.5rem;">
+          <div class="term-titlebar">
+            <span class="term-dot term-dot--close"></span>
+            <span class="term-dot term-dot--min"></span>
+            <span class="term-dot term-dot--max"></span>
+            <span class="term-title">pairwise-tui: Update available</span>
+          </div>
+          <pre class="term-body">
+  <span class="term-accent">Update available</span>
+
+  <span class="term-secondary">Installed: 1.8.0</span>   New: 1.8.1   <span class="term-secondary">Download size: 124.1 MB</span>
+
+<span class="term-muted">  ┌──────────────────────────────────────────────────────┐</span>
+<span class="term-muted">  │</span> <span class="term-secondary">## What's Changed</span>                                    <span class="term-muted">│</span>
+<span class="term-muted">  │</span> <span class="term-secondary">* Automatic updates from GitHub releases</span>             <span class="term-muted">│</span>
+<span class="term-muted">  │</span> <span class="term-secondary">* Verified downloads, backup of the old version</span>      <span class="term-muted">│</span>
+<span class="term-muted">  └──────────────────────────────────────────────────────┘</span>
+
+    Update now    Update on exit  <span class="term-accent">▶ Not now</span>    Skip this version
+
+<span class="term-muted">  [←→] choose [Enter] confirm [↑↓] scroll notes [Esc] not now</span></pre>
+        </div>
+
+        <h3 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 0.75rem;">Safe by design</h3>
+        <ul class="ai-setup-steps" style="list-style: disc;">
+          <li><strong>Private.</strong> Only public release information is read. No account, token, usage data or detail about your machine is sent.</li>
+          <li><strong>Verified.</strong> Every release publishes checksums. A download that does not match is discarded and your version keeps running.</li>
+          <li><strong>One source.</strong> Updates come only from this project's GitHub releases, over HTTPS.</li>
+          <li><strong>Undoable.</strong> The previous version is kept beside the app with <code style="font-family:var(--font-mono);color:var(--value);font-size:0.85em">.old</code> added to its name. Rename it back to return to it.</li>
+          <li><strong>Interrupted? Finished later.</strong> If the app is closed abnormally after you agreed to an update, it is completed at the next start.</li>
+          <li><strong>No administrator rights.</strong> If the app sits in a folder you cannot write to, it only tells you about the new version and where to download it.</li>
+        </ul>
+        <p style="font-size:0.82rem; color: var(--text-muted);">
+          On Linux the updated file keeps its executable permission, and an AppImage is replaced by the new AppImage.
+          Available from version 1.8.0 on; older versions need one manual download.
+        </p>
       </div>
     </div>
   </div>

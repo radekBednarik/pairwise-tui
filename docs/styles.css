@@ -758,6 +758,18 @@ kbd {
 }
 
 /* =========================================================
+   Updates section
+   ========================================================= */
+.updates-section {
+	padding: clamp(3rem, 8vw, 5rem) 0;
+	border-top: 1px solid var(--border-inactive);
+}
+
+.updates-section .model-table td:first-child {
+	white-space: nowrap;
+}
+
+/* =========================================================
    PICT Format section
    ========================================================= */
 .pict-format {
