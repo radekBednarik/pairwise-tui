@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { FORMAT_EXTENSIONS } from "../../output/writer";
 import type { OutputFormat } from "../../types";
-import { handleGenerateSaveKeys } from "./modalHandlers";
+import { handleGenerateSaveKeys, handleUpdateKeys } from "./modalHandlers";
 
 const key = (name: string) => ({ name, ctrl: false });
 
@@ -105,4 +105,46 @@ test("format cycling is ignored while a save is in flight", () => {
 	handleGenerateSaveKeys(key("down"), h.actions);
 	expect(h.result().format).toBe("txt");
 	expect(h.result().path).toBe("./output_{timestamp}.txt");
+});
+
+function updateHarness() {
+	const calls: string[] = [];
+	const actions = {
+		moveChoice: (delta: number) => calls.push(`move ${delta}`),
+		scrollNotes: (delta: number) => calls.push(`scroll ${delta}`),
+		confirm: () => calls.push("confirm"),
+		escape: () => calls.push("escape"),
+	};
+	return { calls, actions };
+}
+
+test("update overlay: left, right and Tab move between the choices", () => {
+	const h = updateHarness();
+	for (const name of ["left", "right", "tab"]) {
+		expect(handleUpdateKeys(key(name), h.actions)).toBe(true);
+	}
+	expect(h.calls).toEqual(["move -1", "move 1", "move 1"]);
+});
+
+test("update overlay: arrows and page keys scroll the release notes", () => {
+	const h = updateHarness();
+	for (const name of ["up", "down", "pageup", "pagedown"]) {
+		expect(handleUpdateKeys(key(name), h.actions)).toBe(true);
+	}
+	expect(h.calls).toEqual(["scroll -1", "scroll 1", "scroll -10", "scroll 10"]);
+});
+
+test("update overlay: Enter confirms and Escape backs out", () => {
+	const h = updateHarness();
+	expect(handleUpdateKeys(key("return"), h.actions)).toBe(true);
+	expect(handleUpdateKeys(key("escape"), h.actions)).toBe(true);
+	expect(h.calls).toEqual(["confirm", "escape"]);
+});
+
+test("update overlay: every other key is swallowed, so no global shortcut fires", () => {
+	const h = updateHarness();
+	for (const name of ["q", "g", "s", "o", "w", "1", "2", "3", "m", "i", "t"]) {
+		expect(handleUpdateKeys(key(name), h.actions)).toBe(true);
+	}
+	expect(h.calls).toEqual([]);
 });

@@ -1,5 +1,6 @@
 {
 	"name": "pairwise-tui",
+	"version": "1.7.0",
 	"description": "Terminal UI for pairwise and combinatorial test case generation with Microsoft PICT",
 	"homepage": "https://radekbednarik.github.io/pairwise-tui/",
 	"repository": {

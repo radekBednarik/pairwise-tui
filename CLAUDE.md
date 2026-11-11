@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Runtime
 
 Default to Bun instead of Node.js: `bun <file>`, `bun test`, `bun install`, `bun run <script>`, `bunx`.
-Prefer `Bun.file` over `node:fs`. Use `Bun.$\`cmd\`` instead of execa. Bun auto-loads `.env`.
+Prefer `Bun.file` over `node:fs`. Use `Bun.$\`cmd\`` instead of execa. Bun auto-loads `.env` when running from source; the compiled executables deliberately do not (`COMPILE_HARDENING` in `scripts/build-common.ts`), so never rely on a `.env` or `bunfig.toml` next to a released binary.
 
 ## Commands
 
@@ -34,6 +34,7 @@ Pairwise-TUI is a terminal app for generating PICT pairwise test cases. It uses 
 - `src/pict/runner.ts` – execute PICT binary, parse TSV output into TestCase[]
 - `src/output/writer.ts` – write test cases to TSV file
 - `src/types.ts` – shared TypeScript interfaces (Parameter, PictModel, PictOptions, TestCase)
+- `src/update/` – self-update from GitHub releases, no React inside: `controller.ts` is the flow (a plain state machine the UI subscribes to through `useUpdateState`), `release.ts` / `download.ts` / `install.ts` / `restart.ts` / `startup.ts` are its steps, each taking its environment as parameters so tests never touch the network or the real app file
 
 **PICT binaries**: `binaries/pict` (Linux) and `binaries/pict.exe` (Windows) – embedded as Bun assets, extracted at runtime into a per-user private temp directory (`$TMPDIR/pairwise-tui-<uid>`, mode 0700) together with the generated model file.
 
@@ -41,6 +42,8 @@ Pairwise-TUI is a terminal app for generating PICT pairwise test cases. It uses 
 
 - Linting: Biome (tabs, strict rules) – run `bun run check` before committing
 - Keyboard-driven UI: global shortcuts (`q` quit – not while a text field is focused, `g` generate, `s` save, `o` open, `w` write model), tab navigation via `1/2/3` or `[/]`
+- Version: `package.json` `version` is the single source (shown in the app, compared with release tags, read by `scripts/build-windows.ts`); a release tag must equal it
+- The updater is inert unless the build defines `__RELEASE_BUILD__` (`scripts/build-common.ts`), so `bun run dev` / `start` / `test` never check or replace anything
 - Tests are colocated with sources as `*.test.ts` / `*.test.tsx` and run with `bun test`
 - UI behaviour is tested end-to-end through `renderTest` (`src/testing/render.tsx`), which renders via `createRoot` into a headless `createTestRenderer` and starts the render loop; do not use `testRender` from `@opentui/react/test-utils` – it turns on React's act environment and every `mockInput`-driven update then logs an act() warning
 - OpenTUI `<input>` emits `change` only on **blur or submit**, not per keystroke – a handler that must see the current text reads it from a ref (see `newParamNameRef`, `getAiKeyInput`), never from the state set by `onChange`

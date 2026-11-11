@@ -36,6 +36,42 @@ To run the app:
 Alternatively: right-click the `.exe` → **Properties** → check **Unblock** → **OK**, then run normally.
 </details>
 
+## Automatic updates
+
+The app can update itself. This is **on by default**; turn it off in the **Options** tab under **Updates** (`Tab` to **Automatic updates**, `Enter` to toggle).
+
+**What it does.** At startup, at most once every 24 hours, the app asks GitHub for this project's latest release. It reads the release information and nothing else: no account, no token, no usage data and no details about your machine are sent. With the setting off, the app contacts nothing unless you press **Check for updates now** in the Options tab.
+
+**When a newer version exists** an overlay shows your version, the new version, the download size and the release notes. Nothing is downloaded until you choose:
+
+| Choice | What happens |
+|--------|--------------|
+| **Update now** | Downloads with a progress display, verifies, replaces the app and restarts it in the same terminal. If you have unsaved work, you are asked first. |
+| **Update on exit** | Downloads in the background while you keep working and replaces the app when you quit. If the app is closed abnormally, the update is finished the next time you start it. |
+| **Not now** | Nothing is downloaded. You are asked again at the next start. |
+| **Skip this version** | That version is not offered again. A later version is. |
+
+**Verification.** Every release publishes a `SHA256SUMS.txt`. A download is installed only if it matches; otherwise it is discarded and your current version keeps running. Updates are fetched only from this project's GitHub releases, over HTTPS.
+
+**The previous version is kept** next to the app as a single backup with `.old` added to its name (`pairwise-tui.old`, `pairwise-tui.exe.old`, `Pairwise-TUI-x86_64.AppImage.old`). To go back to it:
+
+```bash
+# Linux (use the .AppImage name for the AppImage)
+mv pairwise-tui.old pairwise-tui
+```
+
+```powershell
+# Windows: close the app first
+Remove-Item pairwise-tui.exe
+Rename-Item pairwise-tui.exe.old pairwise-tui.exe
+```
+
+Then choose **Skip this version** when that release is offered again, or turn automatic updates off.
+
+**If the app cannot replace itself** (for example it was installed by an administrator into a folder you cannot write to), the overlay only tells you about the new version and where to download it. The app never asks for administrator rights.
+
+On Linux the updated file keeps its executable permission, and an AppImage is replaced by the new AppImage. Running from source (`bun run start`) never checks or updates.
+
 ## Interface
 
 Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
@@ -43,7 +79,7 @@ Three tabs, navigated with `1` / `2` / `3` or `[` / `]`:
 | Tab | Purpose |
 |-----|---------|
 | **Model** | Define parameters (name + comma-separated values), PICT constraints, and sub-models with their own combination order |
-| **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, the ask-where-to-save prompt, storage path, file template, AI model |
+| **Options** | Set combination order, randomize seed, case sensitivity, output file path, output format, the ask-where-to-save prompt, storage path, file template, AI model, automatic updates |
 | **Results** | View generated test cases in a scrollable table |
 
 ### Keyboard shortcuts
@@ -249,17 +285,22 @@ bun run build:dist:linux
 APPIMAGETOOL=./dist/appimagetool.AppImage bun run package:appimage
 ```
 
-The release workflow publishes three artifacts:
+The release workflow publishes three artifacts, plus `SHA256SUMS.txt` with their checksums:
 
 - `pairwise-tui.exe` for Windows with the custom app icon
 - `pairwise-tui` as the raw Linux executable
 - `Pairwise-TUI-x86_64.AppImage` as the desktop-friendly Linux download
 
-To create a new release:
+Installed copies find their update by these exact names and verify it against `SHA256SUMS.txt`, so the names must not change.
+
+To create a new release, set the new version in `package.json` (it is the single source of the version: the app shows it and compares it with release tags), commit, then tag that commit with the same number:
 
 ```bash
+# after committing "version": "1.2.3" in package.json
 git tag v1.2.3
 git push --tags
 ```
 
-This triggers the GitHub Actions release workflow, which builds the Windows executable, Linux executable, and Linux AppImage, then publishes them to the Releases page automatically.
+This triggers the GitHub Actions release workflow, which builds the Windows executable, Linux executable, and Linux AppImage, then publishes them to the Releases page automatically. The workflow stops before building if the tag and the `package.json` version differ.
+
+To try the update flow locally without publishing anything, see `scripts/dev-fake-release.ts`.

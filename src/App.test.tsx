@@ -2,10 +2,18 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { App } from "./App";
+import { App, type AppUpdateOptions } from "./App";
 import { runPict } from "./pict/runner";
 import { overrideEnv } from "./testing/env";
 import { renderTest } from "./testing/render";
+import type { UpdateDeps } from "./update/controller";
+import type { Availability, InstallContext } from "./update/platform";
+import {
+	type AvailableUpdate,
+	EMPTY_UPDATE_RECORD,
+	type UpdateRecord,
+} from "./update/state";
+import { INSTALLED_VERSION } from "./update/version";
 
 // Windows has no POSIX file modes — stat reports 666/777 whatever chmod did —
 // so the tests that assert on them only mean something elsewhere.
@@ -74,8 +82,12 @@ async function renderApp(element = <App />) {
 		t.mockInput.pressKey("u", { ctrl: true });
 		await t.flush();
 	};
-	const arrow = async (dir: "up" | "down") => {
+	const arrow = async (dir: "up" | "down" | "left" | "right") => {
 		t.mockInput.pressArrow(dir);
+		await t.flush();
+	};
+	const pressCtrl = async (key: string) => {
+		t.mockInput.pressKey(key, { ctrl: true });
 		await t.flush();
 	};
 	// Lets async work that finished behind the scenes (a dropped overlay
@@ -120,6 +132,7 @@ async function renderApp(element = <App />) {
 		tab,
 		clearInput,
 		arrow,
+		pressCtrl,
 		addParam,
 		settle,
 		waitFor,
@@ -799,6 +812,631 @@ test("the options tab offers a timestamp template for both output and model file
 		const frame = app.frame();
 		expect(frame).toContain("output_{timestamp}.txt");
 		expect(frame.split("{timestamp} = UTC ISO date").length - 1).toBe(2);
+	} finally {
+		app.cleanup();
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Automatic update (specs/002-auto-update)
+// ---------------------------------------------------------------------------
+
+const UPDATE_TARGET = "/opt/app/pairwise-tui";
+const UPDATE_SHA = "d".repeat(64);
+const NEWER = "99.0.0";
+
+function newerUpdate(over: Partial<AvailableUpdate> = {}): AvailableUpdate {
+	return {
+		version: NEWER,
+		tag: `v${NEWER}`,
+		notes: "First line of notes\nSecond line of notes",
+		pageUrl: `https://github.com/radekBednarik/pairwise-tui/releases/tag/v${NEWER}`,
+		assetName: "pairwise-tui",
+		sizeBytes: 5 * 1024 * 1024,
+		...over,
+	};
+}
+
+/** An in-memory update backend: nothing touches the network or the app file. */
+function fakeUpdate(
+	setup: {
+		availability?: Availability;
+		record?: Partial<UpdateRecord>;
+		check?: () => Promise<AvailableUpdate | null>;
+		staged?: boolean;
+	} = {},
+) {
+	const calls: string[] = [];
+	let record: UpdateRecord = { ...EMPTY_UPDATE_RECORD, ...setup.record };
+	// Swappable after the app (and its controller) was created.
+	const current = {
+		check: setup.check ?? (async () => newerUpdate()),
+	};
+	const context: InstallContext = {
+		kind: "linux",
+		targetPath: UPDATE_TARGET,
+		assetName: "pairwise-tui",
+		availability: setup.availability ?? "ok",
+		identity: "1:2",
+	};
+	const deps: Partial<UpdateDeps> = {
+		getContext: async () => context,
+		loadRecord: async () => structuredClone(record),
+		saveRecord: async (r) => {
+			record = structuredClone(r);
+		},
+		check: async () => {
+			calls.push("check");
+			return current.check();
+		},
+		fetchChecksum: async () => UPDATE_SHA,
+		download: async (options) => {
+			calls.push("download");
+			options.onProgress(options.sizeBytes, options.sizeBytes);
+			return UPDATE_SHA;
+		},
+		install: async () => {
+			calls.push("install");
+		},
+		acquireLock: async () => true,
+		releaseLock: async () => {},
+		removeStaged: async () => {
+			calls.push("removeStaged");
+		},
+		stagedExists: async () => setup.staged ?? false,
+	};
+	const options: AppUpdateOptions = {
+		deps,
+		restart: (version) => calls.push(`restart ${version}`),
+	};
+	return {
+		options,
+		calls,
+		record: () => record,
+		setCheck: (check: () => Promise<AvailableUpdate | null>) => {
+			current.check = check;
+		},
+	};
+}
+
+test("a found update is offered after startup with its details and four choices", async () => {
+	const update = fakeUpdate();
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.waitFor((f) => f.includes("Update available"));
+		const frame = app.frame();
+		expect(frame).toContain(`Installed: ${INSTALLED_VERSION}`);
+		expect(frame).toContain(`New: ${NEWER}`);
+		expect(frame).toContain("Download size: 5.0 MB");
+		expect(frame).toContain("First line of notes");
+		expect(frame).toContain("Second line of notes");
+		const order = [
+			"Update now",
+			"Update on exit",
+			"Not now",
+			"Skip this version",
+		].map((choice) => frame.indexOf(choice));
+		expect(order.every((i) => i >= 0)).toBe(true);
+		expect([...order].sort((a, b) => a - b)).toEqual(order);
+		expect(frame).toContain("▶ Not now");
+		// Nothing is downloaded before the user chooses.
+		expect(update.calls).toEqual(["check"]);
+
+		// Global shortcuts are inactive while the offer is open.
+		await app.press("q");
+		expect(app.hasQuit()).toBe(false);
+		await app.press("2");
+		expect(app.frame()).toContain("Update available");
+
+		await app.escape();
+		expect(app.frame()).not.toContain("Update available");
+		expect(update.record().available?.version).toBe(NEWER);
+		expect(update.calls).toEqual(["check"]);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the interface is drawn and takes keys while the update check is still running", async () => {
+	const update = fakeUpdate({ check: () => new Promise(() => {}) });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		expect(update.calls).toEqual(["check"]);
+		expect(app.frame()).toContain("1:Model");
+		await app.press("2");
+		expect(app.frame()).toContain("Output Configuration");
+		await app.press("q");
+		expect(app.hasQuit()).toBe(true);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the update offer waits until a text field is left", async () => {
+	let found: (u: AvailableUpdate) => void = () => {};
+	const update = fakeUpdate({
+		check: () =>
+			new Promise<AvailableUpdate>((resolve) => {
+				found = resolve;
+			}),
+	});
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("a");
+		await app.type("Brow");
+		found(newerUpdate());
+		await app.settle();
+		expect(app.frame()).not.toContain("Update available");
+
+		await app.type("ser");
+		await app.enter();
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.escape();
+		// The name typed while the offer was waiting was not lost.
+		expect(app.frame()).toContain("Browser");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the update offer waits behind another overlay", async () => {
+	let found: (u: AvailableUpdate) => void = () => {};
+	const update = fakeUpdate({
+		check: () =>
+			new Promise<AvailableUpdate>((resolve) => {
+				found = resolve;
+			}),
+	});
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("?");
+		expect(app.frame()).toContain("Pairwise TUI docs");
+		found(newerUpdate());
+		await app.settle();
+		expect(app.frame()).toContain("Pairwise TUI docs");
+		expect(app.frame()).not.toContain("Update available");
+		await app.escape();
+		await app.waitFor((f) => f.includes("Update available"));
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("'Update now' without unsaved work downloads, installs and restarts", async () => {
+	const update = fakeUpdate();
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.arrow("left");
+		await app.arrow("left");
+		expect(app.frame()).toContain("▶ Update now");
+		await app.enter();
+		await app.settle();
+		expect(update.calls).toEqual([
+			"check",
+			"download",
+			"install",
+			`restart ${NEWER}`,
+		]);
+		expect(update.record().installedFrom).toBe(INSTALLED_VERSION);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("'Update now' with unsaved work warns first, and 'Go back' returns to the offer", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.addParam("Browser", "Chrome, Firefox");
+
+		// Manual check from the Options tab: 11 Tabs reach "Check for updates now".
+		update.setCheck(async () => newerUpdate());
+		await app.press("2");
+		for (let i = 0; i < 11; i++) await app.tab();
+		expect(app.frame()).toContain("[Enter] check");
+		await app.enter();
+		await app.waitFor((f) => f.includes("Update available"));
+
+		await app.arrow("left");
+		await app.arrow("left");
+		await app.enter();
+		await app.waitFor((f) =>
+			f.includes("Restarting will discard unsaved work."),
+		);
+		const frame = app.frame();
+		expect(frame).toContain("▶ Go back");
+		expect(frame).toContain("Save model first");
+		expect(frame).toContain("Update on exit instead");
+		expect(update.calls).not.toContain("download");
+
+		await app.enter();
+		await app.waitFor((f) => f.includes("Update available"));
+		expect(update.calls).not.toContain("download");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("work counts as unsaved until the model is saved, and results until they are saved", async () => {
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => newerUpdate() });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.escape();
+		await app.addParam("Browser", "Chrome, Firefox");
+
+		const offerAndUpdateNow = async () => {
+			await app.press("2");
+			await app.escape();
+			for (let i = 0; i < 11; i++) await app.tab();
+			await app.enter();
+			await app.waitFor((f) => f.includes("Update available"));
+			await app.arrow("left");
+			await app.arrow("left");
+			await app.enter();
+			await app.settle();
+		};
+
+		// Saving the model clears the model part; nothing was generated yet.
+		await app.press("1");
+		await app.press("w");
+		await app.waitFor((f) => f.includes("Model saved to"));
+		await offerAndUpdateNow();
+		expect(app.frame()).not.toContain("Restarting will discard unsaved work.");
+		expect(update.calls).toContain(`restart ${NEWER}`);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("generated results that were not saved count as unsaved work", async () => {
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => null });
+	const fakeRun: typeof runPict = async () => [{ Browser: "Chrome" }];
+	const app = await renderApp(
+		<App update={update.options} runPict={fakeRun} />,
+	);
+	try {
+		await app.settle();
+		await app.addParam("Browser", "Chrome");
+		await app.press("w");
+		await app.waitFor((f) => f.includes("Model saved to"));
+		await app.press("g");
+		await app.waitFor((f) => f.includes("Generated 1 test cases"));
+
+		update.setCheck(async () => newerUpdate());
+		await app.press("2");
+		for (let i = 0; i < 11; i++) await app.tab();
+		await app.enter();
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.arrow("left");
+		await app.arrow("left");
+		await app.enter();
+		await app.waitFor((f) =>
+			f.includes("Restarting will discard unsaved work."),
+		);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an install the app cannot modify only gets a notice", async () => {
+	const update = fakeUpdate({ availability: "read-only" });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.waitFor((f) => f.includes("Update available"));
+		const frame = app.frame();
+		expect(frame).toContain(
+			"This installation cannot update itself (no write permission).",
+		);
+		expect(frame).toContain(
+			`Download: https://github.com/radekBednarik/pairwise-tui/releases/tag/v${NEWER}`,
+		);
+		expect(frame).toContain("▶ Close");
+		expect(frame).toContain("Skip this version");
+		expect(frame).not.toContain("Update now");
+		expect(frame).not.toContain("Update on exit");
+
+		await app.enter();
+		expect(app.frame()).not.toContain("Update available");
+		expect(update.calls).toEqual(["check"]);
+
+		await app.press("2");
+		expect(app.frame()).toContain(
+			"Self-update unavailable: no write permission for the app's folder",
+		);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("the first start after an update says which version now runs", async () => {
+	const update = fakeUpdate({
+		record: { installedFrom: "0.0.1" },
+		check: async () => null,
+	});
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.waitFor((f) =>
+			f.includes(
+				`Updated to ${INSTALLED_VERSION} (previous version kept as pairwise-tui.old)`,
+			),
+		);
+		expect(update.record().installedFrom).toBeNull();
+	} finally {
+		app.cleanup();
+	}
+});
+
+for (const how of ["q", "Ctrl+C"] as const) {
+	test(`${how} installs an update that waits for exit, then quits`, async () => {
+		const update = fakeUpdate({
+			staged: true,
+			check: async () => null,
+			record: {
+				pending: {
+					version: NEWER,
+					mode: "onExit",
+					sha256: UPDATE_SHA,
+					targetPath: UPDATE_TARGET,
+				},
+			},
+		});
+		const app = await renderApp(<App update={update.options} />);
+		try {
+			await app.settle();
+			await app.press("2");
+			expect(app.frame()).toContain(`${NEWER} will be installed on exit`);
+			await app.press("1");
+
+			if (how === "q") await app.press("q");
+			else await app.pressCtrl("c");
+			await app.settle();
+			expect(update.calls).toContain("install");
+			expect(app.hasQuit()).toBe(true);
+			expect(update.record().pending).toBeNull();
+			expect(update.record().installedFrom).toBe(INSTALLED_VERSION);
+		} finally {
+			app.cleanup();
+		}
+	});
+}
+
+test("the Options tab shows the Updates section, on by default", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("2");
+		const frame = app.frame();
+		expect(frame.indexOf("Updates")).toBeGreaterThan(
+			frame.indexOf("AI Settings"),
+		);
+		expect(frame).toContain(`Version: ${INSTALLED_VERSION}`);
+		expect(frame).toMatch(/Automatic updates:\s+● ON/);
+		expect(frame).toContain("Check for updates now");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("run from source, the Updates section says updates are unavailable and checks nothing", async () => {
+	// No injected backend: this is the real default, and tests run from source.
+	const app = await renderApp();
+	try {
+		await app.settle();
+		await app.press("2");
+		expect(app.frame()).toContain(
+			"Updates unavailable when running from source",
+		);
+		for (let i = 0; i < 10; i++) await app.tab();
+		expect(app.frame()).not.toContain("[Enter] toggle");
+		await app.enter();
+		expect(app.frame()).toMatch(/Automatic updates:\s+● ON/);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("turning automatic updates off persists and stops the startup check", async () => {
+	const first = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={first.options} />);
+	try {
+		await app.settle();
+		expect(first.calls).toEqual(["check"]);
+		await app.press("2");
+		for (let i = 0; i < 10; i++) await app.tab();
+		expect(app.frame()).toContain("[Enter] toggle");
+		await app.enter();
+		expect(app.frame()).toMatch(/Automatic updates:\s+○ OFF/);
+		const config = await waitForConfig(
+			app.flush,
+			(c) => c.autoUpdate === false,
+		);
+		expect(config.autoUpdate).toBe(false);
+	} finally {
+		app.cleanup();
+	}
+
+	const second = fakeUpdate();
+	const again = await renderApp(<App update={second.options} />);
+	try {
+		await again.settle();
+		expect(second.calls).toEqual([]);
+		expect(again.frame()).not.toContain("Update available");
+
+		// The manual check still works with the setting off.
+		await again.press("2");
+		expect(again.frame()).toMatch(/Automatic updates:\s+○ OFF/);
+		for (let i = 0; i < 11; i++) await again.tab();
+		await again.enter();
+		await again.waitFor((f) => f.includes("Update available"));
+		expect(second.calls).toEqual(["check"]);
+	} finally {
+		again.cleanup();
+	}
+});
+
+test("the manual check reports being up to date and a failed check", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("2");
+		for (let i = 0; i < 11; i++) await app.tab();
+		await app.enter();
+		await app.waitFor((f) =>
+			f.includes(`You are up to date (${INSTALLED_VERSION})`),
+		);
+
+		update.setCheck(async () => {
+			throw new Error("HTTP 403");
+		});
+		await app.enter();
+		await app.waitFor((f) => f.includes("Update check failed: HTTP 403"));
+		expect(app.frame()).toContain("Last update check failed: HTTP 403");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("a failed automatic check interrupts nothing and lands in the message log", async () => {
+	const update = fakeUpdate({
+		check: async () => {
+			throw new Error("offline");
+		},
+	});
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		expect(app.frame()).not.toContain("Update check failed");
+		expect(app.frame()).not.toContain("Update available");
+		await app.press("m");
+		expect(app.frame()).toContain("Update check failed: offline");
+	} finally {
+		app.cleanup();
+	}
+});
+
+/** Manual check from the Options tab, then "Update now" on the offer. */
+async function manualCheckAndUpdateNow(
+	app: Awaited<ReturnType<typeof renderApp>>,
+): Promise<void> {
+	await app.press("2");
+	await app.escape();
+	for (let i = 0; i < 11; i++) await app.tab();
+	await app.enter();
+	await app.waitFor((f) => f.includes("Update available"));
+	await app.arrow("left");
+	await app.arrow("left");
+	await app.enter();
+	await app.settle();
+}
+
+test("a model opened from storage is not unsaved work", async () => {
+	await Bun.write(join(dir, "only.pictm"), "Zeta: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("o");
+		await app.waitFor((f) => f.includes("Loaded model from"));
+		expect(app.frame()).toContain("Zeta");
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).not.toContain("Restarting will discard unsaved work.");
+		expect(update.calls).toContain(`restart ${NEWER}`);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an opened model that was then changed is unsaved work", async () => {
+	await Bun.write(join(dir, "only.pictm"), "Zeta: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("o");
+		await app.waitFor((f) => f.includes("Loaded model from"));
+		await app.addParam("Browser", "Chrome");
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).toContain("Restarting will discard unsaved work.");
+		expect(update.calls).not.toContain("download");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("clearing the model leaves no unsaved work", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.addParam("Browser", "Chrome, Firefox");
+		await app.press("x");
+		await app.arrow("up");
+		await app.enter();
+		await app.waitFor((f) => f.includes("Model cleared"));
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).not.toContain("Restarting will discard unsaved work.");
+		expect(update.calls).toContain(`restart ${NEWER}`);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an offer found by the manual check waits until a text field is left", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		let found: (u: AvailableUpdate) => void = () => {};
+		update.setCheck(
+			() =>
+				new Promise<AvailableUpdate>((resolve) => {
+					found = resolve;
+				}),
+		);
+		await app.press("2");
+		for (let i = 0; i < 11; i++) await app.tab();
+		await app.enter();
+
+		// While the check runs: on to the output path field, and type into it.
+		await app.tab();
+		await app.tab();
+		await app.type("x");
+		found(newerUpdate());
+		await app.settle();
+		expect(app.frame()).not.toContain("Update available");
+		expect(app.frame()).toContain("Output file path:");
+
+		// Leaving the field lets the offer through, and the text survives.
+		await app.escape();
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.escape();
+		expect(app.frame()).toContain("./output_{timestamp}.txtx");
 	} finally {
 		app.cleanup();
 	}

@@ -9,6 +9,7 @@ const NONE: OverlayFlags = {
 	aiPromptOpen: false,
 	showClearConfirm: false,
 	generateSaveOpen: false,
+	updateOpen: false,
 };
 
 test("no overlay flag set resolves to null (tabs are shown)", () => {
@@ -104,4 +105,25 @@ test("precedence: clearConfirm beats generateSave", () => {
 			generateSaveOpen: true,
 		}),
 	).toBe("clearConfirm");
+});
+
+test("the update overlay shows when it is the only one open", () => {
+	expect(resolveActiveOverlay({ ...NONE, updateOpen: true })).toBe("update");
+});
+
+test("precedence: every other overlay beats the update overlay", () => {
+	const others = [
+		["logOpen", "log"],
+		["docsOpen", "docs"],
+		["pickerOpen", "picker"],
+		["aiSetupOpen", "aiSetup"],
+		["aiPromptOpen", "aiPrompt"],
+		["showClearConfirm", "clearConfirm"],
+		["generateSaveOpen", "generateSave"],
+	] as const;
+	for (const [flag, kind] of others) {
+		expect(
+			resolveActiveOverlay({ ...NONE, updateOpen: true, [flag]: true }),
+		).toBe(kind);
+	}
 });

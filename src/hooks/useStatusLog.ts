@@ -11,6 +11,8 @@ export interface StatusLogState {
 	logSelectedIndex: number;
 	logScrollOffset: number;
 	showStatus: (msg: string, isError?: boolean) => void;
+	/** Adds to the message log without showing the status line. */
+	logMessage: (msg: string, isError?: boolean) => void;
 	setLogOpen: (v: boolean) => void;
 	setLogSelectedIndex: Dispatch<SetStateAction<number>>;
 	setLogScrollOffset: Dispatch<SetStateAction<number>>;
@@ -48,6 +50,18 @@ export function useStatusLog(): StatusLogState {
 		timeoutRef.current = setTimeout(() => setStatus(""), 4000);
 	}, []);
 
+	const logMessage = useCallback((msg: string, isError = false) => {
+		setLogMessages((prev) => [
+			...prev,
+			{
+				id: incrementLogId(),
+				timestamp: new Date(),
+				type: isError ? ("error" as const) : ("info" as const),
+				text: msg,
+			},
+		]);
+	}, []);
+
 	return {
 		status,
 		statusIsError,
@@ -56,6 +70,7 @@ export function useStatusLog(): StatusLogState {
 		logSelectedIndex,
 		logScrollOffset,
 		showStatus,
+		logMessage,
 		setLogOpen,
 		setLogSelectedIndex,
 		setLogScrollOffset,

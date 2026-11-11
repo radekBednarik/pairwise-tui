@@ -9,9 +9,38 @@ permissions:
   contents: write
 
 jobs:
+  # Installed copies compare their own version (package.json, baked into every
+  # artifact) with the release tag to decide whether a release is an update.
+  # A tag that disagrees with package.json would publish artifacts that report
+  # the wrong version, so nothing is built in that case.
+  guard:
+    name: Check tag against package.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Tag must equal the package.json version
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version. Bump package.json, commit, and tag that commit."
+            exit 1
+          fi
+
+      # The override bakes a different update source into the executables. It
+      # exists for local testing only and must never reach a published build.
+      - name: Update source override must not be set
+        run: |
+          if [ -n "${UPDATE_SOURCE_OVERRIDE:-}" ]; then
+            echo "::error::UPDATE_SOURCE_OVERRIDE is set. Release builds must use the default update source."
+            exit 1
+          fi
+
   build-pict-win:
     name: Build static pict.exe
     runs-on: windows-latest
+    needs: [guard]
     steps:
       - name: Clone microsoft/pict
         run: git clone --depth 1 https://github.com/microsoft/pict pict-src
@@ -40,6 +69,7 @@ jobs:
   build-pict-linux:
     name: Build pict (Linux)
     runs-on: ubuntu-latest
+    needs: [guard]
     steps:
       - name: Clone microsoft/pict
         run: git clone --depth 1 https://github.com/microsoft/pict pict-src
@@ -213,6 +243,15 @@ jobs:
           name: third-party-notices
           path: dist
 
+      # Installed copies verify a downloaded update against this file and
+      # refuse to install without it. The asset names are part of that
+      # contract: renaming one cuts existing installations off from updates.
+      - name: Write checksums
+        working-directory: dist
+        run: |
+          sha256sum pairwise-tui pairwise-tui.exe Pairwise-TUI-x86_64.AppImage > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
@@ -223,4 +262,5 @@ jobs:
             dist/pairwise-tui.exe
             dist/Pairwise-TUI-x86_64.AppImage
             dist/THIRD-PARTY-NOTICES.txt
+            dist/SHA256SUMS.txt
           generate_release_notes: true

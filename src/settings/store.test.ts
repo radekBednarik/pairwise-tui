@@ -2,7 +2,12 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadSettings, resolveAiModel, saveSettings } from "./store";
+import {
+	DEFAULT_SETTINGS,
+	loadSettings,
+	resolveAiModel,
+	saveSettings,
+} from "./store";
 
 let dir: string;
 const savedXdg = process.env.XDG_CONFIG_HOME;
@@ -42,6 +47,7 @@ test("missing config file yields the defaults", async () => {
 	expect(s.themeName).toBe("tokyonight-dark");
 	expect(s.aiModel).toBe("claude-sonnet-5-5");
 	expect(s.promptOnGenerate).toBe(false);
+	expect(s.autoUpdate).toBe(true);
 });
 
 test("saved settings are read back unchanged", async () => {
@@ -52,6 +58,7 @@ test("saved settings are read back unchanged", async () => {
 		themeName: "tokyonight-storm",
 		aiModel: "claude-opus-5-5" as const,
 		promptOnGenerate: true,
+		autoUpdate: false,
 	};
 	await saveSettings(settings);
 	expect(await loadSettings()).toEqual(settings);
@@ -211,4 +218,25 @@ test("a theme name that no theme uses falls back to the default theme", async ()
 test("a format name inherited from Object.prototype falls back to txt", async () => {
 	await writeConfig(JSON.stringify({ outputConfig: { format: "toString" } }));
 	expect((await loadSettings()).outputConfig.format).toBe("txt");
+});
+
+test("automatic updates are on by default", () => {
+	expect(DEFAULT_SETTINGS.autoUpdate).toBe(true);
+});
+
+test("a config file from before the update feature loads autoUpdate on", async () => {
+	await writeConfig(JSON.stringify({ themeName: "tokyonight-storm" }));
+	expect((await loadSettings()).autoUpdate).toBe(true);
+});
+
+test("autoUpdate off is kept", async () => {
+	await writeConfig(JSON.stringify({ autoUpdate: false }));
+	expect((await loadSettings()).autoUpdate).toBe(false);
+});
+
+test("a non-boolean autoUpdate falls back to on", async () => {
+	for (const bad of ["no", 0, null, "false", {}]) {
+		await writeConfig(JSON.stringify({ autoUpdate: bad }));
+		expect((await loadSettings()).autoUpdate).toBe(true);
+	}
 });

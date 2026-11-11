@@ -24,7 +24,7 @@ interface GlobalActions {
 	handleGenerate: () => Promise<void>;
 	handleSaveResults: () => Promise<void>;
 	handleOpenModel: () => Promise<void>;
-	handleSaveModel: () => Promise<void>;
+	handleSaveModel: () => Promise<unknown>;
 	destroy: () => void;
 }
 

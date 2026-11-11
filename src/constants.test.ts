@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { AI_MODELS, DEFAULT_AI_MODEL, nextOptionField } from "./constants";
+import {
+	AI_MODELS,
+	DEFAULT_AI_MODEL,
+	nextOptionField,
+	OPTION_FIELDS,
+} from "./constants";
 import { AI_MODEL_LABELS } from "./types";
 
 test("Tab moves to the next options field and wraps to the first", () => {
@@ -25,4 +30,16 @@ test("every selectable AI model has a display label", () => {
 
 test("the default AI model stays Sonnet 5.5", () => {
 	expect(DEFAULT_AI_MODEL).toBe("claude-sonnet-5-5");
+});
+
+test("the update fields come after the AI model, before leaving the fields", () => {
+	expect(OPTION_FIELDS.slice(-4)).toEqual([
+		"aiModel",
+		"autoUpdate",
+		"checkUpdates",
+		"none",
+	]);
+	expect(nextOptionField("aiModel")).toBe("autoUpdate");
+	expect(nextOptionField("autoUpdate")).toBe("checkUpdates");
+	expect(nextOptionField("checkUpdates")).toBe("none");
 });
