@@ -1406,3 +1406,38 @@ test("clearing the model leaves no unsaved work", async () => {
 		app.cleanup();
 	}
 });
+
+test("an offer found by the manual check waits until a text field is left", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		let found: (u: AvailableUpdate) => void = () => {};
+		update.setCheck(
+			() =>
+				new Promise<AvailableUpdate>((resolve) => {
+					found = resolve;
+				}),
+		);
+		await app.press("2");
+		for (let i = 0; i < 11; i++) await app.tab();
+		await app.enter();
+
+		// While the check runs: on to the output path field, and type into it.
+		await app.tab();
+		await app.tab();
+		await app.type("x");
+		found(newerUpdate());
+		await app.settle();
+		expect(app.frame()).not.toContain("Update available");
+		expect(app.frame()).toContain("Output file path:");
+
+		// Leaving the field lets the offer through, and the text survives.
+		await app.escape();
+		await app.waitFor((f) => f.includes("Update available"));
+		await app.escape();
+		expect(app.frame()).toContain("./output_{timestamp}.txtx");
+	} finally {
+		app.cleanup();
+	}
+});

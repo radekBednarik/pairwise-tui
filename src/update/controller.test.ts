@@ -193,6 +193,7 @@ test("no check when the app cannot update at all", async () => {
 		const h = make({ availability });
 		await h.controller.runStartupCheck(true);
 		await h.controller.checkNow();
+		h.controller.openOffer();
 		expect(h.calls).toEqual([]);
 		expect(h.snap().wantsOffer).toBe(false);
 	}
@@ -782,6 +783,7 @@ test("the manual check ignores the limits and the skipped version", async () => 
 		},
 	});
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.calls).toEqual(["check"]);
 	expect(h.snap().phase).toBe("offer");
 	expect(h.snap().available?.version).toBe("1.8.0");
@@ -791,6 +793,7 @@ test("the manual check works with automatic updates off", async () => {
 	const h = make();
 	await h.controller.runStartupCheck(false);
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.calls).toEqual(["check"]);
 	expect(h.snap().phase).toBe("offer");
 });
@@ -798,6 +801,7 @@ test("the manual check works with automatic updates off", async () => {
 test("the manual check says so when up to date", async () => {
 	const h = make({ check: async () => null });
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.status).toEqual([
 		{ text: "You are up to date (1.7.0)", error: false },
 	]);
@@ -811,6 +815,7 @@ test("a failed manual check is reported with its reason", async () => {
 		},
 	});
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.status).toEqual([
 		{ text: "Update check failed: timed out", error: true },
 	]);
@@ -825,6 +830,7 @@ test("the manual check only reports while an update is pending", async () => {
 	h.calls.length = 0;
 
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.calls).toEqual([]);
 	expect(h.status.at(-1)?.text).toBe(
 		"Already downloading 1.8.0, will install on exit",
@@ -834,6 +840,7 @@ test("the manual check only reports while an update is pending", async () => {
 	await flow;
 	h.calls.length = 0;
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.calls).toEqual([]);
 	expect(h.status.at(-1)?.text).toBe("1.8.0 will be installed on exit");
 	expect(h.snap().phase).toBe("idle");
@@ -842,6 +849,7 @@ test("the manual check only reports while an update is pending", async () => {
 test("a skipped version offered manually stays skipped after 'Not now'", async () => {
 	const h = make({ record: { skippedVersion: "1.8.0" } });
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	h.controller.notNow();
 	expect(h.record().skippedVersion).toBe("1.8.0");
 });
@@ -850,6 +858,7 @@ test("choosing to update a skipped version clears the skip", async () => {
 	for (const choose of ["updateNow", "updateOnExit"] as const) {
 		const h = make({ record: { skippedVersion: "1.8.0" } });
 		await h.controller.checkNow();
+		h.controller.openOffer();
 		await h.controller[choose]();
 		expect(h.record().skippedVersion).toBeNull();
 	}
@@ -1145,6 +1154,7 @@ test("a startup check that answers while an offer is open does not queue it agai
 	const startup = h.controller.runStartupCheck(true);
 	await tick();
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	expect(h.snap().phase).toBe("offer");
 
 	answer(update());
@@ -1176,6 +1186,7 @@ test("a startup check that answers during a download does not disturb it", async
 	const startup = h.controller.runStartupCheck(true);
 	await tick();
 	await h.controller.checkNow();
+	h.controller.openOffer();
 	const flow = h.controller.updateNow();
 	await tick();
 	answer(update("1.9.0"));
@@ -1234,4 +1245,15 @@ test("a read-only install never downloads, installs or starts anything", async (
 		expect(h.calls).not.toContain(forbidden);
 	}
 	expect(h.calls.some((c) => c.startsWith("restart"))).toBe(false);
+});
+
+test("the manual check queues its offer for the interface to open when idle", async () => {
+	const h = make();
+	await h.controller.checkNow();
+	expect(h.snap().phase).toBe("idle");
+	expect(h.snap().wantsOffer).toBe(true);
+	expect(h.snap().available?.version).toBe("1.8.0");
+	h.controller.openOffer();
+	expect(h.snap().phase).toBe("offer");
+	expect(h.snap().wantsOffer).toBe(false);
 });

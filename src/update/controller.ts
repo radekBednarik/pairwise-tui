@@ -398,8 +398,10 @@ export class UpdateController {
 				);
 				return;
 			}
+			// Queued, not opened: like the automatic check, the offer appears
+			// once nothing else is on screen and no text field is being typed
+			// into. The user may have moved on while the check was running.
 			this.set({ available: found, wantsOffer: true });
-			this.openOffer();
 		} catch (err) {
 			const reason = errorMessage(err);
 			this.set({ lastCheckError: reason });
