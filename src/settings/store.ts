@@ -20,6 +20,7 @@ export interface AppSettings {
 	themeName: string;
 	aiModel: AiModel;
 	promptOnGenerate: boolean;
+	autoUpdate: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	themeName: "tokyonight-dark",
 	aiModel: DEFAULT_AI_MODEL,
 	promptOnGenerate: false,
+	autoUpdate: true,
 };
 
 const MIN_ORDER = 1;
@@ -159,6 +161,7 @@ export async function loadSettings(): Promise<AppSettings> {
 			parsed.promptOnGenerate,
 			defaults.promptOnGenerate,
 		),
+		autoUpdate: asBoolean(parsed.autoUpdate, defaults.autoUpdate),
 	};
 }
 

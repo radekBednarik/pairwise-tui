@@ -27,6 +27,7 @@ import {
 	handleGenerateSaveKeys,
 	handleLogKeys,
 	handlePickerKeys,
+	handleUpdateKeys,
 } from "./keyboard/modalHandlers";
 import {
 	handleModelTabParamKeys,
@@ -62,7 +63,7 @@ export interface AppKeyboardParams {
 	handleGenerate: () => Promise<void>;
 	handleSaveResults: () => Promise<void>;
 	handleOpenModel: () => Promise<void>;
-	handleSaveModel: () => Promise<void>;
+	handleSaveModel: () => Promise<unknown>;
 	handleClearApiKey: () => void;
 	handleAiGenerate: () => void;
 	loadModelFromPath: (path: string) => Promise<void>;
@@ -73,6 +74,22 @@ export interface AppKeyboardParams {
 	isGenerateSaveBusy: () => boolean;
 	promptOnGenerate: boolean;
 	setPromptOnGenerate: (v: boolean) => void;
+	/**
+	 * Leaves the app. Every quit key goes through this one function, so an
+	 * update waiting for exit is installed whichever key was used.
+	 */
+	quit: () => void;
+	/** Keys of the update overlay; the update controller decides their effect. */
+	updateKeys: {
+		moveChoice: (delta: number) => void;
+		scrollNotes: (delta: number) => void;
+		confirm: () => void;
+		escape: () => void;
+	};
+	autoUpdate: boolean;
+	setAutoUpdate: (v: boolean) => void;
+	updatesAvailable: boolean;
+	checkForUpdates: () => void;
 }
 
 export function useAppKeyboard(params: AppKeyboardParams): void {
@@ -106,6 +123,12 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 		isGenerateSaveBusy,
 		promptOnGenerate,
 		setPromptOnGenerate,
+		quit,
+		updateKeys,
+		autoUpdate,
+		setAutoUpdate,
+		updatesAvailable,
+		checkForUpdates,
 	} = params;
 
 	useKeyboard((key) => {
@@ -113,7 +136,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 
 		// Always: quit via Ctrl+C
 		if (ctrl && name === "c") {
-			renderer.destroy();
+			quit();
 			return;
 		}
 
@@ -199,6 +222,9 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 					closeGenerateSave: modal.closeGenerateSave,
 				});
 				return;
+			case "update":
+				handleUpdateKeys(key, updateKeys);
+				return;
 		}
 
 		// Escape: exit current input mode
@@ -233,7 +259,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				handleSaveResults,
 				handleOpenModel,
 				handleSaveModel,
-				destroy: renderer.destroy,
+				destroy: quit,
 			});
 			return;
 		}
@@ -263,7 +289,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 		// Quit — checked after the text-editing panels above so that "q" can be
 		// typed into a parameter value, a constraint or an options field.
 		if (name === "q") {
-			renderer.destroy();
+			quit();
 			return;
 		}
 
@@ -307,7 +333,7 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				handleSaveResults,
 				handleOpenModel,
 				handleSaveModel,
-				destroy: renderer.destroy,
+				destroy: quit,
 			})
 		)
 			return;
@@ -346,6 +372,10 @@ export function useAppKeyboard(params: AppKeyboardParams): void {
 				setOptions,
 				setAiModel: ai.setAiModel,
 				setPromptOnGenerate,
+				autoUpdate,
+				setAutoUpdate,
+				updatesAvailable,
+				checkForUpdates,
 			});
 		}
 	});

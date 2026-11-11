@@ -1,3 +1,4 @@
+import { useTerminalDimensions } from "@opentui/react";
 import type { ActiveOptionField } from "../constants";
 import { useTheme } from "../theme/ThemeContext";
 import {
@@ -11,6 +12,11 @@ import { TIMESTAMP_PLACEHOLDER } from "../utils/fileTemplate";
 
 const TEMPLATE_HINT = `${TIMESTAMP_PLACEHOLDER} = UTC ISO date`;
 
+// Terminal height from which every row of the tab fits with a blank line
+// between rows. Below it the rows are packed, because rows that do not fit
+// are squeezed onto each other and become unreadable.
+const ROOMY_MIN_HEIGHT = 48;
+
 interface OptionsTabProps {
 	options: PictOptions;
 	outputConfig: OutputConfig;
@@ -18,6 +24,14 @@ interface OptionsTabProps {
 	aiModel: AiModel;
 	promptOnGenerate: boolean;
 	activeField: ActiveOptionField;
+	/** The Updates section: installed version, setting and current state. */
+	update: {
+		version: string;
+		autoUpdate: boolean;
+		/** False when this run cannot update itself at all. */
+		available: boolean;
+		stateText: string | null;
+	};
 	onOutputConfigChange: (config: OutputConfig) => void;
 	onOptionsChange: (opts: PictOptions) => void;
 	onModelStorageChange: (cfg: ModelStorageConfig) => void;
@@ -30,14 +44,22 @@ export function OptionsTab({
 	aiModel,
 	promptOnGenerate,
 	activeField,
+	update,
 	onOutputConfigChange,
 	onOptionsChange,
 	onModelStorageChange,
 }: OptionsTabProps) {
 	const theme = useTheme();
+	const { height } = useTerminalDimensions();
+	const roomy = height >= ROOMY_MIN_HEIGHT;
 
 	return (
-		<box flexDirection="column" padding={2} gap={1} flexGrow={1}>
+		<box
+			flexDirection="column"
+			padding={roomy ? 2 : 1}
+			gap={roomy ? 1 : 0}
+			flexGrow={1}
+		>
 			<text fg={theme.colors.accent}>
 				<strong>Output Configuration</strong>
 			</text>
@@ -241,6 +263,76 @@ export function OptionsTab({
 				<text fg={theme.colors.accent}>{AI_MODEL_LABELS[aiModel]}</text>
 				{activeField === "aiModel" && (
 					<text fg={theme.colors.text.muted}> [Enter] cycle</text>
+				)}
+			</box>
+
+			{/* One block without gaps: the tab is already tall, so the section
+			    adds as few rows as it can. */}
+			<box flexDirection="column">
+				<box flexDirection="row" gap={2}>
+					<text fg={theme.colors.accent}>
+						<strong>Updates</strong>
+					</text>
+					<text fg={theme.colors.text.muted}>Version: {update.version}</text>
+				</box>
+
+				<box
+					flexDirection="row"
+					gap={2}
+					alignItems="center"
+					paddingX={1}
+					backgroundColor={
+						activeField === "autoUpdate"
+							? theme.colors.bg.elevated
+							: "transparent"
+					}
+				>
+					<text fg={theme.colors.text.muted} width={20}>
+						Automatic updates:
+					</text>
+					<text
+						fg={
+							update.available && update.autoUpdate
+								? theme.colors.accent
+								: theme.colors.text.muted
+						}
+					>
+						{update.autoUpdate ? "● ON" : "○ OFF"}
+					</text>
+					{activeField === "autoUpdate" && update.available && (
+						<text fg={theme.colors.text.muted}> [Enter] toggle</text>
+					)}
+				</box>
+
+				<box
+					flexDirection="row"
+					gap={2}
+					alignItems="center"
+					paddingX={1}
+					backgroundColor={
+						activeField === "checkUpdates"
+							? theme.colors.bg.elevated
+							: "transparent"
+					}
+				>
+					<text
+						fg={
+							update.available
+								? theme.colors.text.secondary
+								: theme.colors.text.muted
+						}
+					>
+						Check for updates now
+					</text>
+					{activeField === "checkUpdates" && update.available && (
+						<text fg={theme.colors.text.muted}> [Enter] check</text>
+					)}
+				</box>
+
+				{update.stateText !== null && (
+					<box paddingX={1}>
+						<text fg={theme.colors.text.muted}>{update.stateText}</text>
+					</box>
 				)}
 			</box>
 

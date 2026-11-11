@@ -13,6 +13,7 @@ import { OptionsTab } from "./components/OptionsTab";
 import { ResultsTab } from "./components/ResultsTab";
 import { StatusBar } from "./components/StatusBar";
 import { StatusMessage } from "./components/StatusMessage";
+import { UpdateOverlay } from "./components/UpdateOverlay";
 import { type ActiveOptionField, DEFAULT_AI_MODEL } from "./constants";
 import { useAiState } from "./hooks/useAiState";
 import { useAppKeyboard } from "./hooks/useAppKeyboard";
@@ -20,6 +21,7 @@ import { useDeferredScreenChange } from "./hooks/useDeferredScreenChange";
 import { useModalState } from "./hooks/useModalState";
 import { useModelTabState } from "./hooks/useModelTabState";
 import { useStatusLog } from "./hooks/useStatusLog";
+import { useUpdateState } from "./hooks/useUpdateState";
 import { FORMAT_EXTENSIONS, saveTestCases } from "./output/writer";
 import { runPict } from "./pict/runner";
 import {
@@ -43,15 +45,47 @@ import type {
 	PictOptions,
 	TestCase,
 } from "./types";
+import {
+	type UpdateDeps,
+	type UpdateHost,
+	updateStateText,
+	updatesAvailable,
+} from "./update/controller";
+import type { InstallContext } from "./update/platform";
+import { restartInto } from "./update/restart";
+import { INSTALLED_VERSION } from "./update/version";
 import { formatFromExtension } from "./utils/outputPath";
 import { resolveActiveOverlay } from "./utils/overlay";
 import { isTextInputActive, TEXT_INPUT_OPTION_FIELDS } from "./utils/textInput";
 
+const EMPTY_MODEL: PictModel = {
+	parameters: [],
+	submodels: [],
+	constraints: "",
+};
+
+/** A comparable form of a model, to tell whether it changed since a save. */
+function modelSnapshot(model: PictModel): string {
+	return JSON.stringify([model.parameters, model.submodels, model.constraints]);
+}
+
+export interface AppUpdateOptions {
+	/** Replaces parts of the update machinery; tests use it to stay offline. */
+	deps?: Partial<UpdateDeps>;
+	/** Replaces the real restart into the new version. */
+	restart?: (version: string, context: InstallContext) => void;
+}
+
 // `runPict` is injectable so tests can hold a run open deterministically.
 export function App({
 	runPict: run = runPict,
+	update: updateOptions,
+	startupMessage,
 }: {
 	runPict?: typeof runPict;
+	update?: AppUpdateOptions;
+	/** Something the pre-interface startup step wants in the message log. */
+	startupMessage?: string | null;
 } = {}) {
 	const renderer = useRenderer();
 
@@ -86,6 +120,7 @@ export function App({
 	const [promptOnGenerate, setPromptOnGenerate] = useState(
 		DEFAULT_SETTINGS.promptOnGenerate,
 	);
+	const [autoUpdate, setAutoUpdate] = useState(DEFAULT_SETTINGS.autoUpdate);
 	const [results, setResults] = useState<TestCase[]>([]);
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [themeName, setThemeName] = useState(DEFAULT_THEME_NAME);
@@ -106,6 +141,33 @@ export function App({
 		logScrollOffset,
 		showStatus,
 	} = log;
+
+	// --- Updates ---
+	// The controller is created once, before the actions it calls back into
+	// exist; they are filled in further down, on every render.
+	const updateHostRef = useRef<
+		Pick<UpdateHost, "hasUnsavedWork" | "saveModel" | "restart">
+	>({
+		hasUnsavedWork: () => false,
+		saveModel: async () => false,
+		restart: () => {},
+	});
+	const { snapshot: updateSnapshot, controller: updateController } =
+		useUpdateState(
+			{
+				showStatus,
+				log: log.logMessage,
+				hasUnsavedWork: () => updateHostRef.current.hasUnsavedWork(),
+				saveModel: () => updateHostRef.current.saveModel(),
+				restart: (version) => updateHostRef.current.restart(version),
+			},
+			updateOptions?.deps,
+		);
+	// What the model looked like when it was last saved, opened or cleared, and
+	// whether generated results still wait to be saved: together they answer
+	// "would a restart lose work?".
+	const savedModelRef = useRef(modelSnapshot(EMPTY_MODEL));
+	const resultsUnsavedRef = useRef(false);
 
 	const modal = useModalState();
 	const {
@@ -186,6 +248,7 @@ export function App({
 		aiPromptOpen,
 		showClearConfirm,
 		generateSaveOpen,
+		updateOpen: updateSnapshot.phase !== "idle",
 	});
 
 	// Async flows (a PICT run, a directory listing) must not change the screen
@@ -220,9 +283,36 @@ export function App({
 			setThemeName(s.themeName);
 			setAiModel(s.aiModel);
 			setPromptOnGenerate(s.promptOnGenerate);
+			setAutoUpdate(s.autoUpdate);
 			settingsLoadedRef.current = true;
+			// In the background: the interface never waits for the check.
+			void updateController.runStartupCheck(s.autoUpdate);
 		});
-	}, [setAiModel]);
+	}, [setAiModel, updateController]);
+
+	// Turning automatic updates off cancels an update waiting for exit.
+	useEffect(() => {
+		if (!settingsLoadedRef.current) return;
+		void updateController.setAutoUpdate(autoUpdate);
+	}, [autoUpdate, updateController]);
+
+	// A found update is offered only once nothing else is on screen and no
+	// text field is being typed into: opening the overlay unmounts the tab,
+	// and with it any text not yet committed.
+	useEffect(() => {
+		if (updateSnapshot.wantsOffer && overlayKind === null && !textInputActive) {
+			updateController.openOffer();
+		}
+	}, [
+		updateSnapshot.wantsOffer,
+		overlayKind,
+		textInputActive,
+		updateController,
+	]);
+
+	useEffect(() => {
+		if (startupMessage) log.logMessage(startupMessage, true);
+	}, [startupMessage, log.logMessage]);
 
 	useEffect(() => {
 		if (!settingsLoadedRef.current) return;
@@ -233,6 +323,7 @@ export function App({
 			themeName,
 			aiModel,
 			promptOnGenerate,
+			autoUpdate,
 		});
 	}, [
 		options,
@@ -241,6 +332,7 @@ export function App({
 		themeName,
 		aiModel,
 		promptOnGenerate,
+		autoUpdate,
 	]);
 
 	// Leaving a tab ends any text edit on it: a programmatic switch (a finished
@@ -284,6 +376,7 @@ export function App({
 			const testCases = await run(modelToRun, options);
 			setResults(testCases);
 			const count = testCases.length;
+			resultsUnsavedRef.current = count > 0;
 			// Deferred, not applied directly: a run that finishes behind an overlay
 			// (say, the message log opened meanwhile) or while a text field is being
 			// edited must neither yank the user to the Results tab nor pop the save
@@ -347,6 +440,7 @@ export function App({
 			};
 			try {
 				const path = await saveTestCases(context);
+				resultsUnsavedRef.current = false;
 				showStatus(`Saved ${results.length} test cases to ${path}`);
 				return true;
 			} catch (err) {
@@ -397,7 +491,9 @@ export function App({
 		showStatus,
 	]);
 
-	const handleSaveModel = useCallback(async () => {
+	// Resolves whether the file was written, for callers that must not go on
+	// after a failed save (the update flow's "Save model first").
+	const handleSaveModel = useCallback(async (): Promise<boolean> => {
 		const currentConstraints =
 			constraintsRef.current?.editBuffer?.getText() ?? model.constraints;
 		try {
@@ -406,9 +502,15 @@ export function App({
 				currentConstraints,
 				modelStorage,
 			);
+			savedModelRef.current = modelSnapshot({
+				...model,
+				constraints: currentConstraints,
+			});
 			showStatus(`Model saved to ${path}`);
+			return true;
 		} catch (err) {
 			showStatus(err instanceof Error ? err.message : "Save failed", true);
+			return false;
 		}
 	}, [model, modelStorage, showStatus]);
 
@@ -416,6 +518,7 @@ export function App({
 		async (path: string) => {
 			try {
 				const loaded = await loadModelFromFile(path);
+				savedModelRef.current = modelSnapshot(loaded);
 				setModel(loaded);
 				setSelectedParamIndex(0);
 				setSelectedSubmodelIndex(0);
@@ -544,6 +647,7 @@ export function App({
 
 	// --- Clear model action (passed to keyboard handler) ---
 	const clearModel = useCallback(() => {
+		savedModelRef.current = modelSnapshot(EMPTY_MODEL);
 		setModel({ parameters: [], submodels: [], constraints: "" });
 		setSelectedParamIndex(0);
 		setSelectedSubmodelIndex(0);
@@ -559,6 +663,53 @@ export function App({
 		setActivePanel,
 		setConstraintsKey,
 	]);
+
+	// --- Update host actions and quitting ---
+	updateHostRef.current = {
+		hasUnsavedWork: () => {
+			const constraints =
+				constraintsRef.current?.editBuffer?.getText() ?? model.constraints;
+			return (
+				resultsUnsavedRef.current ||
+				modelSnapshot({ ...model, constraints }) !== savedModelRef.current
+			);
+		},
+		saveModel: handleSaveModel,
+		restart: (version) => {
+			const context = updateController.getSnapshot().context;
+			if (!context || context.kind === null) return;
+			if (updateOptions?.restart) {
+				updateOptions.restart(version, context);
+				return;
+			}
+			const { kind, targetPath } = context;
+			// The terminal must be back to normal before another program takes it
+			// over, so the renderer goes first and its output gets a moment to
+			// reach the terminal.
+			renderer.destroy();
+			setTimeout(() => {
+				void restartInto({ kind, target: targetPath, version }).then((code) => {
+					process.exitCode = code;
+				});
+			}, 50);
+		},
+	};
+
+	// The one way out of the app. An update waiting for exit is installed
+	// first; a download still running is cancelled, never waited for.
+	const quittingRef = useRef(false);
+	const quit = useCallback(() => {
+		if (!updateController.needsQuitWork()) {
+			renderer.destroy();
+			return;
+		}
+		if (quittingRef.current) return;
+		quittingRef.current = true;
+		void updateController
+			.finishOnQuit()
+			.catch(() => false)
+			.then(() => renderer.destroy());
+	}, [renderer, updateController]);
 
 	// --- Keyboard handler ---
 	useAppKeyboard({
@@ -594,6 +745,17 @@ export function App({
 		isGenerateSaveBusy: () => generateSaveBusyRef.current,
 		promptOnGenerate,
 		setPromptOnGenerate,
+		quit,
+		updateKeys: {
+			moveChoice: (delta) => updateController.moveChoice(delta),
+			scrollNotes: (delta) => updateController.scrollNotes(delta),
+			confirm: () => updateController.confirm(),
+			escape: () => updateController.escape(),
+		},
+		autoUpdate,
+		setAutoUpdate,
+		updatesAvailable: updatesAvailable(updateSnapshot),
+		checkForUpdates: () => void updateController.checkNow(),
 	});
 
 	const renderOverlay = () => {
@@ -649,6 +811,13 @@ export function App({
 						onSubmit={handleGenerateSaveConfirm}
 					/>
 				);
+			case "update":
+				return (
+					<UpdateOverlay
+						snapshot={updateSnapshot}
+						installedVersion={INSTALLED_VERSION}
+					/>
+				);
 		}
 	};
 
@@ -691,6 +860,12 @@ export function App({
 					aiModel={aiModel}
 					promptOnGenerate={promptOnGenerate}
 					activeField={activeOptionField}
+					update={{
+						version: INSTALLED_VERSION,
+						autoUpdate,
+						available: updatesAvailable(updateSnapshot),
+						stateText: updateStateText(updateSnapshot),
+					}}
 					onOutputConfigChange={setOutputConfig}
 					onOptionsChange={setOptions}
 					onModelStorageChange={setModelStorage}

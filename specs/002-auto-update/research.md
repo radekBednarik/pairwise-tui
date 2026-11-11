@@ -78,6 +78,7 @@ All Technical Context unknowns are resolved below. Findings come from reading th
   - **Windows**: no `execve`. Destroy the renderer, stop reading stdin, spawn the new exe with inherited stdio, wait for it and exit with its exit code. The old process stays as an idle parent for that one session.
   - **Fallback (spec edge case)**: if either mechanism throws, exit cleanly and print `Updated to X. Please start pairwise-tui again.`
 - **UNVERIFIED**: Windows console behaviour of parent-waits-child with a raw-mode TUI. Quickstart V8 validates it; if input is unreliable, Windows uses the fallback permanently. The spec allows this.
+- **Spike result, 2026-11-11 (task T002)**: run on Windows 11 through WSL interop with a compiled `bun-windows-x64` exe. **Verified**: a running exe can be renamed away and a new file renamed into its place; deleting the locked old file fails with `EPERM`; the locked old file can still be renamed; a child spawned with inherited stdio runs from the new file and its exit code reaches the parent; the old file can be deleted once the process has ended. **Not verified**: keyboard input of a raw-mode TUI in the waited child, because the interop session has no interactive console. The waited-child design stays, with the fallback message; quickstart V8 (task T070) decides on a real Windows terminal.
 - **Alternatives considered**: Detached spawn and exit on Windows (the shell prompt returns and fights the new app for the console).
 
 ## R9. Check cadence and persisted state
@@ -96,7 +97,7 @@ All Technical Context unknowns are resolved below. Findings come from reading th
 
 ## R11. Several running copies
 
-- **Decision**: Download and install take `<target>.update.lock`, created with exclusive-create and containing the PID and a timestamp. A lock is stale, and removed, only when its PID is not alive. Age is used only when liveness cannot be determined (unreadable lock content, or the liveness call itself fails): then a lock older than 1 hour is stale. A live but slow download therefore never loses its lock. A copy that cannot take the lock does not download or install; it reports "another copy is updating" in the message log.
+- **Decision**: Download and install take `<target>.update.lock`, created with exclusive-create and containing the PID and a timestamp. A lock is stale, and removed, only when its PID is not alive. Age is used only when liveness cannot be determined (unreadable lock content, or the liveness call itself fails): then a lock older than 1 hour is stale. A live but slow download therefore never loses its lock. One bound applies regardless: a lock older than 24 hours is always stale, because a pid can be reused by an unrelated process (above all after a reboot) and would otherwise keep a dead lock alive forever. Startup cleanup respects a live lock too: it removes nothing while another copy is downloading. A copy that cannot take the lock does not download or install; it reports "another copy is updating" in the message log.
 
 ## R12. Unsaved work
 

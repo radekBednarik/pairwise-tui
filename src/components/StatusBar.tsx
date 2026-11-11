@@ -115,6 +115,15 @@ function getHints(
 		];
 	}
 
+	if (activePanel === "update") {
+		return [
+			{ key: "←→", label: "Choose" },
+			{ key: "Enter", label: "Confirm" },
+			{ key: "↑↓", label: "Scroll notes" },
+			{ key: "Esc", label: "Back" },
+		];
+	}
+
 	if (activePanel === "clearConfirm") {
 		return [
 			{ key: "↑↓", label: "Navigate" },

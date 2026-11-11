@@ -78,7 +78,7 @@ Lifecycle, same for both modes: saved with `sha256: null` when the download star
 | `<target>.part` | during download | removed at startup, on cancel, on failure (FR-034) |
 | `<target>.new` | verified, waiting for install | removed at startup when no matching `pending` with `sha256` exists |
 | `<target>.old` | after an install | exactly one, replaced by the next install (FR-028); never removed by cleanup |
-| `<target>.update.lock` | during download and install | stale when its PID is dead; by age (1 h) only when liveness cannot be determined |
+| `<target>.update.lock` | during download and install | stale when its PID is dead; by age (1 h) only when liveness cannot be determined; always stale after 24 h (pid reuse) |
 
 ## 7. Update flow states
 

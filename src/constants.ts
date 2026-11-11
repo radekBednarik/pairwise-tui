@@ -18,6 +18,8 @@ export type ActiveOptionField =
 	| "storagePath"
 	| "fileTemplate"
 	| "aiModel"
+	| "autoUpdate"
+	| "checkUpdates"
 	| "none";
 
 export const TAB_OPTIONS = [
@@ -36,6 +38,8 @@ export const OPTION_FIELDS: ActiveOptionField[] = [
 	"storagePath",
 	"fileTemplate",
 	"aiModel",
+	"autoUpdate",
+	"checkUpdates",
 	"none",
 ];
 

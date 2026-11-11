@@ -13,6 +13,8 @@ function harness(overrides: {
 	options?: PictOptions;
 	aiModel?: AiModel;
 	promptOnGenerate?: boolean;
+	autoUpdate?: boolean;
+	updatesAvailable?: boolean;
 }) {
 	let outputConfig: OutputConfig = overrides.outputConfig ?? {
 		filePath: "./output.txt",
@@ -25,6 +27,8 @@ function harness(overrides: {
 	};
 	let aiModel: AiModel = overrides.aiModel ?? "claude-sonnet-5-5";
 	let promptOnGenerate = overrides.promptOnGenerate ?? false;
+	let autoUpdate = overrides.autoUpdate ?? true;
+	let checks = 0;
 
 	const actions = {
 		activeOptionField: overrides.activeOptionField,
@@ -55,11 +59,28 @@ function harness(overrides: {
 		setPromptOnGenerate: (v: boolean) => {
 			promptOnGenerate = v;
 		},
+		get autoUpdate() {
+			return autoUpdate;
+		},
+		setAutoUpdate: (v: boolean) => {
+			autoUpdate = v;
+		},
+		updatesAvailable: overrides.updatesAvailable ?? true,
+		checkForUpdates: () => {
+			checks++;
+		},
 	};
 
 	return {
 		actions,
-		result: () => ({ outputConfig, options, aiModel, promptOnGenerate }),
+		result: () => ({
+			outputConfig,
+			options,
+			aiModel,
+			promptOnGenerate,
+			autoUpdate,
+			checks,
+		}),
 	};
 }
 
@@ -169,4 +190,35 @@ test("cycling the format on an empty path still yields a usable name", () => {
 	});
 	handleOptionsTabKeys(RETURN, h.actions);
 	expect(h.result().outputConfig.filePath).toBe("output.json");
+});
+
+test("Enter on the automatic updates field toggles it", () => {
+	const h = harness({ activeOptionField: "autoUpdate" });
+	expect(handleOptionsTabKeys(RETURN, h.actions)).toBe(true);
+	expect(h.result().autoUpdate).toBe(false);
+	handleOptionsTabKeys(RETURN, h.actions);
+	expect(h.result().autoUpdate).toBe(true);
+});
+
+test("Enter on the check field starts a manual update check", () => {
+	const h = harness({ activeOptionField: "checkUpdates" });
+	expect(handleOptionsTabKeys(RETURN, h.actions)).toBe(true);
+	expect(h.result().checks).toBe(1);
+	expect(h.result().autoUpdate).toBe(true);
+});
+
+test("the update fields do nothing when the app cannot update", () => {
+	const toggle = harness({
+		activeOptionField: "autoUpdate",
+		updatesAvailable: false,
+	});
+	expect(handleOptionsTabKeys(RETURN, toggle.actions)).toBe(true);
+	expect(toggle.result().autoUpdate).toBe(true);
+
+	const check = harness({
+		activeOptionField: "checkUpdates",
+		updatesAvailable: false,
+	});
+	expect(handleOptionsTabKeys(RETURN, check.actions)).toBe(true);
+	expect(check.result().checks).toBe(0);
 });

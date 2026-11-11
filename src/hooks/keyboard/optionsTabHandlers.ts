@@ -22,6 +22,11 @@ interface OptionsTabActions {
 	setOptions: Dispatch<SetStateAction<PictOptions>>;
 	setAiModel: (model: AiModel) => void;
 	setPromptOnGenerate: (v: boolean) => void;
+	autoUpdate: boolean;
+	setAutoUpdate: (v: boolean) => void;
+	/** False when this run cannot update itself at all (source run, platform). */
+	updatesAvailable: boolean;
+	checkForUpdates: () => void;
 }
 
 export function handleOptionsTabKeys(
@@ -66,6 +71,14 @@ export function handleOptionsTabKeys(
 						actions.aiModels.length
 				] ?? DEFAULT_AI_MODEL;
 			actions.setAiModel(next);
+			return true;
+		}
+		if (actions.activeOptionField === "autoUpdate") {
+			if (actions.updatesAvailable) actions.setAutoUpdate(!actions.autoUpdate);
+			return true;
+		}
+		if (actions.activeOptionField === "checkUpdates") {
+			if (actions.updatesAvailable) actions.checkForUpdates();
 			return true;
 		}
 	}

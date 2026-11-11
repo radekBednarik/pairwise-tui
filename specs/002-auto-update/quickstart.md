@@ -51,6 +51,30 @@ Restore `package.json` afterwards.
 | V14 | Offline | Stop the server, clear `update.json`, start | No overlay, no error, one entry in the message log |
 | V15 | Typing | Start, immediately start typing a parameter name while the check completes | Overlay waits until the field is left |
 
+### Results, 2026-11-11 (Linux x64, WSL2, plain executable)
+
+Run with two real compiled builds (9.9.8 and 9.9.9) against `scripts/dev-fake-release.ts`, driven through a pseudo-terminal script. "UI test" means the scenario is covered by the headless tests in `src/App.test.tsx` instead of a real terminal run.
+
+| # | Result | Notes |
+|---|--------|-------|
+| V1 | PASS | Restart keeps the same process id (execve); `.old` is the previous build; mode 0755 |
+| V2 | PASS | |
+| V3 | PASS | No offer overlay from the old version is drawn before the new one starts |
+| V4 | PASS | Re-offer served from cache with the fake server stopped |
+| V5 | PASS | Only the app file remains beside the app |
+| V6 | PASS | The artifact is never requested |
+| V7 | PASS | No download request made |
+| V8 | NOT RUN | Needs a real Windows terminal. File swap and waited child were verified by the T002 spike; keyboard input after restart is still unverified |
+| V9 | NOT RUN | Needs an AppImage build and FUSE |
+| V10 | PASS | Decoy "terminal emulator" AppImage untouched; the plain executable was updated |
+| V11 | UI test | |
+| V12 | PASS | Zero requests in 4 s with the setting off; one after the manual check |
+| V13 | UI test | |
+| V14 | PASS | `lastAttemptAt` recorded, `lastCheckAt` not |
+| V15 | UI test | |
+
+One earlier run of the whole set had V3 and V4 fail; two complete reruns passed. In the failed run the outcome matched an arrow key not reaching the app (Enter then lands on the default "Not now"). The cause was not pinned down; the pseudo-terminal driver's key timing is the suspect, not confirmed.
+
 ## 4. Release workflow check
 
 On a throwaway tag in a fork, or by reading the run of the first real release:

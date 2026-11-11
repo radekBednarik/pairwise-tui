@@ -70,6 +70,7 @@ specs/002-auto-update/
 ```text
 package.json                         # + "version" (single source, R1)
 scripts/
+├── build-common.ts                  # new: shared compile-time defines
 ├── build-linux.ts                   # + define __RELEASE_BUILD__
 ├── build-windows.ts                 # + define, version read from package.json
 └── dev-fake-release.ts              # new: local release source for manual validation
@@ -86,6 +87,9 @@ src/
 ├── update/                          # new, no React in here
 │   ├── globals.d.ts                 # build-time constants (__RELEASE_BUILD__, __UPDATE_SOURCE_OVERRIDE__)
 │   ├── version.ts                   # installed version, parse, compare
+│   ├── errors.ts                    # UpdateError with a kind the UI maps to a message
+│   ├── http.ts                      # https-only fetch with manual redirects, capped reads, timeout
+│   ├── controller.ts                # the flow state machine (data-model section 7), no React
 │   ├── platform.ts                  # InstallContext: kind, target, writability, identity
 │   ├── release.ts                   # check request, response validation, notes sanitizing
 │   ├── download.ts                  # checksum file, streamed download, hash, progress, abort
@@ -94,7 +98,7 @@ src/
 │   ├── state.ts                     # update.json load, validate, save
 │   └── startup.ts                   # cleanup + finish pending install before UI
 ├── hooks/
-│   ├── useUpdateState.ts            # flow state machine (data-model section 7)
+│   ├── useUpdateState.ts            # subscribes React to the controller
 │   ├── useUnsavedWork.ts            # optional: unsaved-work check, if extracted from App.tsx (R12)
 │   └── keyboard/
 │       ├── modalHandlers.ts         # + handleUpdateKeys
@@ -107,7 +111,11 @@ src/
 
 Tests are colocated: `src/update/*.test.ts`, `src/hooks/useUpdateState.test.tsx`, additions to `modalHandlers.test.ts`, `optionsTabHandlers.test.ts`, `settings/store.test.ts`, `utils/overlay.test.ts`, `App.test.tsx`.
 
-**Structure Decision**: Single project, as today. All update logic sits in a new `src/update/` directory with no UI imports, mirroring how `src/pict/` and `src/ai/` are separated from components. React only touches it through one hook, `useUpdateState`, which follows the existing `useModalState` / `useAiState` pattern.
+**Structure Decision**: Single project, as today. All update logic sits in a new `src/update/` directory with no UI imports, mirroring how `src/pict/` and `src/ai/` are separated from components. React only touches it through one hook, `useUpdateState`.
+
+**Deviation found during implementation**: the plan put the flow state machine inside the hook. It was built as a plain class, `src/update/controller.ts`, that the hook subscribes to with `useSyncExternalStore`. The flow has long async steps (download, install) that must read current state when they resume; in a hook that means stale closures and refs, in a class it is ordinary fields. It also lets the flow be tested directly and fast, without rendering. Flow tests therefore live in `src/update/controller.test.ts`, not in a `useUpdateState.test.tsx`; the hook is covered through the App tests.
+
+**Options tab layout**: the tab already needed about 41 terminal rows to show its rows without overlap; below that, rows were squeezed onto each other. The new Updates section would have raised that to 48. The tab now packs its rows (no blank line between them) when the terminal is lower than 48 rows, and keeps the previous spacing from 48 up. This changes the look for terminals between 41 and 47 rows and fixes the overlap for those between 34 and 40.
 
 ## Design Notes
 

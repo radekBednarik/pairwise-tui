@@ -271,3 +271,32 @@ export function handleAiPromptKeys(
 	}
 	return true; // textarea handles all other keys
 }
+
+interface UpdateActions {
+	moveChoice: (delta: number) => void;
+	scrollNotes: (delta: number) => void;
+	confirm: () => void;
+	escape: () => void;
+}
+
+const NOTES_PAGE = 10;
+
+/**
+ * Keys of the update overlay, the same in every phase: which choices exist
+ * and what Enter or Escape mean is decided by the update controller.
+ */
+export function handleUpdateKeys(
+	key: KeyEvent,
+	actions: UpdateActions,
+): boolean {
+	const { name } = key;
+	if (name === "left") actions.moveChoice(-1);
+	else if (name === "right" || name === "tab") actions.moveChoice(1);
+	else if (name === "up") actions.scrollNotes(-1);
+	else if (name === "down") actions.scrollNotes(1);
+	else if (name === "pageup") actions.scrollNotes(-NOTES_PAGE);
+	else if (name === "pagedown") actions.scrollNotes(NOTES_PAGE);
+	else if (name === "return") actions.confirm();
+	else if (name === "escape") actions.escape();
+	return true; // swallow all other keys
+}

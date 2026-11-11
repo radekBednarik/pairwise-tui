@@ -15,3 +15,17 @@ test("the in-app help names Fable 5.2 in the data-retention note", () => {
 test("the in-app help no longer mentions Fable 5.1", () => {
 	expect(helpText).not.toContain("Fable 5.1");
 });
+
+test("the in-app help explains automatic updates and how to turn them off", () => {
+	expect(helpText).toContain("Automatic updates  toggle On/Off (default On)");
+	expect(helpText).toContain("Check for updates now");
+	for (const choice of [
+		"Update now",
+		"Update on exit",
+		"Not now",
+		"Skip this version",
+	]) {
+		expect(helpText).toContain(choice);
+	}
+	expect(helpText).toContain("When Off, nothing is contacted.");
+});

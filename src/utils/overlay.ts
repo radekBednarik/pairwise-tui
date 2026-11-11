@@ -10,7 +10,8 @@ export type OverlayKind =
 	| "aiSetup"
 	| "aiPrompt"
 	| "clearConfirm"
-	| "generateSave";
+	| "generateSave"
+	| "update";
 
 export interface OverlayFlags {
 	logOpen: boolean;
@@ -20,6 +21,7 @@ export interface OverlayFlags {
 	aiPromptOpen: boolean;
 	showClearConfirm: boolean;
 	generateSaveOpen: boolean;
+	updateOpen: boolean;
 }
 
 // Precedence order when more than one flag is set, highest first. Kept as a
@@ -36,6 +38,8 @@ const OVERLAY_PRECEDENCE: ReadonlyArray<{
 	{ kind: "aiPrompt", flag: "aiPromptOpen" },
 	{ kind: "clearConfirm", flag: "showClearConfirm" },
 	{ kind: "generateSave", flag: "generateSaveOpen" },
+	// Lowest: the update offer never covers something the user opened.
+	{ kind: "update", flag: "updateOpen" },
 ];
 
 export function resolveActiveOverlay(flags: OverlayFlags): OverlayKind | null {

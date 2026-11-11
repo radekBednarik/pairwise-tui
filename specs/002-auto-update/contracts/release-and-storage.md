@@ -67,7 +67,7 @@ Guarantees:
 
 - Linux and AppImage: `<target>` is at every instant either the complete previous version or the complete new version (replaced in one atomic step).
 - Windows: the same holds before and after an install and after any failed install. Only an interruption between its two renames leaves no file at `<target>`; the complete previous version is then `<target>.old`.
-- The lock is treated as stale only when its owning process is dead (by age of 1 h only when that cannot be determined).
+- The lock is treated as stale when its owning process is dead (by age of 1 h when that cannot be determined), and in any case after 24 h.
 - No update step requests elevated rights.
 - On Linux and for the AppImage, `<target>` has mode `0755` after an install.
 - No other path is written by the updater, apart from `update.json`.
