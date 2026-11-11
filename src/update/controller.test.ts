@@ -38,7 +38,7 @@ interface Setup {
 	kind?: InstallContext["kind"];
 	record?: Partial<UpdateRecord>;
 	check?: () => Promise<AvailableUpdate | null>;
-	checksum?: () => Promise<string | null>;
+	checksum?: (options?: { signal?: AbortSignal }) => Promise<string | null>;
 	download?: UpdateDeps["download"];
 	install?: UpdateDeps["install"];
 	lock?: boolean;
@@ -83,9 +83,9 @@ function make(setup: Setup = {}) {
 			calls.push("check");
 			return setup.check ? setup.check() : update();
 		},
-		fetchChecksum: async () => {
+		fetchChecksum: async (options) => {
 			calls.push("checksum");
-			return setup.checksum ? setup.checksum() : SHA;
+			return setup.checksum ? setup.checksum(options) : SHA;
 		},
 		download: async (options) => {
 			calls.push("download");
@@ -402,7 +402,6 @@ test("'Update now' downloads, verifies, installs and restarts", async () => {
 		"install",
 		"unlock",
 		"restart 1.8.0",
-		"unlock",
 	]);
 	expect(stages).toEqual(["downloading", "verifying", "installing"]);
 	expect(h.record().pending).toBeNull();
@@ -1051,4 +1050,163 @@ test("updates are available only for installs that can check", () => {
 	expect(
 		updatesAvailable(snapshotWith({ context: contextWith("source-run") })),
 	).toBe(false);
+});
+
+// --- review round 1 ---
+
+test("quitting while the update is being installed does not restart the app", async () => {
+	let release: () => void = () => {};
+	const gate = new Promise<void>((r) => {
+		release = r;
+	});
+	const h = await offered({ install: () => gate });
+	const flow = h.controller.updateNow();
+	await tick();
+	await tick();
+	expect(h.snap().progress?.stage).toBe("installing");
+
+	const quit = h.controller.finishOnQuit();
+	release();
+	// The swap had started, so it is completed: the user leaves with the new
+	// version installed, and no new instance is started.
+	expect(await quit).toBe(true);
+	await flow;
+	expect(h.calls).toContain("install");
+	expect(h.calls.some((c) => c.startsWith("restart"))).toBe(false);
+	expect(h.record().installedFrom).toBe("1.7.0");
+	expect(h.record().pending).toBeNull();
+});
+
+test("a cancel that arrives as the download finishes is still honoured", async () => {
+	const h = await offered({
+		download: async (options) => {
+			options.onProgress(1000, 1000);
+			h.controller.escape();
+			return SHA;
+		},
+	});
+	await h.controller.updateNow();
+	expect(h.snap().phase).toBe("offer");
+	expect(h.calls).not.toContain("install");
+	expect(h.calls.some((c) => c.startsWith("restart"))).toBe(false);
+	expect(h.record().pending).toBeNull();
+	expect(h.calls).toContain("removeStaged");
+});
+
+test("quitting right after the download finished installs nothing and does not restart", async () => {
+	let quit: Promise<boolean> = Promise.resolve(false);
+	const h = await offered({
+		download: async () => {
+			quit = h.controller.finishOnQuit();
+			return SHA;
+		},
+	});
+	await h.controller.updateNow();
+	expect(await quit).toBe(false);
+	expect(h.calls).not.toContain("install");
+	expect(h.calls.some((c) => c.startsWith("restart"))).toBe(false);
+});
+
+test("cancelling while the checksum is being fetched does not wait for it", async () => {
+	let seen: AbortSignal | undefined;
+	const h = await offered({
+		checksum: (options) =>
+			new Promise<string | null>((_resolve, reject) => {
+				seen = options?.signal;
+				options?.signal?.addEventListener("abort", () =>
+					reject(new Error("aborted")),
+				);
+			}),
+	});
+	const flow = h.controller.updateNow();
+	await tick();
+	expect(seen).toBeDefined();
+	h.controller.escape();
+	await flow;
+	expect(h.snap().phase).toBe("offer");
+	expect(h.calls).not.toContain("download");
+	expect(h.snap().errorText).toBe("");
+});
+
+test("a startup check that answers while an offer is open does not queue it again", async () => {
+	let answer: (u: AvailableUpdate | null) => void = () => {};
+	let n = 0;
+	const h = make({
+		check: () => {
+			n++;
+			if (n === 1) {
+				return new Promise<AvailableUpdate | null>((resolve) => {
+					answer = resolve;
+				});
+			}
+			return Promise.resolve(update());
+		},
+	});
+	const startup = h.controller.runStartupCheck(true);
+	await tick();
+	await h.controller.checkNow();
+	expect(h.snap().phase).toBe("offer");
+
+	answer(update());
+	await startup;
+	expect(h.snap().phase).toBe("offer");
+	expect(h.snap().wantsOffer).toBe(false);
+	h.controller.notNow();
+	expect(h.snap().wantsOffer).toBe(false);
+	// Still cached for the next start.
+	expect(h.record().available?.version).toBe("1.8.0");
+});
+
+test("a startup check that answers during a download does not disturb it", async () => {
+	let answer: (u: AvailableUpdate | null) => void = () => {};
+	let n = 0;
+	const held = heldDownload();
+	const h = make({
+		download: held.download,
+		check: () => {
+			n++;
+			if (n === 1) {
+				return new Promise<AvailableUpdate | null>((resolve) => {
+					answer = resolve;
+				});
+			}
+			return Promise.resolve(update());
+		},
+	});
+	const startup = h.controller.runStartupCheck(true);
+	await tick();
+	await h.controller.checkNow();
+	const flow = h.controller.updateNow();
+	await tick();
+	answer(update("1.9.0"));
+	await startup;
+	expect(h.snap().phase).toBe("downloading");
+	expect(h.snap().available?.version).toBe("1.8.0");
+	expect(h.snap().wantsOffer).toBe(false);
+	held.resolve();
+	await flow;
+	expect(h.calls).toContain("restart 1.8.0");
+});
+
+test("a restart that fails after the swap is not reported as a failed update", async () => {
+	const h = await offered();
+	const host = (h.controller as unknown as { host: UpdateHost }).host;
+	host.restart = () => {
+		throw new Error("no terminal");
+	};
+	await h.controller.updateNow();
+	expect(h.calls).toContain("install");
+	expect(h.calls).not.toContain("removeStaged");
+	expect(h.record().installedFrom).toBe("1.7.0");
+	expect(h.record().pending).toBeNull();
+	expect(h.snap().phase).not.toBe("error");
+	expect(h.status.at(-1)?.text).toBe(
+		"Updated to 1.8.0. Restart pairwise-tui to use it.",
+	);
+});
+
+test("the lock is released exactly once per flow", async () => {
+	const h = await offered();
+	await h.controller.updateNow();
+	expect(h.calls.filter((c) => c === "unlock")).toHaveLength(1);
 });

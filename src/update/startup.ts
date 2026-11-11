@@ -1,7 +1,8 @@
 import { unlink } from "node:fs/promises";
-import { errorMessage, UpdateError } from "./errors";
+import { errorMessage } from "./errors";
 import {
 	acquireLock,
+	type InstallFs,
 	type IsAlive,
 	installUpdate,
 	partPath,
@@ -18,6 +19,8 @@ export interface StartupOptions {
 	recordPath?: string;
 	isAlive?: IsAlive;
 	loadRecord?: (path?: string) => Promise<UpdateRecord>;
+	/** Replaces file operations of the install step (tests). */
+	installFs?: Partial<InstallFs>;
 }
 
 export interface StartupResult {
@@ -85,18 +88,16 @@ export async function runStartupTasks(
 						expectedSha256: pending.sha256,
 						identity: context.identity,
 						kind: context.kind,
+						fs: options.installFs,
 					});
 					restartVersion = pending.version;
 					record.installedFrom = installed;
 					record.available = null;
 				} catch (err) {
+					// Final, whatever the cause: the agreed update is dropped and
+					// its download removed, so a failure cannot repeat at every
+					// start. The version stays known and is simply offered again.
 					reason = `Update to ${pending.version} was not installed: ${errorMessage(err)}`;
-					// A lock on the previous backup clears by itself; keep the
-					// agreed update for the next start. Anything else is final.
-					if (err instanceof UpdateError && err.kind === "locked") {
-						await saveUpdateRecord(record, options.recordPath);
-						return { restartVersion: null, reason };
-					}
 				}
 			}
 			record.pending = null;

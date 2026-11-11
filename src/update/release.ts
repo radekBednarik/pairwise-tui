@@ -1,5 +1,6 @@
 import { readCapped, safeFetch, withTimeout } from "./http";
-import { type AvailableUpdate, MAX_NOTES_LENGTH, safePageUrl } from "./state";
+import { type AvailableUpdate, MAX_ARTIFACT_BYTES, safePageUrl } from "./state";
+import { sanitizeNotes } from "./text";
 import { isNewer, normalizeVersion } from "./version";
 
 const REPO = "radekBednarik/pairwise-tui";
@@ -39,20 +40,7 @@ export const DEFAULT_SOURCE: ReleaseSource =
 
 export const REQUEST_HEADERS = { "User-Agent": USER_AGENT } as const;
 
-// Release notes are remote text printed into a terminal. Removing every
-// control character (C0 except newline and tab, DEL, C1) takes the ESC and CSI
-// introducers with it, so no escape sequence survives to move the cursor,
-// recolour the screen or set the window title.
-// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
-const CONTROL_CHARS = /[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g;
-
-export function sanitizeNotes(value: unknown): string {
-	if (typeof value !== "string") return "";
-	return value
-		.replace(/\r\n?/g, "\n")
-		.replace(CONTROL_CHARS, "")
-		.slice(0, MAX_NOTES_LENGTH);
-}
+export { sanitizeNotes };
 
 export interface CheckOptions {
 	installedVersion: string;
@@ -70,7 +58,10 @@ function assetSize(assets: unknown, name: string): number | null {
 		if (typeof asset !== "object" || asset === null) continue;
 		const a = asset as Unknown;
 		if (a.name !== name) continue;
-		return typeof a.size === "number" && Number.isInteger(a.size) && a.size > 0
+		return typeof a.size === "number" &&
+			Number.isInteger(a.size) &&
+			a.size > 0 &&
+			a.size <= MAX_ARTIFACT_BYTES
 			? a.size
 			: null;
 	}

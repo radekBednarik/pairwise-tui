@@ -42,10 +42,10 @@ Built from the release source; cached in the update record.
 |-------|------|------|
 | `version` | string `X.Y.Z` | higher than installed |
 | `tag` | string `vX.Y.Z` | used to build download URLs |
-| `notes` | string | sanitized, max 20 000 characters |
-| `pageUrl` | string | must start with `https://github.com/radekBednarik/pairwise-tui/releases/` else replaced by the fixed releases page URL |
+| `notes` | string | sanitized on receipt and again on load from file, max 20 000 characters |
+| `pageUrl` | string | rebuilt from parsed parts: https, host `github.com`, path under `/radekBednarik/pairwise-tui/releases/`, no credentials, query or fragment, at most 300 characters; else the fixed releases page URL |
 | `assetName` | string | equals `InstallContext.assetName` |
-| `sizeBytes` | positive integer | upper bound for the download |
+| `sizeBytes` | positive integer, at most 500 MB | upper bound for the download |
 
 ## 5. UpdateRecord
 
@@ -78,6 +78,7 @@ Lifecycle, same for both modes: saved with `sha256: null` when the download star
 | `<target>.part` | during download | removed at startup, on cancel, on failure (FR-034) |
 | `<target>.new` | verified, waiting for install | removed at startup when no matching `pending` with `sha256` exists |
 | `<target>.old` | after an install | exactly one, replaced by the next install (FR-028); never removed by cleanup |
+| `<target>.update.lock.takeover` | milliseconds, while a stale lock is replaced | cleared after 30 s if left by a crash |
 | `<target>.update.lock` | during download and install | stale when its PID is dead; by age (1 h) only when liveness cannot be determined; always stale after 24 h (pid reuse) |
 
 ## 7. Update flow states

@@ -103,6 +103,7 @@ export interface UpdateDeps {
 	fetchChecksum(options: {
 		tag: string;
 		assetName: string;
+		signal: AbortSignal;
 	}): Promise<string | null>;
 	download(options: {
 		tag: string;
@@ -215,6 +216,10 @@ export class UpdateController {
 	private abort: AbortController | null = null;
 	/** The download-and-install flow in flight, if any. */
 	private running: Promise<void> | null = null;
+	/** The user is leaving: finish or cancel, but never restart. */
+	private quitting = false;
+	/** An install completed while the user was quitting. */
+	private installedWhileQuitting = false;
 
 	constructor(
 		private readonly deps: UpdateDeps,
@@ -333,6 +338,16 @@ export class UpdateController {
 		const candidate = this.record.available;
 		if (!this.offerable(candidate)) return;
 		if (candidate.version === this.record.skippedVersion) return;
+		// The check may have taken a while. If the user has meanwhile opened an
+		// offer or started an update, leave that alone: the version found here
+		// is stored and comes up at the next start.
+		if (
+			this.snapshot.phase !== "idle" ||
+			this.snapshot.wantsOffer ||
+			this.running !== null
+		) {
+			return;
+		}
 
 		const { pendingStatus, pendingVersion } = this.snapshot;
 		if (pendingStatus !== "none") {
@@ -573,6 +588,7 @@ export class UpdateController {
 		}
 		const abort = new AbortController();
 		this.abort = abort;
+		let installed = false;
 		try {
 			// Recorded first, so an update that is verified but not yet installed
 			// when the process dies is finished at the next start (FR-022).
@@ -588,11 +604,18 @@ export class UpdateController {
 			}
 			await this.save();
 
-			const expected = await this.deps.fetchChecksum({
-				tag: update.tag,
-				assetName: update.assetName,
-			});
-			if (abort.signal.aborted) throw new UpdateError("cancelled", "cancelled");
+			const cancelled = () => new UpdateError("cancelled", "cancelled");
+			let expected: string | null;
+			try {
+				expected = await this.deps.fetchChecksum({
+					tag: update.tag,
+					assetName: update.assetName,
+					signal: abort.signal,
+				});
+			} catch (err) {
+				throw abort.signal.aborted ? cancelled() : err;
+			}
+			if (abort.signal.aborted) throw cancelled();
 			if (expected === null) {
 				throw new UpdateError(
 					"checksum-missing",
@@ -613,6 +636,8 @@ export class UpdateController {
 					}
 				},
 			});
+			// A cancel or quit that arrived just as the download completed.
+			if (abort.signal.aborted) throw cancelled();
 			if (foreground) {
 				this.set({
 					progress: {
@@ -633,6 +658,8 @@ export class UpdateController {
 				return;
 			}
 
+			// Last point at which a cancel or quit still stops the update.
+			if (abort.signal.aborted) throw cancelled();
 			// From here on Escape is ignored: the swap must not be interrupted.
 			this.set({
 				progress: {
@@ -651,8 +678,7 @@ export class UpdateController {
 			this.record.available = null;
 			this.record.installedFrom = this.deps.installedVersion;
 			await this.save();
-			await this.deps.releaseLock(target);
-			this.host.restart(update.version);
+			installed = true;
 		} catch (err) {
 			this.record.pending = null;
 			await this.save();
@@ -661,6 +687,24 @@ export class UpdateController {
 		} finally {
 			this.abort = null;
 			await this.deps.releaseLock(target).catch(() => {});
+		}
+		if (!installed) return;
+
+		// The app file has been replaced. Nothing below may turn that into a
+		// "failed update".
+		if (this.quitting) {
+			// The user asked to leave while the swap was running: it was
+			// completed, and the new version starts the next time they do.
+			this.installedWhileQuitting = true;
+			return;
+		}
+		try {
+			this.host.restart(update.version);
+		} catch {
+			this.set({ phase: "idle", progress: null, available: null });
+			this.host.showStatus(
+				`Updated to ${update.version}. Restart pairwise-tui to use it.`,
+			);
 		}
 	}
 
@@ -696,10 +740,14 @@ export class UpdateController {
 		if (!context || context.kind === null) return false;
 		const target = context.targetPath;
 
+		this.quitting = true;
 		if (this.running) {
+			// Cancels a download or checksum fetch at once. A swap that has
+			// already begun is not interruptible and is completed; either way
+			// the flow must not restart the app the user is leaving.
 			this.abort?.abort();
 			await this.running.catch(() => {});
-			return false;
+			return this.installedWhileQuitting;
 		}
 		const pending = this.record.pending;
 		if (this.snapshot.pendingStatus !== "ready" || !pending?.sha256) {

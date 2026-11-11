@@ -1,11 +1,21 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import { getAppConfigPath } from "../utils/configPath";
+import { sanitizeNotes } from "./text";
 import { normalizeVersion } from "./version";
 
 export const RELEASES_PAGE_URL =
 	"https://github.com/radekBednarik/pairwise-tui/releases";
-export const MAX_NOTES_LENGTH = 20_000;
+const RELEASES_PATH = "/radekBednarik/pairwise-tui/releases/";
+const MAX_PAGE_URL_LENGTH = 300;
+/**
+ * No build of this app comes near this size (they are about 110 MB). A release
+ * or a record claiming more is not offered, so a bad size can never make the
+ * app fill the disk.
+ */
+export const MAX_ARTIFACT_BYTES = 500 * 1024 * 1024;
+/** The record is a few kilobytes; anything far beyond that is not ours. */
+const MAX_RECORD_BYTES = 256 * 1024;
 
 export interface AvailableUpdate {
 	version: string;
@@ -59,10 +69,37 @@ function asTimestamp(value: unknown): string | null {
 		: null;
 }
 
+/**
+ * The address shown as "where to download". It is rebuilt from its parsed
+ * parts instead of passed through: only an https address on github.com, under
+ * this project's releases once `..` segments are resolved, without
+ * credentials, query or fragment, survives. Anything else becomes the fixed
+ * releases page.
+ */
 export function safePageUrl(value: unknown): string {
-	return typeof value === "string" && value.startsWith(`${RELEASES_PAGE_URL}/`)
-		? value
-		: RELEASES_PAGE_URL;
+	if (typeof value !== "string" || value.length > MAX_PAGE_URL_LENGTH) {
+		return RELEASES_PAGE_URL;
+	}
+	// The parser would silently drop or encode these; a raw one is a bad sign.
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting them is the point
+	if (/[\u0000-\u001F\u007F-\u009F\s]/.test(value)) return RELEASES_PAGE_URL;
+	let url: URL;
+	try {
+		url = new URL(value);
+	} catch {
+		return RELEASES_PAGE_URL;
+	}
+	if (
+		url.protocol !== "https:" ||
+		url.hostname !== "github.com" ||
+		url.port !== "" ||
+		url.username !== "" ||
+		url.password !== "" ||
+		!url.pathname.startsWith(RELEASES_PATH)
+	) {
+		return RELEASES_PAGE_URL;
+	}
+	return `https://github.com${url.pathname}`;
 }
 
 export function validateAvailable(value: unknown): AvailableUpdate | null {
@@ -76,14 +113,16 @@ export function validateAvailable(value: unknown): AvailableUpdate | null {
 	if (
 		typeof o.sizeBytes !== "number" ||
 		!Number.isInteger(o.sizeBytes) ||
-		o.sizeBytes <= 0
+		o.sizeBytes <= 0 ||
+		o.sizeBytes > MAX_ARTIFACT_BYTES
 	) {
 		return null;
 	}
 	return {
 		version,
 		tag: o.tag,
-		notes: o.notes.slice(0, MAX_NOTES_LENGTH),
+		// Sanitized again here: the file is a second way in for this text.
+		notes: sanitizeNotes(o.notes),
 		pageUrl: safePageUrl(o.pageUrl),
 		assetName: o.assetName,
 		sizeBytes: o.sizeBytes,
@@ -136,6 +175,12 @@ export async function loadUpdateRecord(
 	path: string = getUpdateRecordPath(),
 ): Promise<UpdateRecord> {
 	try {
+		// A regular file of plausible size only: reading a FIFO put in its
+		// place would block the app before its interface exists.
+		const info = await stat(path);
+		if (!info.isFile() || info.size > MAX_RECORD_BYTES) {
+			return { ...EMPTY_UPDATE_RECORD };
+		}
 		return validateRecord(JSON.parse(await Bun.file(path).text()));
 	} catch {
 		return { ...EMPTY_UPDATE_RECORD };

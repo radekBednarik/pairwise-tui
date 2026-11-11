@@ -73,6 +73,8 @@ Run with two real compiled builds (9.9.8 and 9.9.9) against `scripts/dev-fake-re
 | V14 | PASS | `lastAttemptAt` recorded, `lastCheckAt` not |
 | V15 | UI test | |
 
+After the review round 1 fixes, V1 to V7, V12 and V14 were run again against rebuilt executables: all PASS.
+
 One earlier run of the whole set had V3 and V4 fail; two complete reruns passed. In the failed run the outcome matched an arrow key not reaching the app (Enter then lands on the default "Not now"). The cause was not pinned down; the pseudo-terminal driver's key timing is the suspect, not confirmed.
 
 ## 4. Release workflow check

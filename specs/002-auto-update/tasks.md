@@ -25,6 +25,23 @@ description: "Task list for the automatic application update feature"
 - Test-first was kept for the foundation and the four core modules (tests seen failing first). For `startup.ts`, `controller.ts` and the keyboard handlers the tests were written in the same step as the code and were not seen failing first; one mutation spot-check on the controller's retry throttle confirmed the suite catches a broken rule.
 - T019 gained one rule beyond the task text: a lock older than 24 h is stale even with a live pid (pid reuse).
 
+## Review round 1 (2026-11-11, after T067 and T068)
+
+Findings of the code review (CR) and the security review (S) that were fixed, each with a test written and seen failing first:
+
+- [X] R101 CR1 Quit or cancel during the last stages of "Update now" no longer restarts the app: the flow checks for a cancel after the download and before the swap, and a quit never triggers the restart (src/update/controller.ts)
+- [X] R102 CR2 The checksum request can be cancelled; cancel and quit no longer wait up to 10 s for it (src/update/download.ts, src/update/http.ts, src/update/controller.ts)
+- [X] R103 CR3 / S8 Lock: stale takeover guarded by a second exclusive file, release only by the holder, single release per flow (src/update/install.ts, src/update/controller.ts)
+- [X] R104 CR4 A slow startup check that answers while an offer or update is in progress no longer queues the offer again (src/update/controller.ts)
+- [X] R105 CR6 A restart that fails after a successful swap is reported as "Updated ... Restart pairwise-tui to use it", not as a failed update (src/update/controller.ts)
+- [X] R106 S1 Compiled executables load no `.env`, `bunfig.toml`, tsconfig or package.json from the current directory; update requests state certificate verification explicitly (scripts/build-common.ts, scripts/build-linux.ts, scripts/build-windows.ts, src/update/http.ts). Proven with two compiled probes
+- [X] R107 S3 The update source override is refused inside the build step when running on CI (scripts/build-common.ts)
+- [X] R108 S4 The backup step stops if the old backup cannot be removed and never writes through something planted at the backup path (src/update/install.ts)
+- [X] R109 S5 Notes are sanitized again when read from update.json, bidirectional and invisible characters are stripped, the release page address is rebuilt from parsed parts (src/update/text.ts, src/update/state.ts, src/update/release.ts)
+- [X] R110 S7 500 MB size bound, timeout before the first byte, future-dated lock is stale, lock and record files read only if regular and small, an install refused at startup is not retried at every start (src/update/state.ts, release.ts, download.ts, install.ts, startup.ts)
+
+Not fixed in this round: CR5, CR8, CR9, S6 (optional), S2 (release pipeline hardening, separate change), CR7 (documented Windows limit, no change planned).
+
 ## Conventions for every task
 
 - Run commands from the repo root with Bun (`bun run test`, `bun run check`, `bun run typecheck`).
@@ -209,8 +226,8 @@ description: "Task list for the automatic application update feature"
 - [X] T064 [P] Update the in-app docs in src/docs/pict-docs.ts with the Updates section of the Options tab and adjust src/docs/pict-docs.test.ts first if it asserts chapter contents
 - [X] T065 [P] Update .claude/memory/project_release_process.md: the version is bumped in `package.json` (not `scripts/build-windows.ts`), the tag must match it or the workflow fails, releases now include `SHA256SUMS.txt`, and asset names must not change. Update the index line in .claude/memory/MEMORY.md and the "PICT binaries"/conventions text in CLAUDE.md only if they became inaccurate
 - [X] T066 Run `bun run typecheck && bun run check && bun run test`; all green. Run `bun run build:dist` and confirm both artifacts build
-- [ ] T067 Code review pass over the whole diff (project workflow). Report findings to the user and let them pick what to fix
-- [ ] T068 Security review pass (plan.md Constitution Check): fixed download origin and no use of `browser_download_url`; checksum enforced and re-checked before install; staging file modes; lock handling; AppImage target guard; sanitizing of release notes; no shell invocation; no elevation of any kind (FR-030: no `sudo`, `pkexec`, `runas`, UAC manifest or elevation API, and the only spawn is the app's own file on Windows restart); no runtime way to change the release source; nothing identifying in requests. Report findings to the user
+- [X] T067 Code review pass over the whole diff (project workflow). Report findings to the user and let them pick what to fix
+- [X] T068 Security review pass (plan.md Constitution Check): fixed download origin and no use of `browser_download_url`; checksum enforced and re-checked before install; staging file modes; lock handling; AppImage target guard; sanitizing of release notes; no shell invocation; no elevation of any kind (FR-030: no `sudo`, `pkexec`, `runas`, UAC manifest or elevation API, and the only spawn is the app's own file on Windows restart); no runtime way to change the release source; nothing identifying in requests. Report findings to the user
 - [X] T069 Manual validation on Linux with the rig: quickstart V1 to V7, V10 to V15. Record results in specs/002-auto-update/quickstart.md
 - [ ] T070 Manual validation of the AppImage (V9) and Windows (V8). If Windows input after restart is unreliable, switch Windows to the fallback message in src/update/restart.ts, update its test and research R8. These need the user's machines; ask the user to run them if they cannot be run here
 

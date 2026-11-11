@@ -279,3 +279,39 @@ test("a stale partial file from an earlier attempt is replaced", async () => {
 		"pairwise-tui.new",
 	]);
 });
+
+// --- review round 1 ---
+
+test("fetchChecksum stops at once when its signal is aborted", async () => {
+	const hang = ((_input: unknown, init?: RequestInit) =>
+		new Promise<Response>((_resolve, reject) => {
+			init?.signal?.addEventListener("abort", () =>
+				reject(new Error("aborted")),
+			);
+		})) as unknown as typeof fetch;
+	const controller = new AbortController();
+	const started = Date.now();
+	const p = fetchChecksum({
+		tag: "v1.8.0",
+		assetName: "pairwise-tui",
+		source,
+		fetch: hang,
+		signal: controller.signal,
+	});
+	setTimeout(() => controller.abort(), 20);
+	await expect(p).rejects.toThrow();
+	expect(Date.now() - started).toBeLessThan(2000);
+});
+
+test("a server that never answers is given up on, not waited for forever", async () => {
+	const hang = ((_input: unknown, init?: RequestInit) =>
+		new Promise<Response>((_resolve, reject) => {
+			init?.signal?.addEventListener("abort", () =>
+				reject(new Error("aborted")),
+			);
+		})) as unknown as typeof fetch;
+	expect(await kind(download({ fetch: hang, stallTimeoutMs: 50 }))).toBe(
+		"network",
+	);
+	expect(await readdir(dir)).toEqual(["pairwise-tui"]);
+});

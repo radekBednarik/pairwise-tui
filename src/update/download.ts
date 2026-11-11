@@ -24,6 +24,8 @@ export interface ChecksumOptions {
 	fetch?: typeof fetch;
 	source?: ReleaseSource;
 	timeoutMs?: number;
+	/** Stops the request early, for cancel and quit. */
+	signal?: AbortSignal;
 }
 
 /**
@@ -52,6 +54,7 @@ export async function fetchChecksum(
 			}
 			return readCapped(response, MAX_CHECKSUM_BYTES);
 		},
+		options.signal,
 	);
 	for (const line of text.split("\n")) {
 		const match = /^([0-9a-f]{64}) {2}(.+)$/.exec(line.trimEnd());
@@ -123,20 +126,33 @@ export async function downloadArtifact(
 
 	let file: WritableFile | null = null;
 	let created = false;
+	// One timer for every wait on the server: for its first answer and then
+	// for each chunk. Re-armed whenever something arrives.
+	let stallTimer: ReturnType<typeof setTimeout> | undefined;
+	const armStallTimer = () => {
+		clearTimeout(stallTimer);
+		stallTimer = setTimeout(() => {
+			stalled = true;
+			controller.abort();
+		}, stallMs);
+	};
 	try {
 		let response: Response;
+		armStallTimer();
 		try {
-			response = await safeFetch(
-				assetUrl(source, options.tag, options.assetName),
-				{
+			response = await Promise.race([
+				safeFetch(assetUrl(source, options.tag, options.assetName), {
 					fetch: options.fetch,
 					headers: REQUEST_HEADERS,
 					signal: controller.signal,
 					allowHttp: source.allowHttp,
-				},
-			);
+				}),
+				aborted,
+			]);
 		} catch (err) {
 			throw interrupted(err);
+		} finally {
+			clearTimeout(stallTimer);
 		}
 		if (response.status !== 200 || !response.body) {
 			await response.body?.cancel().catch(() => {});
@@ -159,17 +175,14 @@ export async function downloadArtifact(
 		let received = 0;
 		try {
 			for (;;) {
-				const timer = setTimeout(() => {
-					stalled = true;
-					controller.abort();
-				}, stallMs);
+				armStallTimer();
 				let result: Awaited<ReturnType<typeof reader.read>>;
 				try {
 					result = await Promise.race([reader.read(), aborted]);
 				} catch (err) {
 					throw interrupted(err);
 				} finally {
-					clearTimeout(timer);
+					clearTimeout(stallTimer);
 				}
 				if (result.done) break;
 				received += result.value.byteLength;
@@ -211,6 +224,7 @@ export async function downloadArtifact(
 		}
 		return actual;
 	} finally {
+		clearTimeout(stallTimer);
 		external?.removeEventListener("abort", onExternalAbort);
 		await file?.close().catch(() => {});
 		if (created) await unlink(part).catch(() => {});

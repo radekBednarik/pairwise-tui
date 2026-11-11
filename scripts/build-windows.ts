@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import pkg from "../package.json";
-import { buildDefines } from "./build-common";
+import { buildDefines, COMPILE_HARDENING } from "./build-common";
 
 await mkdir("./dist", { recursive: true });
 
@@ -9,6 +9,7 @@ await Bun.build({
 	entrypoints: ["./src/index.tsx"],
 	define: buildDefines(),
 	compile: {
+		...COMPILE_HARDENING,
 		target: "bun-windows-x64",
 		outfile: "dist/pairwise-tui.exe",
 		windows: {

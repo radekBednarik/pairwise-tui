@@ -13,7 +13,8 @@ Rules:
 - Headers: `Accept: application/vnd.github+json` (check only), `User-Agent: pairwise-tui`. No token, no cookies, no query parameters, no user or machine data.
 - `https` only, including every redirect target.
 - Timeouts: 10 s for check and checksums; the artifact download has no total limit but fails after 30 s without data.
-- Response caps: 1 MB for the check, 64 KB for checksums, the announced asset size for the artifact.
+- Response caps: 1 MB for the check, 64 KB for checksums, the announced asset size for the artifact. An asset announced as larger than 500 MB is not treated as an update.
+- Certificate verification is always on, whatever the environment says.
 - With `autoUpdate` off and no manual check, none of these requests is ever made.
 
 ## S2. What the app reads from the check response
@@ -61,7 +62,8 @@ Location: the app config directory, next to `config.json`. Shape as in [data-mod
 | `<target>.part` | download | cancel, failure, startup cleanup |
 | `<target>.new` | successful verification | install, startup cleanup when not pending, turning `autoUpdate` off |
 | `<target>.old` | install | next install only |
-| `<target>.update.lock` | download or install | the same step when it ends; startup cleanup when stale |
+| `<target>.update.lock` | download or install | the same step when it ends (only by the process holding it); startup cleanup when stale |
+| `<target>.update.lock.takeover` | replacing a stale lock, for milliseconds | the same step; cleared after 30 s if left by a crash |
 
 Guarantees:
 

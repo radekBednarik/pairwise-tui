@@ -29,7 +29,10 @@ export async function safeFetch(
 			redirect: "manual",
 			headers: options.headers,
 			signal: options.signal,
-		});
+			// Stated, not left to defaults: certificate checks stay on even if
+			// the environment asks to turn them off (NODE_TLS_REJECT_UNAUTHORIZED).
+			tls: { rejectUnauthorized: true },
+		} as RequestInit);
 		if (!REDIRECT_STATUSES.has(response.status)) return response;
 		const location = response.headers.get("location");
 		await response.body?.cancel().catch(() => {});
@@ -65,15 +68,33 @@ export async function readCapped(
 export async function withTimeout<T>(
 	timeoutMs: number,
 	request: (signal: AbortSignal) => Promise<T>,
+	/** Lets the caller stop the request early; rejects with "cancelled". */
+	cancel?: AbortSignal,
 ): Promise<T> {
+	if (cancel?.aborted) throw new Error("cancelled");
 	const controller = new AbortController();
-	const timer = setTimeout(() => controller.abort(), timeoutMs);
+	let timedOut = false;
+	const timer = setTimeout(() => {
+		timedOut = true;
+		controller.abort();
+	}, timeoutMs);
+	const onCancel = () => controller.abort();
+	cancel?.addEventListener("abort", onCancel, { once: true });
+	// A request that ignores its signal must not keep the caller waiting.
+	const stopped = new Promise<never>((_resolve, reject) => {
+		controller.signal.addEventListener("abort", () =>
+			reject(new Error("aborted")),
+		);
+	});
+	stopped.catch(() => {});
 	try {
-		return await request(controller.signal);
+		return await Promise.race([request(controller.signal), stopped]);
 	} catch (err) {
-		if (controller.signal.aborted) throw new Error("timed out");
+		if (timedOut) throw new Error("timed out");
+		if (cancel?.aborted) throw new Error("cancelled");
 		throw err;
 	} finally {
 		clearTimeout(timer);
+		cancel?.removeEventListener("abort", onCancel);
 	}
 }

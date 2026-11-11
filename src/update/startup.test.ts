@@ -240,3 +240,27 @@ test("a target replaced since the update was staged keeps the old program", asyn
 	expect(result.restartVersion).toBeNull();
 	expect(await Bun.file(target).text()).toBe(OLD);
 });
+
+// --- review round 1 ---
+
+test("an install refused because the backup is in use is not retried at every start", async () => {
+	await Bun.write(`${target}.new`, NEW);
+	await seed({ pending: pending(), available: available("1.8.0") });
+	const result = await runStartupTasks({
+		context: await context({ kind: "windows" }),
+		installedVersion: "1.7.0",
+		recordPath,
+		installFs: {
+			unlink: async () => {
+				throw Object.assign(new Error("EPERM"), { code: "EPERM" });
+			},
+		},
+	});
+	expect(result.restartVersion).toBeNull();
+	expect(result.reason).toContain("still in use");
+	const record = await loadUpdateRecord(recordPath);
+	expect(record.pending).toBeNull();
+	// Still known, so it is offered again instead of failing silently forever.
+	expect(record.available?.version).toBe("1.8.0");
+	expect(await Bun.file(target).text()).toBe(OLD);
+});

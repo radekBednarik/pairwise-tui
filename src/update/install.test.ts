@@ -402,3 +402,94 @@ test("cleanup touches nothing while another live copy holds the lock", async () 
 		"pairwise-tui.update.lock",
 	]);
 });
+
+// --- review round 1 ---
+
+test("releasing never removes a lock that another copy holds", async () => {
+	const lock = `${target}.update.lock`;
+	await Bun.write(
+		lock,
+		JSON.stringify({ pid: process.pid + 1, at: new Date().toISOString() }),
+	);
+	await releaseLock(target);
+	expect(await Bun.file(lock).exists()).toBe(true);
+});
+
+test("a lock dated in the future is stale", async () => {
+	await Bun.write(
+		`${target}.update.lock`,
+		JSON.stringify({
+			pid: 1,
+			at: new Date(Date.now() + 365 * 24 * 3600_000).toISOString(),
+		}),
+	);
+	expect(await acquireLock(target, { isAlive: () => true })).toBe(true);
+});
+
+test("only one of two copies takes over a stale lock", async () => {
+	const lock = `${target}.update.lock`;
+	for (let round = 0; round < 20; round++) {
+		await Bun.write(
+			lock,
+			JSON.stringify({ pid: 4242, at: new Date().toISOString() }),
+		);
+		const results = await Promise.all(
+			Array.from({ length: 6 }, () =>
+				acquireLock(target, { isAlive: (pid) => pid !== 4242 }),
+			),
+		);
+		expect(results.filter(Boolean)).toHaveLength(1);
+		await releaseLock(target);
+		expect((await readdir(dir)).sort()).toEqual(["pairwise-tui"]);
+	}
+});
+
+test.skipIf(process.platform === "win32")(
+	"a lock path that is not a regular file does not block",
+	async () => {
+		Bun.spawnSync(["mkfifo", `${target}.update.lock`]);
+		const result = await Promise.race([
+			acquireLock(target),
+			new Promise<string>((r) => setTimeout(() => r("blocked"), 1500)),
+		]);
+		expect(result).not.toBe("blocked");
+	},
+);
+
+test("linux: a previous backup that cannot be removed stops the install", async () => {
+	await stage();
+	await Bun.write(`${target}.old`, "planted");
+	const { fs, calls } = spyFs({
+		unlink: async (path) => {
+			if (String(path).endsWith(".old")) {
+				throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+			}
+			return nodeFs.unlink(path);
+		},
+	});
+	expect(await kind(install({ fs }))).toBe("storage");
+	expect(await text(target)).toBe(OLD);
+	expect(await text(`${target}.old`)).toBe("planted");
+	expect(calls.some((c) => c.startsWith("copyFile"))).toBe(false);
+	expect(calls.some((c) => c.startsWith("rename"))).toBe(false);
+});
+
+test.skipIf(process.platform === "win32")(
+	"linux: the backup copy never writes through a link planted in its place",
+	async () => {
+		await stage();
+		const victim = join(dir, "victim");
+		await Bun.write(victim, "precious");
+		const { fs } = spyFs({
+			// Hard links unavailable, and something appears at the backup path
+			// between the removal and the copy.
+			link: async () => {
+				await nodeFs.symlink(victim, `${target}.old`);
+				throw Object.assign(new Error("EPERM"), { code: "EPERM" });
+			},
+		});
+		expect(await kind(install({ fs }))).toBe("storage");
+		expect(await text(victim)).toBe("precious");
+		expect(await text(target)).toBe(OLD);
+	},
+);

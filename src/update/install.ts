@@ -1,3 +1,4 @@
+import { constants as fsConstants } from "node:fs";
 import * as nodeFs from "node:fs/promises";
 import { errorMessage, UpdateError } from "./errors";
 import { fileIdentity, type InstallKind } from "./platform";
@@ -6,10 +7,18 @@ import type { UpdateRecord } from "./state";
 export interface InstallFs {
 	rename(from: string, to: string): Promise<void>;
 	link(existing: string, created: string): Promise<void>;
-	copyFile(from: string, to: string): Promise<void>;
+	copyFile(from: string, to: string, mode?: number): Promise<void>;
 	unlink(path: string): Promise<void>;
 	chmod(path: string, mode: number): Promise<void>;
 }
+
+const REAL_FS: InstallFs = {
+	rename: nodeFs.rename,
+	link: nodeFs.link,
+	copyFile: nodeFs.copyFile,
+	unlink: nodeFs.unlink,
+	chmod: nodeFs.chmod,
+};
 
 const HOUR_MS = 3600_000;
 /** Liveness unknown: fall back to age. */
@@ -19,6 +28,12 @@ const UNKNOWN_OWNER_STALE_MS = HOUR_MS;
  * would then keep a dead lock "alive" forever. No download takes a day.
  */
 const ANY_OWNER_STALE_MS = 24 * HOUR_MS;
+/** A lock dated this far ahead of the clock was not written by a sane run. */
+const FUTURE_TOLERANCE_MS = 60_000;
+/** The lock is two short fields; anything bigger is not ours. */
+const MAX_LOCK_BYTES = 4096;
+/** How long a crashed takeover may block the next one. */
+const TAKEOVER_STALE_MS = 30_000;
 
 export const partPath = (target: string) => `${target}.part`;
 export const stagedPath = (target: string) => `${target}.new`;
@@ -49,40 +64,81 @@ export interface LockOptions {
 	now?: () => number;
 }
 
+interface LockOwner {
+	pid: number;
+	at: number;
+}
+
+/** The lock's owner, or null when the file is not a readable lock of ours. */
+async function readLockOwner(path: string): Promise<LockOwner | null> {
+	try {
+		// A regular, small file only: reading a FIFO planted here would block.
+		const info = await nodeFs.stat(path);
+		if (!info.isFile() || info.size > MAX_LOCK_BYTES) return null;
+		const parsed = JSON.parse(await Bun.file(path).text());
+		const at = Date.parse(parsed?.at);
+		if (Number.isInteger(parsed?.pid) && !Number.isNaN(at)) {
+			return { pid: parsed.pid, at };
+		}
+	} catch {
+		// Unreadable: the caller decides by the file's age.
+	}
+	return null;
+}
+
 async function lockIsStale(
 	path: string,
 	isAlive: IsAlive,
 	now: number,
 ): Promise<boolean> {
-	let owner: { pid: number; at: number } | null = null;
-	try {
-		const parsed = JSON.parse(await Bun.file(path).text());
-		const at = Date.parse(parsed?.at);
-		if (Number.isInteger(parsed?.pid) && !Number.isNaN(at)) {
-			owner = { pid: parsed.pid, at };
-		}
-	} catch {
-		// Unreadable: decided by the file's age below.
-	}
+	const owner = await readLockOwner(path);
 	if (!owner) {
 		try {
-			const { mtimeMs } = await nodeFs.stat(path);
-			return now - mtimeMs > UNKNOWN_OWNER_STALE_MS;
+			const info = await nodeFs.stat(path);
+			// Not a file at all (a FIFO, a directory): never a lock of ours.
+			if (!info.isFile()) return true;
+			return now - info.mtimeMs > UNKNOWN_OWNER_STALE_MS;
 		} catch {
 			// Gone in the meantime: nothing in the way any more.
 			return true;
 		}
 	}
 	const age = now - owner.at;
-	if (age > ANY_OWNER_STALE_MS) return true;
+	if (age > ANY_OWNER_STALE_MS || age < -FUTURE_TOLERANCE_MS) return true;
 	const alive = isAlive(owner.pid);
 	if (alive === null) return age > UNKNOWN_OWNER_STALE_MS;
 	return !alive;
 }
 
+async function createLock(path: string, now: number): Promise<boolean> {
+	try {
+		const handle = await nodeFs.open(path, "wx", 0o600);
+		try {
+			await handle.writeFile(
+				JSON.stringify({ pid: process.pid, at: new Date(now).toISOString() }),
+			);
+		} finally {
+			await handle.close();
+		}
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function removeAny(path: string): Promise<void> {
+	await nodeFs.rm(path, { force: true, recursive: true }).catch(() => {});
+}
+
 /**
  * Takes the per-install update lock. Only one copy of the app downloads or
  * installs at a time; the others carry on with the version they run.
+ *
+ * Replacing a stale lock is itself guarded by a short-lived second file.
+ * Without it, two copies that both judge the lock stale could each delete
+ * "the stale lock" and create their own, the second deleting the first's
+ * fresh one, and both would believe they hold it. With it, exactly one copy
+ * removes and replaces; the others simply do not get the lock this time.
  */
 export async function acquireLock(
 	target: string,
@@ -91,28 +147,43 @@ export async function acquireLock(
 	const path = lockPath(target);
 	const isAlive = options.isAlive ?? defaultIsAlive;
 	const now = (options.now ?? Date.now)();
-	for (let attempt = 0; attempt < 2; attempt++) {
+
+	if (await createLock(path, now)) return true;
+	if (!(await lockIsStale(path, isAlive, now))) return false;
+
+	const takeover = `${path}.takeover`;
+	let guard: nodeFs.FileHandle;
+	try {
+		guard = await nodeFs.open(takeover, "wx", 0o600);
+	} catch {
+		// Someone else is replacing the lock right now. A guard left by a
+		// crash in that short window is cleared for the next attempt.
 		try {
-			const handle = await nodeFs.open(path, "wx", 0o600);
-			try {
-				await handle.writeFile(
-					JSON.stringify({ pid: process.pid, at: new Date(now).toISOString() }),
-				);
-			} finally {
-				await handle.close();
-			}
-			return true;
-		} catch (err) {
-			if (code(err) !== "EEXIST") return false;
+			const info = await nodeFs.stat(takeover);
+			if (now - info.mtimeMs > TAKEOVER_STALE_MS) await removeAny(takeover);
+		} catch {
+			// Already gone.
 		}
-		if (!(await lockIsStale(path, isAlive, now))) return false;
-		await nodeFs.unlink(path).catch(() => {});
+		return false;
 	}
-	return false;
+	try {
+		// Judged again under the guard: the lock seen as stale above may have
+		// been replaced by a live one since.
+		if (!(await lockIsStale(path, isAlive, now))) return false;
+		await removeAny(path);
+		return await createLock(path, now);
+	} finally {
+		await guard.close().catch(() => {});
+		await nodeFs.unlink(takeover).catch(() => {});
+	}
 }
 
+/** Releases the lock, but only if this process is the one holding it. */
 export async function releaseLock(target: string): Promise<void> {
-	await nodeFs.unlink(lockPath(target)).catch(() => {});
+	const path = lockPath(target);
+	const owner = await readLockOwner(path);
+	if (owner?.pid !== process.pid) return;
+	await nodeFs.unlink(path).catch(() => {});
 }
 
 export async function hashFile(path: string): Promise<string | null> {
@@ -138,7 +209,7 @@ export interface InstallOptions {
 	/** Identity of `target` at startup (see platform.ts). */
 	identity: string | null;
 	kind: InstallKind;
-	fs?: InstallFs;
+	fs?: Partial<InstallFs>;
 	/** Test hook: runs after the backup exists, before the target is replaced. */
 	afterBackup?: () => void;
 }
@@ -167,7 +238,8 @@ async function step<T>(action: () => Promise<T>): Promise<T> {
  */
 export async function installUpdate(options: InstallOptions): Promise<void> {
 	const { target, kind } = options;
-	const fs: InstallFs = options.fs ?? nodeFs;
+	// Partial replacements are allowed: the rest stays the real file system.
+	const fs: InstallFs = { ...REAL_FS, ...options.fs };
 	const staged = stagedPath(target);
 	const backup = backupPath(target);
 
@@ -213,11 +285,25 @@ export async function installUpdate(options: InstallOptions): Promise<void> {
 	}
 
 	await step(() => fs.chmod(staged, 0o755));
-	await fs.unlink(backup).catch(() => {});
+	// The old backup must really be gone before a new one is made. If it
+	// cannot be removed, something else owns that path: stop, rather than
+	// write to whatever is there.
+	try {
+		await fs.unlink(backup);
+	} catch (err) {
+		if (code(err) !== "ENOENT") {
+			throw new UpdateError(
+				"storage",
+				`the previous backup could not be removed: ${errorMessage(err)}`,
+			);
+		}
+	}
 	try {
 		await fs.link(target, backup);
 	} catch {
-		await step(() => fs.copyFile(target, backup));
+		// COPYFILE_EXCL: fail if anything appeared at the backup path in the
+		// meantime, instead of following a link planted there.
+		await step(() => fs.copyFile(target, backup, fsConstants.COPYFILE_EXCL));
 	}
 	options.afterBackup?.();
 	await step(() => fs.rename(staged, target));

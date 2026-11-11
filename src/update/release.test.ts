@@ -207,3 +207,58 @@ test("sanitizeNotes truncates and tolerates non-strings", () => {
 	expect(sanitizeNotes(42)).toBe("");
 	expect(sanitizeNotes(undefined)).toBe("");
 });
+
+// --- review round 1 ---
+
+test("an artifact larger than any real build is not an update", async () => {
+	const { fn } = stubFetch(() =>
+		json(
+			release({
+				assets: [
+					{ name: "pairwise-tui", size: 600 * 1024 * 1024 },
+					{ name: "SHA256SUMS.txt", size: 200 },
+				],
+			}),
+		),
+	);
+	expect(await check(fn)).toBeNull();
+});
+
+test("the release page address is rebuilt, not passed through", async () => {
+	const cases: Array<[string, string]> = [
+		[
+			"https://github.com/radekBednarik/pairwise-tui/releases/tag/v1.8.0?x=1#frag",
+			"https://github.com/radekBednarik/pairwise-tui/releases/tag/v1.8.0",
+		],
+		[
+			"https://github.com/radekBednarik/pairwise-tui/releases/../../../evil/repo",
+			RELEASES_PAGE_URL,
+		],
+		[
+			"https://user:pw@github.com/radekBednarik/pairwise-tui/releases/tag/v1.8.0",
+			RELEASES_PAGE_URL,
+		],
+		[
+			"https://github.com.evil.example/radekBednarik/pairwise-tui/releases/tag/v1.8.0",
+			RELEASES_PAGE_URL,
+		],
+		[
+			`https://github.com/radekBednarik/pairwise-tui/releases/tag/${"a".repeat(400)}`,
+			RELEASES_PAGE_URL,
+		],
+		[
+			"https://github.com/radekBednarik/pairwise-tui/releases/tag/v1\x1b[31m",
+			RELEASES_PAGE_URL,
+		],
+	];
+	for (const [html_url, expected] of cases) {
+		const { fn } = stubFetch(() => json(release({ html_url })));
+		expect((await check(fn))?.pageUrl).toBe(expected);
+	}
+});
+
+test("sanitizeNotes removes bidirectional and invisible characters", () => {
+	expect(sanitizeNotes("safe\u202Egnp.exe")).toBe("safegnp.exe");
+	expect(sanitizeNotes("a\u2066b\u2069c\u200Bd\u200Fe\uFEFFf")).toBe("abcdef");
+	expect(sanitizeNotes("\u202A\u202B\u202C\u202Dx\u2067\u2068")).toBe("x");
+});

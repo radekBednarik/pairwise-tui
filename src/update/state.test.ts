@@ -179,3 +179,40 @@ test("unknown fields are dropped on save", async () => {
 		Object.keys(EMPTY_UPDATE_RECORD).sort(),
 	);
 });
+
+// --- review round 1 ---
+
+test("notes read back from the file are sanitized again", async () => {
+	const r = await loadRaw({
+		...full,
+		available: { ...available, notes: "ok\x1b[31mred\u202Etxt" },
+	});
+	expect(r.available?.notes).toBe("ok[31mredtxt");
+});
+
+test("an implausibly large artifact in the file is dropped", async () => {
+	const r = await loadRaw({
+		...full,
+		available: { ...available, sizeBytes: 600 * 1024 * 1024 },
+	});
+	expect(r.available).toBeNull();
+});
+
+test("an oversized record file is treated as empty", async () => {
+	await Bun.write(path, JSON.stringify({ ...full, junk: "x".repeat(400_000) }));
+	expect(await loadUpdateRecord(path)).toEqual(EMPTY_UPDATE_RECORD);
+});
+
+test.skipIf(process.platform === "win32")(
+	"a record path that is not a regular file is treated as empty, without blocking",
+	async () => {
+		const { mkdir } = await import("node:fs/promises");
+		await mkdir(join(dir, "nested"), { recursive: true });
+		Bun.spawnSync(["mkfifo", path]);
+		const result = await Promise.race([
+			loadUpdateRecord(path),
+			new Promise<string>((r) => setTimeout(() => r("blocked"), 1500)),
+		]);
+		expect(result).toEqual(EMPTY_UPDATE_RECORD);
+	},
+);

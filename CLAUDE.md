@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Runtime
 
 Default to Bun instead of Node.js: `bun <file>`, `bun test`, `bun install`, `bun run <script>`, `bunx`.
-Prefer `Bun.file` over `node:fs`. Use `Bun.$\`cmd\`` instead of execa. Bun auto-loads `.env`.
+Prefer `Bun.file` over `node:fs`. Use `Bun.$\`cmd\`` instead of execa. Bun auto-loads `.env` when running from source; the compiled executables deliberately do not (`COMPILE_HARDENING` in `scripts/build-common.ts`), so never rely on a `.env` or `bunfig.toml` next to a released binary.
 
 ## Commands
 
