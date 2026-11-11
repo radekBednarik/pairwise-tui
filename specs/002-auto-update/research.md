@@ -49,13 +49,20 @@ All Technical Context unknowns are resolved below. Findings come from reading th
 
 ## R6. Replacing the app file
 
-- **Decision**: Staging files live **beside the target** (`<target>.part`, `<target>.new`, `<target>.old`, `<target>.update.lock`). Install is two renames in the same directory:
-  1. `chmod 0755` on `<target>.new` (Linux and AppImage only, FR-023).
-  2. Rename `<target>` to `<target>.old` (replaces any earlier backup, FR-028).
+- **Decision**: Staging files live **beside the target** (`<target>.part`, `<target>.new`, `<target>.old`, `<target>.update.lock`). Install happens inside that one directory and differs per system:
+
+  **Linux and AppImage (no gap)**
+  1. `chmod 0755` on `<target>.new` (FR-023).
+  2. Remove an earlier `<target>.old`, then hard-link `<target>` to `<target>.old`; if linking fails (filesystem without hard links), copy instead (FR-028).
+  3. Rename `<target>.new` **over** `<target>`. POSIX rename onto an existing file is atomic, also when that file is a running executable, so a complete file exists at `<target>` at every moment.
+
+  **Windows (one-rename gap)**
+  1. Delete an earlier `<target>.old`.
+  2. Rename `<target>` to `<target>.old` (the renamed file is the backup).
   3. Rename `<target>.new` to `<target>`.
   4. If step 3 fails, rename `<target>.old` back.
-- **Rationale**: Same-directory renames are atomic and need no copy across filesystems, so the target is never a partial file (FR-027). The sequence is identical on both systems: Linux allows renaming a running executable, and Windows allows **renaming** a running `.exe` even though it forbids overwriting or deleting it (FR-025). The renamed old file *is* the backup, so no extra copy step. Staging beside the target also means "can I update" and "can I write here" are the same question (R7).
-- **Windows note**: an existing `<target>.old` must be deleted before step 2. It can still be locked if a previous version's process is alive; then the install is refused with a message and retried next startup.
+- **Rationale**: Same-directory operations need no copy across filesystems, so the target is never a partial file (FR-027). Linux can replace a running executable in one atomic step. Windows forbids overwriting, deleting or renaming-over a running `.exe` but allows **renaming it away** (FR-025), which forces two steps there. Between Windows steps 2 and 3 no file exists at `<target>`; a forced kill or power loss in that instant leaves `<target>.old` to be restored by hand. The spec accepts this as the single exception to FR-027. Staging beside the target also means "can I update" and "can I write here" are the same question (R7).
+- **Windows notes**: an existing `<target>.old` can be locked while a previous version's process is alive; then the install is refused with a message and retried at next startup. This happens by design after "Update now" on Windows: the old process stays as the waiting parent (R8) and holds `.old` for that session, so a second update inside the same session is refused until the app is closed.
 - **Alternatives considered**: Download to the temp directory used for `pict` (`$TMPDIR/pairwise-tui-<uid>`): often a different filesystem, so the final step would be a non-atomic copy. A helper script that swaps files after exit: more moving parts, needs a shell, and antivirus tools dislike it.
 
 ## R7. Can the app replace itself
@@ -75,20 +82,21 @@ All Technical Context unknowns are resolved below. Findings come from reading th
 
 ## R9. Check cadence and persisted state
 
-- **Decision**: A separate file `update.json` in the existing config directory (`getAppConfigPath`) holds the update record ([data-model.md](./data-model.md)). The startup check contacts the release source only when `lastCheckAt` is older than 24 h. The last found update is cached in that file, so a version answered with "Not now" is re-offered at next startup without a network call (FR-006). The `autoUpdate` boolean itself goes into `config.json` with the other settings (FR-001); the existing loader gives old files the default `true`.
+- **Decision**: A separate file `update.json` in the existing config directory (`getAppConfigPath`) holds the update record ([data-model.md](./data-model.md)). The startup check contacts the release source only when `lastCheckAt` (last success) is older than 24 h **and** `lastAttemptAt` (last attempt, successful or not) is older than 1 h, so an offline or rate-limited machine retries at most hourly (FR-006, SC-008). The last found update is cached in that file, so a version answered with "Not now" is re-offered at next startup without a network call, and it is also offered when a due check fails (FR-006). The `autoUpdate` boolean itself goes into `config.json` with the other settings (FR-001); the existing loader gives old files the default `true`.
 - **Rationale**: Settings are rewritten on every settings change by an effect in `App.tsx`; machine-written bookkeeping in the same file would race with it. A second file keeps user settings clean.
 - **Alternatives considered**: Everything in `config.json` (write races, noisy file).
 
 ## R10. Install on exit and at next startup
 
 - **Decision**:
-  - All quit paths go through one `quit()` in `App.tsx`: if a pending update is verified, run the install (R6) and then `renderer.destroy()`. Quit never waits for a running download: it is aborted and `.part` removed (FR-021).
+  - "Update now" also records its agreement: `pending { mode: "now" }` is saved when the download starts and gets its `sha256` after verification, so a kill between verification and install is finished at next startup like an "on exit" update (FR-022).
+  - All quit paths, including the `Ctrl+C` handler in `useAppKeyboard.ts`, go through one `quit()` in `App.tsx`: if a pending update is verified, run the install (R6) and then `renderer.destroy()`. Quit never waits for a running download: it is aborted and `.part` removed (FR-021).
   - `src/index.tsx` runs a startup step **before** `createCliRenderer`: clean leftovers (FR-034), then, if `update.json` has a verified pending update and `<target>.new` exists with the recorded hash, install and restart (R8). The new process sees `installedFrom` in `update.json` and shows the one-time notice (FR-022, FR-026).
 - **Rationale**: Installing before the renderer exists avoids a flash of the old interface and needs no terminal teardown. A process killed by the terminal closing gets no chance to run exit code, so next-startup install is the only reliable recovery.
 
 ## R11. Several running copies
 
-- **Decision**: Download and install take `<target>.update.lock`, created with exclusive-create and containing the PID and a timestamp. A lock older than 1 hour, or whose PID is not alive, is stale and removed. A copy that cannot take the lock does not download or install; it reports "another copy is updating" in the message log.
+- **Decision**: Download and install take `<target>.update.lock`, created with exclusive-create and containing the PID and a timestamp. A lock is stale, and removed, only when its PID is not alive. Age is used only when liveness cannot be determined (unreadable lock content, or the liveness call itself fails): then a lock older than 1 hour is stale. A live but slow download therefore never loses its lock. A copy that cannot take the lock does not download or install; it reports "another copy is updating" in the message log.
 
 ## R12. Unsaved work
 

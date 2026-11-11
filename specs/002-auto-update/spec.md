@@ -178,13 +178,13 @@ A tester's download is interrupted, corrupted, or the release has no checksum. T
 
 - **FR-001**: The Options tab MUST provide an "Automatic updates" setting that is on by default, including for users whose saved settings predate this feature, and that persists across restarts.
 - **FR-002**: The Options tab MUST show the installed version of the app.
-- **FR-003**: The Options tab MUST provide a "Check for updates now" action that works regardless of the automatic setting, ignores the check limit in FR-006 and ignores any skipped version.
+- **FR-003**: The Options tab MUST provide a "Check for updates now" action that works regardless of the automatic setting, ignores the check limit in FR-006 and ignores any skipped version. While a download is running or an update is waiting for exit, the manual check MUST only report that state and start nothing new.
 - **FR-004**: The Options tab MUST show the current update state when one applies: update pending for exit, self-update unavailable (with reason), or last check failed.
 
 **Checking**
 
 - **FR-005**: When automatic updates are on, the app MUST check for a newer release at startup, in the background, without delaying or blocking the interface.
-- **FR-006**: The automatic check MUST contact the release source at most once per 24 hours, counted from the last successful check. A version that was found and answered with "Not now" MUST still be offered on the next startup.
+- **FR-006**: The automatic check MUST contact the release source at most once per 24 hours, counted from the last successful check. After a failed check, the next automatic attempt MUST NOT happen sooner than 1 hour later. A version that was found earlier and not skipped (for example answered with "Not now") MUST still be offered on the next startup, also when no new check is made or the new check fails.
 - **FR-007**: When automatic updates are off, the app MUST NOT contact the release source unless the user runs the manual check.
 - **FR-008**: The app MUST treat a release as an update only if it is a published stable release, its version is higher than the installed version, and it contains the artifact matching the running one (plain Linux executable, Windows executable, or Linux AppImage).
 - **FR-009**: A failed automatic check MUST NOT interrupt the user; it MUST be recorded in the message log. A failed manual check MUST be reported to the user with the reason.
@@ -194,7 +194,7 @@ A tester's download is interrupted, corrupted, or the release has no checksum. T
 - **FR-010**: When an update is found, the app MUST show an overlay with the installed version, the new version, the download size and the release notes text, scrollable when it does not fit.
 - **FR-011**: The overlay MUST offer: Update now, Update on exit, Not now, Skip this version.
 - **FR-012**: The app MUST NOT download any part of an update before the user chooses "Update now" or "Update on exit".
-- **FR-013**: "Skip this version" MUST suppress automatic offers of that version, persistently, until a higher version is released.
+- **FR-013**: "Skip this version" MUST suppress automatic offers of that version, persistently, until a higher version is released. A skipped version shown by the manual check stays skipped unless the user chooses to update to it.
 - **FR-014**: The overlay MUST appear only when no other overlay is open and no text field is being edited.
 
 **Download and verification**
@@ -243,14 +243,14 @@ A tester's download is interrupted, corrupted, or the release has no checksum. T
 
 ### Measurable Outcomes
 
-- **SC-001**: A user on a personal installation goes from seeing the update offer to working in the new version in under 1 minute on a typical broadband connection, with no manual file handling.
-- **SC-002**: The background check adds no perceptible delay to startup: the interface is usable as fast as with automatic updates off.
+- **SC-001**: A user on a personal installation goes from seeing the update offer to working in the new version in under 1 minute on a 50 Mbit/s connection, with no manual file handling.
+- **SC-002**: The background check does not delay startup: the interface is drawn and accepts input before the check has finished, whether the check succeeds, fails or times out.
 - **SC-003**: In 100% of tested failure cases (no network, interrupted download, checksum mismatch, missing checksum, no write permission, full storage, abnormal end during replacement), the app still starts afterwards.
 - **SC-004**: 100% of updates on Linux, including the AppImage, start afterwards without the user changing file permissions.
 - **SC-005**: With automatic updates off, the app makes zero contacts with the release source unless the user runs the manual check.
 - **SC-006**: A user can find and switch off automatic updates in the Options tab in under 30 seconds.
 - **SC-007**: No update flow discards unsaved work without an explicit confirmation by the user.
-- **SC-008**: A user who starts the app many times a day causes at most one automatic contact with the release source per 24 hours.
+- **SC-008**: A user who starts the app many times a day causes at most one successful automatic contact with the release source per 24 hours, and at most one failed attempt per hour.
 - **SC-009**: Within one month of a release, at least 80% of active installations with automatic updates on run that release (measured by comparing download counts of consecutive releases).
 
 ## Assumptions
@@ -263,6 +263,7 @@ A tester's download is interrupted, corrupted, or the release has no checksum. T
 - The update overlay is keyboard-driven like the rest of the app.
 - No usage data is sent. The only network activity is reading release information and downloading the artifact.
 - The 24-hour limit and the retention of a single backup are fixed, not user-configurable.
+- On Linux the app file is replaced in a single step, so a working file exists at every moment. Windows does not allow replacing a running program in one step; there the replacement takes two steps, and an interruption exactly between them (power loss, forced kill) leaves the previous version under its backup name, to be restored by hand as documented. This is the one accepted exception to FR-027.
 - No automatic rollback or post-update health check: recovery from a bad release is the manual restore of the backup copy.
 - Release notes are shown as published with the release; their quality is the release author's responsibility.
 - Proxy configuration follows the operating system and environment conventions; no proxy settings are added to the app.

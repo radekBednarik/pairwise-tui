@@ -6,7 +6,7 @@
 
 ## Summary
 
-The app checks this project's GitHub releases at startup (at most once per 24 h, in the background) and, when a higher stable version with an artifact for the running install kind exists, offers it in an overlay: Update now, Update on exit, Not now, Skip this version. Nothing is downloaded before the user agrees. The artifact is streamed beside the app, verified against a `SHA256SUMS.txt` published with the release, and swapped in with two same-directory renames; the renamed old file is the single backup (research R5, R6). Linux and AppImage restart through `process.execve`, Windows through a waited child process (R8). A verified update that was not installed at exit is installed at the next startup before the interface is created (R10). The release workflow gains checksums and a tag/version guard, and `package.json` becomes the single version source (R1).
+The app checks this project's GitHub releases at startup (at most once per 24 h, in the background) and, when a higher stable version with an artifact for the running install kind exists, offers it in an overlay: Update now, Update on exit, Not now, Skip this version. Nothing is downloaded before the user agrees. The artifact is streamed beside the app, verified against a `SHA256SUMS.txt` published with the release, and swapped in inside the same directory: one atomic rename-over on Linux and AppImage, two renames on Windows, keeping a single backup of the old file (research R5, R6). Linux and AppImage restart through `process.execve`, Windows through a waited child process (R8). A verified update that was not installed at exit is installed at the next startup before the interface is created (R10). The release workflow gains checksums and a tag/version guard, and `package.json` becomes the single version source (R1).
 
 ## Technical Context
 
@@ -84,6 +84,7 @@ src/
 ├── settings/store.ts                # + autoUpdate
 ├── utils/overlay.ts                 # + "update" kind (lowest precedence)
 ├── update/                          # new, no React in here
+│   ├── globals.d.ts                 # build-time constants (__RELEASE_BUILD__, __UPDATE_SOURCE_OVERRIDE__)
 │   ├── version.ts                   # installed version, parse, compare
 │   ├── platform.ts                  # InstallContext: kind, target, writability, identity
 │   ├── release.ts                   # check request, response validation, notes sanitizing
@@ -94,6 +95,7 @@ src/
 │   └── startup.ts                   # cleanup + finish pending install before UI
 ├── hooks/
 │   ├── useUpdateState.ts            # flow state machine (data-model section 7)
+│   ├── useUnsavedWork.ts            # optional: unsaved-work check, if extracted from App.tsx (R12)
 │   └── keyboard/
 │       ├── modalHandlers.ts         # + handleUpdateKeys
 │       └── optionsTabHandlers.ts    # + autoUpdate toggle, checkUpdates action

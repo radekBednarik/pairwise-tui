@@ -53,7 +53,8 @@ File: `update.json` in the app config directory. Module: `src/update/state.ts`. 
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| `lastCheckAt` | ISO timestamp or null | last **successful** contact with the release source (FR-006) |
+| `lastCheckAt` | ISO timestamp or null | last **successful** contact with the release source; next automatic check no sooner than 24 h later (FR-006) |
+| `lastAttemptAt` | ISO timestamp or null | last automatic attempt, successful or failed; next automatic attempt no sooner than 1 h later (FR-006) |
 | `available` | AvailableUpdate or null | last found update; dropped when not higher than the installed version |
 | `skippedVersion` | string or null | suppresses automatic offers of exactly this version (FR-013) |
 | `pending` | PendingUpdate or null | update the user agreed to |
@@ -68,6 +69,8 @@ File: `update.json` in the app config directory. Module: `src/update/state.ts`. 
 | `sha256` | 64 hex chars or null | set once `<target>.new` is verified; null while downloading |
 | `targetPath` | string | must equal the current `InstallContext.targetPath`, else pending is discarded |
 
+Lifecycle, same for both modes: saved with `sha256: null` when the download starts, `sha256` set after verification, cleared after a successful install, on any failure, on cancel, and when `autoUpdate` is turned off.
+
 ## 6. Files beside the app
 
 | File | Lifetime | Rule |
@@ -75,7 +78,7 @@ File: `update.json` in the app config directory. Module: `src/update/state.ts`. 
 | `<target>.part` | during download | removed at startup, on cancel, on failure (FR-034) |
 | `<target>.new` | verified, waiting for install | removed at startup when no matching `pending` with `sha256` exists |
 | `<target>.old` | after an install | exactly one, replaced by the next install (FR-028); never removed by cleanup |
-| `<target>.update.lock` | during download and install | stale after 1 h or dead PID |
+| `<target>.update.lock` | during download and install | stale when its PID is dead; by age (1 h) only when liveness cannot be determined |
 
 ## 7. Update flow states
 
@@ -110,4 +113,5 @@ Invariants:
 
 - No file beside the app is written before the user leaves `offered` through an "Update" choice (FR-012).
 - `installing` is reached only with a `.new` file whose hash was re-checked in the same step.
-- Any failure in `installing` leaves `<target>` as either the old or the complete new file (FR-027).
+- Any failure in `installing` leaves `<target>` as either the old or the complete new file (FR-027). On Linux and for the AppImage this also holds for an interruption at any instant; on Windows an interruption between the two renames leaves the old file as `<target>.old` (research R6).
+- A cached `available` that is not skipped is offered at startup whether or not a check ran or succeeded.

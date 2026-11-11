@@ -35,8 +35,10 @@ When self-update is unavailable because of a source run or unsupported platform,
 | Up to date | `You are up to date (X.Y.Z)` |
 | Failed | `Update check failed: <reason>` |
 | Found | no message; overlay U4 or U5 opens |
+| Download for exit running | `Already downloading X.Y.Z, will install on exit`; no request, no overlay |
+| Update waiting for exit | `X.Y.Z will be installed on exit`; no request, no overlay |
 
-The manual check ignores the 24 h limit and `skippedVersion`.
+The manual check ignores the 24 h and 1 h limits and `skippedVersion`. A skipped version offered this way stays skipped when answered with `Not now`, `Esc` or `Close`; choosing `Update now` or `Update on exit` clears the skip.
 
 ## U4. Update overlay, phase `offer`
 
