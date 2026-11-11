@@ -493,6 +493,8 @@ export class UpdateController {
 	}
 
 	async saveFirst(): Promise<void> {
+		// Only a choice of the unsaved-work warning.
+		if (this.snapshot.phase !== "unsavedWarning") return;
 		let saved = false;
 		try {
 			saved = await this.host.saveModel();
@@ -527,6 +529,9 @@ export class UpdateController {
 	}
 
 	private start(mode: "now" | "onExit"): Promise<void> {
+		// The single gate to downloading and installing: whatever called this,
+		// an install that cannot replace itself never gets past here.
+		if (this.context?.availability !== "ok") return Promise.resolve();
 		if (this.running) return this.running;
 		const flow = this.run(mode).finally(() => {
 			this.running = null;

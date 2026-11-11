@@ -21,11 +21,27 @@ export interface RestartOptions {
 		options: { stdio: ["inherit", "inherit", "inherit"] },
 	) => SpawnedChild;
 	print?: (line: string) => void;
+	/**
+	 * Gives up the console input before a child takes the console over
+	 * (Windows only). Replaceable for tests.
+	 */
+	releaseInput?: () => void;
 }
 
 // Set by the AppImage runtime for the mount that is about to go away. The new
 // AppImage sets its own; stale values would point it at the old mount.
 const APPIMAGE_VARS = ["APPIMAGE", "APPDIR", "ARGV0", "OWD"];
+
+// The parent stays alive while the child runs, attached to the same console.
+// It must not keep reading it: two readers would split the key presses
+// between them. The renderer is already destroyed at this point; this makes
+// the hand-over explicit instead of relying on that.
+function releaseConsoleInput(): void {
+	const stdin = process.stdin;
+	if (stdin.isTTY) stdin.setRawMode(false);
+	stdin.pause();
+	stdin.unref?.();
+}
 
 function userArgs(): string[] {
 	// A compiled Bun executable has ["bun", "<embedded entry>", ...user args].
@@ -56,6 +72,11 @@ export async function restartInto(options: RestartOptions): Promise<number> {
 		const spawn =
 			options.spawn ??
 			((cmd, spawnOptions) => Bun.spawn(cmd, spawnOptions) as SpawnedChild);
+		try {
+			(options.releaseInput ?? releaseConsoleInput)();
+		} catch {
+			// Not a terminal, or already released: the restart goes ahead.
+		}
 		try {
 			const child = spawn([target, ...args], {
 				stdio: ["inherit", "inherit", "inherit"],

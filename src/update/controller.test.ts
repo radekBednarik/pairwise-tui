@@ -1210,3 +1210,28 @@ test("the lock is released exactly once per flow", async () => {
 	await h.controller.updateNow();
 	expect(h.calls.filter((c) => c === "unlock")).toHaveLength(1);
 });
+
+// --- convergence ---
+
+test("a read-only install never downloads, installs or starts anything", async () => {
+	const h = make({ availability: "read-only" });
+	await h.controller.runStartupCheck(true);
+	h.controller.openOffer();
+	// Every way through the notice, including the calls the overlay does not
+	// even offer.
+	await h.controller.updateNow();
+	await h.controller.updateOnExit();
+	await h.controller.saveFirst();
+	h.controller.confirm();
+	await h.controller.checkNow();
+	h.controller.openOffer();
+	h.controller.moveChoice(1);
+	h.controller.confirm();
+	await tick();
+	await h.controller.finishOnQuit();
+
+	for (const forbidden of ["lock", "checksum", "download", "install"]) {
+		expect(h.calls).not.toContain(forbidden);
+	}
+	expect(h.calls.some((c) => c.startsWith("restart"))).toBe(false);
+});

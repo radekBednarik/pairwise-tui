@@ -69,7 +69,7 @@ All Technical Context unknowns are resolved below. Findings come from reading th
 
 - **Decision**: Before offering, create and remove a probe file in the target's directory. Failure means `selfUpdate: unavailable (no write permission)` and the overlay becomes notice-only (FR-029). No elevation is ever attempted (FR-030).
 - **Rationale**: `access()` does not reflect ACLs on Windows; an actual write is the only reliable answer on both systems.
-- **Moved or renamed app**: device and inode (Windows: file id from `stat`) of the target are recorded at startup and compared before install; a difference refuses the install.
+- **Moved or renamed app**: device and inode (Windows: file id from `stat`) of the target are recorded at startup and compared before install; a difference refuses the install. Checked on Windows 11 on 2026-11-11 with a compiled probe (task T075): the id is a real file id there, differs between files, changes when a file is replaced by rename and is stable otherwise. The ids are larger than a JavaScript number holds exactly, so they are read as big integers.
 
 ## R8. Restarting into the new version
 
@@ -79,6 +79,7 @@ All Technical Context unknowns are resolved below. Findings come from reading th
   - **Fallback (spec edge case)**: if either mechanism throws, exit cleanly and print `Updated to X. Please start pairwise-tui again.`
 - **UNVERIFIED**: Windows console behaviour of parent-waits-child with a raw-mode TUI. Quickstart V8 validates it; if input is unreliable, Windows uses the fallback permanently. The spec allows this.
 - **Spike result, 2026-11-11 (task T002)**: run on Windows 11 through WSL interop with a compiled `bun-windows-x64` exe. **Verified**: a running exe can be renamed away and a new file renamed into its place; deleting the locked old file fails with `EPERM`; the locked old file can still be renamed; a child spawned with inherited stdio runs from the new file and its exit code reaches the parent; the old file can be deleted once the process has ended. **Not verified**: keyboard input of a raw-mode TUI in the waited child, because the interop session has no interactive console. The waited-child design stays, with the fallback message; quickstart V8 (task T070) decides on a real Windows terminal.
+- **Console hand-over (task T072)**: before the child is started, the parent switches raw mode off and pauses and unrefs stdin itself, not relying on the renderer having done so. Whether the child then receives every key press is still to be seen on a real Windows terminal (T070).
 - **Alternatives considered**: Detached spawn and exit on Windows (the shell prompt returns and fights the new app for the console).
 
 ## R9. Check cadence and persisted state

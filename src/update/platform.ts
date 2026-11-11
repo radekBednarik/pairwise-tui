@@ -100,7 +100,9 @@ export async function probeWritable(dir: string): Promise<boolean> {
 
 export async function fileIdentity(path: string): Promise<string | null> {
 	try {
-		const s = await stat(path);
+		// As big integers: Windows file ids exceed what a JS number holds
+		// exactly, and two different files must never round to the same id.
+		const s = await stat(path, { bigint: true });
 		return `${s.dev}:${s.ino}`;
 	} catch {
 		return null;

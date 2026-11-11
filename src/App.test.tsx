@@ -1063,6 +1063,9 @@ test("'Update now' with unsaved work warns first, and 'Go back' returns to the o
 });
 
 test("work counts as unsaved until the model is saved, and results until they are saved", async () => {
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
 	const update = fakeUpdate({ check: async () => newerUpdate() });
 	const app = await renderApp(<App update={update.options} />);
 	try {
@@ -1095,6 +1098,9 @@ test("work counts as unsaved until the model is saved, and results until they ar
 });
 
 test("generated results that were not saved count as unsaved work", async () => {
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
 	const update = fakeUpdate({ check: async () => null });
 	const fakeRun: typeof runPict = async () => [{ Browser: "Chrome" }];
 	const app = await renderApp(
@@ -1317,6 +1323,85 @@ test("a failed automatic check interrupts nothing and lands in the message log",
 		expect(app.frame()).not.toContain("Update available");
 		await app.press("m");
 		expect(app.frame()).toContain("Update check failed: offline");
+	} finally {
+		app.cleanup();
+	}
+});
+
+/** Manual check from the Options tab, then "Update now" on the offer. */
+async function manualCheckAndUpdateNow(
+	app: Awaited<ReturnType<typeof renderApp>>,
+): Promise<void> {
+	await app.press("2");
+	await app.escape();
+	for (let i = 0; i < 11; i++) await app.tab();
+	await app.enter();
+	await app.waitFor((f) => f.includes("Update available"));
+	await app.arrow("left");
+	await app.arrow("left");
+	await app.enter();
+	await app.settle();
+}
+
+test("a model opened from storage is not unsaved work", async () => {
+	await Bun.write(join(dir, "only.pictm"), "Zeta: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("o");
+		await app.waitFor((f) => f.includes("Loaded model from"));
+		expect(app.frame()).toContain("Zeta");
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).not.toContain("Restarting will discard unsaved work.");
+		expect(update.calls).toContain(`restart ${NEWER}`);
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("an opened model that was then changed is unsaved work", async () => {
+	await Bun.write(join(dir, "only.pictm"), "Zeta: Linux, Windows\n");
+	await writeAppConfig({
+		modelStorage: { storagePath: dir, fileTemplate: "model_{timestamp}" },
+	});
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.press("o");
+		await app.waitFor((f) => f.includes("Loaded model from"));
+		await app.addParam("Browser", "Chrome");
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).toContain("Restarting will discard unsaved work.");
+		expect(update.calls).not.toContain("download");
+	} finally {
+		app.cleanup();
+	}
+});
+
+test("clearing the model leaves no unsaved work", async () => {
+	const update = fakeUpdate({ check: async () => null });
+	const app = await renderApp(<App update={update.options} />);
+	try {
+		await app.settle();
+		await app.addParam("Browser", "Chrome, Firefox");
+		await app.press("x");
+		await app.arrow("up");
+		await app.enter();
+		await app.waitFor((f) => f.includes("Model cleared"));
+
+		update.setCheck(async () => newerUpdate());
+		await manualCheckAndUpdateNow(app);
+		expect(app.frame()).not.toContain("Restarting will discard unsaved work.");
+		expect(update.calls).toContain(`restart ${NEWER}`);
 	} finally {
 		app.cleanup();
 	}

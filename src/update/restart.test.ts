@@ -145,3 +145,61 @@ test("a failing spawn falls back to asking for a manual start", async () => {
 	expect(code).toBe(0);
 	expect(h.printed).toEqual([FALLBACK]);
 });
+
+// --- convergence ---
+
+test("windows gives up the console input before the new program starts", async () => {
+	const order: string[] = [];
+	const code = await restartInto({
+		kind: "windows",
+		target: "C:\\Tools\\pairwise-tui.exe",
+		version: "1.8.0",
+		args: [],
+		env: {},
+		releaseInput: () => order.push("releaseInput"),
+		spawn: () => {
+			order.push("spawn");
+			return { exited: Promise.resolve(0) };
+		},
+		print: () => {},
+	});
+	expect(code).toBe(0);
+	expect(order).toEqual(["releaseInput", "spawn"]);
+});
+
+test("a failure while giving up the input does not stop the restart", async () => {
+	const h = harness();
+	const code = await restartInto({
+		kind: "windows",
+		target: "C:\\Tools\\pairwise-tui.exe",
+		version: "1.8.0",
+		args: [],
+		env: {},
+		releaseInput: () => {
+			throw new Error("not a tty");
+		},
+		spawn: h.spawn,
+		print: h.print,
+	});
+	expect(code).toBe(3);
+	expect(h.spawnCalls).toHaveLength(1);
+});
+
+test("linux does not touch the input: the process image is replaced", async () => {
+	const h = harness();
+	let released = false;
+	await restartInto({
+		kind: "linux",
+		target: "/opt/pairwise-tui",
+		version: "1.8.0",
+		args: [],
+		env: {},
+		releaseInput: () => {
+			released = true;
+		},
+		execve: h.execve,
+		spawn: h.spawn,
+		print: h.print,
+	});
+	expect(released).toBe(false);
+});
